@@ -45,8 +45,14 @@ router.get('/public/track/:awb', getPublicTracking);
 router.post('/webhooks/courier', handleCourierWebhook);
 router.post('/webhooks/delhivery', handleCourierWebhook);
 
+import { getNDRShipments, processNDRAction } from './controllers/ndr.controller';
+
 // --- Analytics API ---
 router.get('/analytics', requireAuth, getAnalytics);
+
+// --- NDR Management API ---
+router.get('/ndr', requireAuth, getNDRShipments);
+router.post('/ndr/:id/action', requireAuth, processNDRAction);
 
 // --- Clients API ---
 router.get('/clients', requireAuth, getClients);

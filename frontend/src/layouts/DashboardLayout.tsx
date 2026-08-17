@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Truck, UploadCloud, Settings, Bell, Search, LogOut, FileText, MapPin } from 'lucide-react';
+import { LayoutDashboard, Users, Truck, UploadCloud, Settings, Bell, Search, LogOut, FileText, MapPin, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const DashboardLayout = () => {
@@ -20,6 +20,7 @@ const DashboardLayout = () => {
   const allNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT'] },
     { name: 'Shipments', href: '/dashboard/shipments', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT'] },
+    { name: 'NDR Action Desk', href: '/dashboard/ndr', icon: ShieldAlert, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS'] },
     { name: 'Billing / Invoices', href: `/dashboard/clients/${user?.client_id}`, icon: FileText, roles: ['CLIENT'] },
     { name: 'Delivery Mode (E-POD)', href: '/dashboard/delivery', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS'] },
     { name: 'Import Delivery Sheets', href: '/dashboard/import', icon: UploadCloud, roles: ['SUPER_ADMIN', 'ADMIN'] },
