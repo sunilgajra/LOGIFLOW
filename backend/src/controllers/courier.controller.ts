@@ -11,6 +11,10 @@ export const getCouriers = async (req: AuthenticatedRequest, res: Response) => {
         _count: {
           select: { shipments: true },
         },
+        rateCards: {
+          where: { type: 'COURIER' },
+          select: { id: true, name: true, type: true }
+        }
       }
     });
     res.json(couriers);
@@ -31,5 +35,30 @@ export const createCourier = async (req: AuthenticatedRequest, res: Response) =>
     res.status(201).json(courier);
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to create courier', details: error.message });
+  }
+};
+
+export const updateCourier = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    const courier = await prisma.courierPartner.update({
+      where: { id, company_id: req.user?.company_id as string },
+      data: {
+        courier_name: data.courier_name,
+        contact_person: data.contact_person,
+        phone: data.phone,
+        email: data.email,
+        account_number: data.account_number,
+        gst_number: data.gst_number,
+        billing_cycle: data.billing_cycle,
+        status: data.status,
+        notes: data.notes,
+        agreement_document: data.agreement_document,
+      }
+    });
+    res.json(courier);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to update courier', details: error.message });
   }
 };

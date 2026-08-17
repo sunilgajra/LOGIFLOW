@@ -2,19 +2,10 @@ export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/a
 
 export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   let token = localStorage.getItem('token');
-  
-  if (!token) {
-    // Development auto-login
-    const authRes = await fetch(`${API_BASE}/auth/dev-login`, { method: 'POST' });
-    if (authRes.ok) {
-      const data = await authRes.json();
-      token = data.token;
-      localStorage.setItem('token', token);
-    }
-  }
 
+  const isFormData = options.body instanceof FormData;
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...options.headers,
   };

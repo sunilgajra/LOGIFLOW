@@ -1,19 +1,37 @@
-import React from 'react';
-import { Package, Truck, CheckCircle, AlertTriangle, TrendingUp, IndianRupee } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Package, Truck, CheckCircle, AlertTriangle } from 'lucide-react';
+import { fetchApi } from '../api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchApi('/analytics')
+      .then(res => {
+        setData(res);
+        setLoading(false);
+      })
+      .catch(console.error);
+  }, []);
+
+  if (loading || !data) {
+    return <div className="p-8 text-center text-slate-500">Loading Dashboard...</div>;
+  }
+
   const stats = [
-    { name: 'Total Shipments', value: '45,231', change: '+12%', icon: Package, color: 'text-blue-600', bg: 'bg-blue-100' },
-    { name: 'In Transit', value: '1,204', change: '+4%', icon: Truck, color: 'text-amber-600', bg: 'bg-amber-100' },
-    { name: 'Delivered (This Month)', value: '12,492', change: '+18%', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-    { name: 'Exceptions / RTO', value: '184', change: '-2%', icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-100' },
+    { name: 'Total Shipments', value: data.totalShipments, change: '', icon: Package, color: 'text-blue-600', bg: 'bg-blue-100' },
+    { name: 'In Transit', value: data.inTransit, change: '', icon: Truck, color: 'text-amber-600', bg: 'bg-amber-100' },
+    { name: 'Delivered', value: data.delivered, change: '', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+    { name: 'Exceptions / RTO', value: data.exceptions, change: '', icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-100' },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">Dashboard Overview</h1>
-        <div className="text-sm text-slate-500">Last updated: Just now</div>
+        <div className="text-sm text-slate-500">Real-time data</div>
       </div>
 
       {/* Top Stats */}
@@ -26,56 +44,40 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-slate-500">{stat.name}</p>
               <h3 className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</h3>
-              <p className={`text-xs mt-1 font-medium ${stat.change.startsWith('+') ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {stat.change} from last month
-              </p>
             </div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Financial Overview - Placeholder for Recharts */}
+        {/* Shipments Chart */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-slate-900">Revenue & Profit Overview</h2>
-            <button className="text-sm text-blue-600 font-medium hover:text-blue-700">View Details</button>
+            <h2 className="text-lg font-bold text-slate-900">Shipments (Last 7 Days)</h2>
           </div>
-          <div className="h-72 bg-slate-50 rounded-lg flex items-center justify-center border border-slate-100">
-            <p className="text-slate-400 font-medium">Chart visualization coming soon (Phase 4)</p>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                <Tooltip 
+                  cursor={{ fill: '#f1f5f9' }}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Bar dataKey="shipments" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Courier Performance */}
+        {/* Courier Performance Placeholder */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-lg font-bold text-slate-900 mb-6">Courier Performance</h2>
+          <h2 className="text-lg font-bold text-slate-900 mb-6">Courier Load</h2>
           <div className="space-y-6">
-            <div>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="font-medium text-slate-700">Blue Dart</span>
-                <span className="text-emerald-600 font-medium">96% Delivery Rate</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '96%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="font-medium text-slate-700">Delhivery</span>
-                <span className="text-emerald-600 font-medium">92% Delivery Rate</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2">
-                <div className="bg-rose-500 h-2 rounded-full" style={{ width: '92%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="font-medium text-slate-700">DHL</span>
-                <span className="text-emerald-600 font-medium">98% Delivery Rate</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2">
-                <div className="bg-amber-500 h-2 rounded-full" style={{ width: '98%' }}></div>
-              </div>
+            <div className="text-center py-12 text-slate-500">
+              <Truck className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+              <p className="text-sm">More analytics coming soon</p>
             </div>
           </div>
         </div>

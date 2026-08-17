@@ -7,6 +7,7 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     company_id: string;
     role: string;
+    client_id?: string;
   };
 }
 
@@ -24,6 +25,7 @@ export const requireAuth = (req: AuthenticatedRequest, res: Response, next: Next
       id: decoded.id,
       company_id: decoded.company_id,
       role: decoded.role,
+      client_id: decoded.client_id,
     };
     next();
   } catch (error) {

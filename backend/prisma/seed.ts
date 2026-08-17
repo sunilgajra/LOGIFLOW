@@ -30,14 +30,26 @@ async function main() {
   await prisma.user.create({
     data: {
       company_id: company.id,
-      email: 'admin@abclogistics.com',
+      email: 'admin@logiflow.com',
+      password: hashedPassword,
       first_name: 'Admin',
       last_name: 'User',
       role: 'SUPER_ADMIN',
     },
   });
+  console.log('Created Admin User (admin@logiflow.com / password123)');
 
-  console.log('Created Admin User (admin@abclogistics.com / password123)');
+  await prisma.user.create({
+    data: {
+      company_id: company.id,
+      email: 'driver@logiflow.com',
+      password: hashedPassword,
+      first_name: 'Delivery',
+      last_name: 'Driver',
+      role: 'OPERATIONS',
+    },
+  });
+  console.log('Created Driver User (driver@logiflow.com / password123)');
 
   // 3. Create Clients
   const client1 = await prisma.client.create({

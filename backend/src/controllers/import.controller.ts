@@ -1,79 +1,172 @@
 import { Request, Response } from 'express';
-import { parseDeliverySheetWithAI } from '../services/ai.service';
+import { AiParserService } from '../services/ai.service';
+import { ImportService } from '../services/import.service';
 import { prisma } from '../prisma';
 import fs from 'fs';
-import pdf from 'pdf-parse';
-import * as xlsx from 'xlsx';
+import { AuthenticatedRequest } from '../auth.middleware';
+import { calculateShipmentCost } from './rate.controller';
 
-export const aiUpload = async (req: Request, res: Response) => {
+export const previewImport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     const filePath = req.file.path;
-    const fileExt = req.file.originalname.split('.').pop()?.toLowerCase();
+    const fileExt = req.file.originalname.split('.').pop()?.toLowerCase() || '';
     
-    let rawText = '';
-
-    if (fileExt === 'pdf') {
-      const dataBuffer = fs.readFileSync(filePath);
-      const data = await pdf(dataBuffer);
-      rawText = data.text;
-    } else if (fileExt === 'csv' || fileExt === 'xlsx' || fileExt === 'xls') {
-      const workbook = xlsx.readFile(filePath);
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      rawText = xlsx.utils.sheet_to_csv(sheet);
+    let records: any[] = [];
+    
+    if (['jpg', 'jpeg', 'png', 'pdf'].includes(fileExt)) {
+      const mimeType = fileExt === 'pdf' ? 'application/pdf' : `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`;
+      records = await AiParserService.parseUnstructuredDocument(filePath, mimeType);
+      
+      // Save records to a temp json file for processImport to use, to avoid re-running AI
+      fs.writeFileSync(`${filePath}.json`, JSON.stringify(records));
+      res.json({
+        fileId: `${req.file.filename}.json`,
+        headers: Object.keys(records[0] || {}),
+        mapping: ImportService.guessColumnMapping(Object.keys(records[0] || {})),
+        sampleData: records.slice(0, 5)
+      });
+      return;
     } else {
-      rawText = fs.readFileSync(filePath, 'utf-8');
+      records = ImportService.parseFile(filePath, req.file.originalname);
+    }
+    
+    if (records.length === 0) {
+      fs.unlinkSync(filePath);
+      return res.status(400).json({ error: 'File is empty or could not be parsed' });
     }
 
-    // Clean up uploaded file
-    fs.unlinkSync(filePath);
+    const headers = Object.keys(records[0]);
+    const mapping = ImportService.guessColumnMapping(headers);
+    const sampleData = records.slice(0, 5);
 
-    // Call AI to parse
-    const shipments = await parseDeliverySheetWithAI(rawText);
+    res.json({
+      fileId: req.file.filename,
+      headers,
+      mapping,
+      sampleData
+    });
+  } catch (error: any) {
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.status(500).json({ error: 'Preview failed', details: error.message });
+  }
+};
 
-    // Assuming company_id is provided in headers or body, for now default to a placeholder or the first company
-    // For a real app, this comes from req.user
-    const company = await prisma.company.findFirst();
-    if (!company) {
-      return res.status(500).json({ error: 'No company found in database to associate shipments' });
+export const processImport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { fileId, mapping, courierId, clientId } = req.body;
+    const isJson = fileId.endsWith('.json');
+    const originalFileId = isJson ? fileId.replace('.json', '') : fileId;
+    
+    const filePath = `uploads/${fileId}`;
+    const originalPath = `uploads/${originalFileId}`;
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found or expired' });
     }
 
-    const company_id = company.id;
+    let records: any[] = [];
+    if (isJson) {
+      records = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      fs.unlinkSync(filePath);
+      if (fs.existsSync(originalPath)) fs.unlinkSync(originalPath); // cleanup original image
+    } else {
+      records = ImportService.parseFile(filePath, fileId); 
+      fs.unlinkSync(filePath); // Cleanup
+    }
 
-    // Save to database
-    let importedCount = 0;
-    for (const shipment of shipments) {
-      if (shipment.awb_number) {
+    const company_id = req.user?.company_id as string;
+    let imported = 0;
+    let failed = 0;
+
+    for (const record of records) {
+      const awb = record[mapping.awb_number];
+      if (!awb) {
+        failed++;
+        continue;
+      }
+
+      const rawStatus = mapping.internal_status ? record[mapping.internal_status] : 'PENDING';
+      const status = ImportService.normalizeStatus(rawStatus);
+
+      try {
+        // Prepare calculation inputs
+        const actual_weight = mapping.actual_weight ? parseFloat(record[mapping.actual_weight]) || 0 : 0;
+        const volumetric_weight = mapping.volumetric_weight ? parseFloat(record[mapping.volumetric_weight]) || 0 : 0;
+        const state = mapping.state ? record[mapping.state] : null;
+        const origin = mapping.origin ? record[mapping.origin] : null;
+        let client_charge = mapping.client_charge ? parseFloat(record[mapping.client_charge]) || null : null;
+
+        let calculated_fsc = 0;
+        let calculated_idc = 0;
+        let calculated_oda = 0;
+        let calculated_green_tax = 0;
+
+        if (client_charge === null && clientId) {
+           const calcPayload = {
+             client_id: clientId,
+             actual_weight,
+             volumetric_weight,
+             state,
+             origin,
+             declared_value: mapping.declared_value ? parseFloat(record[mapping.declared_value]) || 0 : 0,
+             is_oda: mapping.is_oda ? (record[mapping.is_oda]?.toLowerCase() === 'yes' || record[mapping.is_oda] === true) : false
+           };
+           const calcResult = await calculateShipmentCost(calcPayload, company_id);
+           if (calcResult) {
+             client_charge = calcResult.client_charge;
+             calculated_fsc = calcResult.fsc_amount;
+             calculated_idc = calcResult.idc_amount;
+             calculated_oda = calcResult.oda_amount;
+             calculated_green_tax = calcResult.green_tax_amount;
+           }
+        }
+
         await prisma.shipment.upsert({
           where: {
             company_id_awb_number: {
-              company_id: company_id,
-              awb_number: shipment.awb_number
+              company_id,
+              awb_number: awb.toString().trim()
             }
           },
           update: {
-            ...shipment,
-            company_id: undefined // Don't update company_id
+            internal_status: status,
+            client_charge: client_charge !== null ? client_charge : undefined,
+            client_reference_no: mapping.client_reference_no ? record[mapping.client_reference_no] : undefined,
           },
           create: {
-            ...shipment,
-            company_id: company_id
+            company_id,
+            awb_number: awb.toString().trim(),
+            internal_status: status,
+            client_id: clientId || null,
+            courier_id: courierId || null,
+            client_reference_no: mapping.client_reference_no ? record[mapping.client_reference_no] : null,
+            receiver_name: mapping.receiver_name ? record[mapping.receiver_name] : null,
+            city: mapping.city ? record[mapping.city] : null,
+            state,
+            origin,
+            pincode: mapping.pincode ? record[mapping.pincode] : null,
+            actual_weight,
+            volumetric_weight,
+            client_charge,
+            fsc_amount: calculated_fsc,
+            idc_amount: calculated_idc,
+            oda_amount: calculated_oda,
+            green_tax_amount: calculated_green_tax,
+            declared_value: mapping.declared_value ? parseFloat(record[mapping.declared_value]) || 0 : 0,
+            booking_date: new Date()
           }
         });
-        importedCount++;
+        imported++;
+      } catch (err) {
+        console.error(err);
+        failed++;
       }
     }
 
-    res.json({ 
-      message: `Successfully processed ${importedCount} shipments via AI`,
-      shipments 
-    });
+    res.json({ message: 'Import complete', imported, failed, total: records.length });
   } catch (error: any) {
-    console.error('AI Upload Error:', error);
-    res.status(500).json({ error: error.message || 'Internal server error during AI upload' });
+    res.status(500).json({ error: 'Processing failed', details: error.message });
   }
 };

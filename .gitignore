@@ -32,9 +32,12 @@ build/
 ehthumbs.db
 Thumbs.db
 
-# Prisma
+# Prisma & Databases
+*.db
+*.db-journal
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
 
 # File Uploads
 backend/uploads/
+

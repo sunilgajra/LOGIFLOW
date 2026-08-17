@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from './auth.middleware';
-import { aiUpload } from './controllers/import.controller';
+
 import multer from 'multer';
 
 const upload = multer({ dest: 'uploads/' });
@@ -27,28 +27,67 @@ router.post('/auth/dev-login', async (req, res) => {
   res.json({ token, user });
 });
 
-import { getClients, createClient } from './controllers/client.controller';
+import { getClients, createClient, updateClient, getClientById, uploadClientAgreement, createClientLogin } from './controllers/client.controller';
 import { getCouriers, createCourier } from './controllers/courier.controller';
 import { getShipments } from './controllers/shipment.controller';
+import { getAnalytics } from './controllers/analytics.controller';
+import { getPublicTracking } from './controllers/tracking.controller';
+import { uploadImportFile } from './controllers/import.controller';
+import { generateInvoice, getInvoicesByClient } from './controllers/invoice.controller';
+import { getCompanySettings, updateCompanySettings } from './controllers/settings.controller';
+import { getRateCards, createRateCard, updateRateCard, deleteRateCard, getZoneMappings, saveZoneMapping } from './controllers/rate.controller';
+import { login } from './controllers/auth.controller';
+
+// --- Public APIs ---
+router.post('/auth/login', login);
+router.get('/public/track/:awb', getPublicTracking);
+
+// --- Analytics API ---
+router.get('/analytics', requireAuth, getAnalytics);
 
 // --- Clients API ---
 router.get('/clients', requireAuth, getClients);
-router.post('/clients', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), createClient);
+router.post('/clients', requireAuth, createClient);
+router.get('/clients/:id', requireAuth, getClientById);
+router.put('/clients/:id', requireAuth, updateClient);
+router.post('/clients/:id/agreement', requireAuth, uploadClientAgreement);
+router.post('/clients/:id/create-login', requireAuth, createClientLogin);
+
+// --- Invoices API ---
+router.post('/invoices/generate', requireAuth, generateInvoice);
+router.get('/clients/:clientId/invoices', requireAuth, getInvoicesByClient);
+
+// --- Settings API ---
+router.get('/settings/company', requireAuth, getCompanySettings);
+router.put('/settings/company', requireAuth, updateCompanySettings);
+
+// --- Rates API ---
+router.get('/rates', requireAuth, getRateCards);
+router.post('/rates', requireAuth, createRateCard);
+router.put('/rates/:id', requireAuth, updateRateCard);
+router.delete('/rates/:id', requireAuth, deleteRateCard);
+router.get('/zones', requireAuth, getZoneMappings);
+router.post('/zones', requireAuth, saveZoneMapping);
 
 // --- Couriers API ---
+import { getCouriers, createCourier, updateCourier } from './controllers/courier.controller';
 router.get('/couriers', requireAuth, getCouriers);
-router.post('/couriers', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), createCourier);
+router.post('/couriers', requireAuth, createCourier);
+router.put('/couriers/:id', requireAuth, updateCourier);
 
 // --- Shipments API ---
+import { getShipments, bookShipment, updateShipment } from './controllers/shipment.controller';
 router.get('/shipments', requireAuth, getShipments);
+router.post('/shipments', requireAuth, bookShipment);
+router.put('/shipments/:id', requireAuth, updateShipment);
+
+import { deliverShipment } from './controllers/delivery.controller';
+router.post('/shipments/:awb/deliver', requireAuth, deliverShipment);
+
+import { previewImport, processImport } from './controllers/import.controller';
 
 // --- Delivery Sheet Imports API ---
-router.post('/imports', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'OPERATIONS']), (req, res) => {
-  // TODO: Handle excel/csv file upload via multer
-  // TODO: Trigger parsing and column mapping
-  res.json({ message: 'Delivery sheet imported successfully' });
-});
-
-router.post('/imports/ai-upload', upload.single('file'), aiUpload);
+router.post('/imports/preview', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'OPERATIONS']), upload.single('file'), previewImport);
+router.post('/imports/process', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'OPERATIONS']), processImport);
 
 export default router;

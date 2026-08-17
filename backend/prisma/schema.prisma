@@ -7,17 +7,17 @@ datasource db {
 }
 
 model Company {
-  id               String            @id @default(uuid())
-  name             String
-  branding_logo    String?
-  address          String?
-  gst_number       String?
-  pan_number       String?
-  invoice_prefix   String?
-  currency         String            @default("INR")
-  created_at       DateTime          @default(now())
-  updated_at       DateTime          @updatedAt
-  
+  id             String   @id @default(uuid())
+  name           String
+  branding_logo  String?
+  address        String?
+  gst_number     String?
+  pan_number     String?
+  invoice_prefix String?
+  currency       String   @default("INR")
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
   users            User[]
   clients          Client[]
   courier_partners CourierPartner[]
@@ -29,25 +29,29 @@ model Company {
   courier_bills    CourierBill[]
   audit_logs       AuditLog[]
   settings         Setting[]
+  zoneMappings     ZoneMapping[]
 }
 
 model User {
   id         String   @id @default(uuid())
   company_id String
   email      String   @unique
+  password   String?
   first_name String?
   last_name  String?
-  role       String   @default("VIEWER") // SUPER_ADMIN, ADMIN, OPERATIONS, ACCOUNTS, VIEWER
+  role       String   @default("VIEWER") // SUPER_ADMIN, ADMIN, OPERATIONS, ACCOUNTS, VIEWER, CLIENT
+  client_id  String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  
-  company    Company  @relation(fields: [company_id], references: [id])
+
+  company Company @relation(fields: [company_id], references: [id])
+  client  Client? @relation(fields: [client_id], references: [id])
 }
 
 model Client {
   id               String   @id @default(uuid())
   company_id       String
-  client_id        String   // Custom ID like CLI-001
+  client_id        String // Custom ID like CLI-001
   company_name     String
   contact_person   String?
   phone            String?
@@ -61,18 +65,21 @@ model Client {
   credit_limit     Float?
   status           String   @default("ACTIVE")
   notes            String?
+  agreement_document String? // Base64 string for PDF/Image
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
-  
-  company          Company  @relation(fields: [company_id], references: [id])
-  shipments        Shipment[]
-  invoices         ClientInvoice[]
+
+  company   Company         @relation(fields: [company_id], references: [id])
+  shipments Shipment[]
+  invoices  ClientInvoice[]
+  rateCards RateCard[]
+  users     User[]
 }
 
 model CourierPartner {
   id             String   @id @default(uuid())
   company_id     String
-  courier_id     String   // Custom ID
+  courier_id     String // Custom ID
   courier_name   String
   contact_person String?
   phone          String?
@@ -82,64 +89,80 @@ model CourierPartner {
   gst_number     String?
   status         String   @default("ACTIVE")
   notes          String?
+  api_credentials     String? // JSON string containing API keys/secrets
+  agreement_document  String? // Base64 string for PDF/Image
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
-  
-  company        Company  @relation(fields: [company_id], references: [id])
-  shipments      Shipment[]
+
+  company         Company         @relation(fields: [company_id], references: [id])
+  shipments       Shipment[]
   import_profiles ImportProfile[]
+  rateCards       RateCard[]
 }
 
 model Shipment {
-  id                  String   @id @default(uuid())
-  company_id          String
-  awb_number          String
-  client_id           String?
-  courier_id          String?
-  booking_date        DateTime?
-  pickup_date         DateTime?
-  delivery_date       DateTime?
-  
-  sender_name         String?
-  sender_phone        String?
-  sender_address      String?
-  receiver_name       String?
-  receiver_phone      String?
-  receiver_address    String?
-  city                String?
-  state               String?
-  pincode             String?
-  origin              String?
-  destination         String?
-  
-  service_type        String?
-  package_type        String?
-  number_of_pieces    Int?
-  actual_weight       Float?
-  volumetric_weight   Float?
-  chargeable_weight   Float?
-  
-  cod_amount          Float?
-  declared_value      Float?
-  
-  courier_status      String?  // Raw status from courier
-  internal_status     String   @default("BOOKED") // Normalized status
-  delivery_attempt    Int      @default(0)
-  rto_reason          String?
-  exception_reason    String?
-  
-  courier_cost        Float?
-  client_charge       Float?
-  profit              Float?
-  remarks             String?
-  
-  created_at          DateTime @default(now())
-  updated_at          DateTime @updatedAt
-  
-  company             Company  @relation(fields: [company_id], references: [id])
-  client              Client?  @relation(fields: [client_id], references: [id])
-  courier             CourierPartner? @relation(fields: [courier_id], references: [id])
-  status_history      ShipmentStatusHistory[]
+  id            String    @id @default(uuid())
+  company_id    String
+  awb_number    String
+  client_id     String?
+  courier_id    String?
+  booking_date  DateTime?
+  pickup_date   DateTime?
+  delivery_date DateTime?
+
+  sender_name      String?
+  sender_phone     String?
+  sender_address   String?
+  receiver_name    String?
+  receiver_phone   String?
+  receiver_address String?
+  city             String?
+  state            String?
+  pincode          String?
+  origin           String?
+  destination      String?
+
+  service_type      String?
+  package_type      String?
+  number_of_pieces  Int?
+  actual_weight     Float?
+  volumetric_weight Float?
+  chargeable_weight Float?
+
+  cod_amount     Float?
+  declared_value Float?
+
+  courier_status   String? // Raw status from courier
+  internal_status  String  @default("BOOKED") // Normalized status
+  delivery_attempt Int     @default(0)
+  rto_reason       String?
+  exception_reason String?
+
+  courier_cost  Float?
+  client_charge Float? // Base freight + docket + fov
+  profit        Float?
+  remarks       String?
+
+  client_reference_no String? // e.g. Inv No. from client
+  green_tax_amount    Float   @default(0)
+  oda_amount          Float   @default(0)
+  fsc_amount          Float   @default(0)
+  idc_amount          Float   @default(0)
+
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+  podImageUrl  String?
+  podSignature String?
+  deliveredAt  DateTime?
+  label_url    String? // URL to the shipping label PDF from Courier
+
+  company Company         @relation(fields: [company_id], references: [id])
+  client  Client?         @relation(fields: [client_id], references: [id])
+  courier CourierPartner? @relation(fields: [courier_id], references: [id])
+
+  invoice_id     String?
+  invoice        ClientInvoice?          @relation(fields: [invoice_id], references: [id])
+  status_history ShipmentStatusHistory[]
 
   @@unique([company_id, awb_number])
   @@index([awb_number])
@@ -150,115 +173,165 @@ model Shipment {
 }
 
 model ShipmentStatusHistory {
-  id              String   @id @default(uuid())
-  shipment_id     String
-  status          String
-  raw_status      String?
-  location        String?
-  timestamp       DateTime
-  created_at      DateTime @default(now())
-  
-  shipment        Shipment @relation(fields: [shipment_id], references: [id])
+  id          String   @id @default(uuid())
+  shipment_id String
+  status      String
+  raw_status  String?
+  location    String?
+  timestamp   DateTime
+  created_at  DateTime @default(now())
+
+  shipment Shipment @relation(fields: [shipment_id], references: [id])
 }
 
 model ImportProfile {
-  id              String   @id @default(uuid())
-  company_id      String
-  courier_id      String?
-  name            String
-  mapping_json    String   // JSON string of mappings
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
-  
-  company         Company  @relation(fields: [company_id], references: [id])
-  courier         CourierPartner? @relation(fields: [courier_id], references: [id])
+  id           String   @id @default(uuid())
+  company_id   String
+  courier_id   String?
+  name         String
+  mapping_json String // JSON string of mappings
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  company Company         @relation(fields: [company_id], references: [id])
+  courier CourierPartner? @relation(fields: [courier_id], references: [id])
 }
 
 model ImportJob {
-  id              String   @id @default(uuid())
-  company_id      String
-  file_name       String
-  courier_id      String?
-  status          String   // PENDING, PROCESSING, COMPLETED, FAILED
-  total_rows      Int      @default(0)
-  imported_rows   Int      @default(0)
-  updated_rows    Int      @default(0)
-  error_rows      Int      @default(0)
-  created_by      String?
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
-  
-  company         Company  @relation(fields: [company_id], references: [id])
+  id            String   @id @default(uuid())
+  company_id    String
+  file_name     String
+  courier_id    String?
+  status        String // PENDING, PROCESSING, COMPLETED, FAILED
+  total_rows    Int      @default(0)
+  imported_rows Int      @default(0)
+  updated_rows  Int      @default(0)
+  error_rows    Int      @default(0)
+  created_by    String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
 }
 
 model RateCard {
-  id              String   @id @default(uuid())
-  company_id      String
-  name            String
-  type            String   // CLIENT, COURIER
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
-  
-  company         Company  @relation(fields: [company_id], references: [id])
+  id         String @id @default(uuid())
+  company_id String
+  name       String
+  type       String // CLIENT, COURIER
+
+  min_weight_kg      Float @default(0)
+  docket_charge      Float @default(0)
+  min_booking_amount Float @default(0)
+  volumetric_divisor Float @default(5000)
+  fov_percentage     Float @default(0)
+  fov_minimum        Float @default(0)
+
+  fsc_percentage     Float @default(0)
+  idc_percentage     Float @default(0)
+  oda_charge         Float @default(0) // flat fee per shipment if applicable
+  green_tax_rate     Float @default(0) // flat fee per shipment
+
+  rates_matrix String @default("{}") // JSON string of origin-to-destination zones
+
+  client_id  String?
+  courier_id String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  company Company         @relation(fields: [company_id], references: [id])
+  client  Client?         @relation(fields: [client_id], references: [id])
+  courier CourierPartner? @relation(fields: [courier_id], references: [id])
+}
+
+model ZoneMapping {
+  id         String @id @default(uuid())
+  company_id String
+  state_name String
+  zone_name  String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
+
+  @@unique([company_id, state_name])
 }
 
 model ClientInvoice {
-  id              String   @id @default(uuid())
-  company_id      String
-  invoice_number  String
-  client_id       String
-  invoice_date    DateTime
-  due_date        DateTime
-  shipment_count  Int      @default(0)
-  subtotal        Float    @default(0)
-  gst_amount      Float    @default(0)
-  discount        Float    @default(0)
-  total_amount    Float    @default(0)
-  paid_amount     Float    @default(0)
-  status          String   @default("DRAFT") // DRAFT, SENT, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  id             String   @id @default(uuid())
+  company_id     String
+  invoice_number String
+  client_id      String
+  invoice_date   DateTime
+  due_date       DateTime
+  shipment_count Int      @default(0)
+  subtotal       Float    @default(0)
+  total_fsc      Float    @default(0)
+  total_idc      Float    @default(0)
+  total_oda      Float    @default(0)
+  total_green_tax Float   @default(0)
   
-  company         Company  @relation(fields: [company_id], references: [id])
-  client          Client   @relation(fields: [client_id], references: [id])
+  off_loading_charges Float @default(0)
+  vehicle_charges     Float @default(0)
+  insurance_charges   Float @default(0)
+  rto_charges         Float @default(0)
+
+  taxable_amount Float    @default(0)
+  cgst_amount    Float    @default(0)
+  sgst_amount    Float    @default(0)
+  igst_amount    Float    @default(0)
+  round_off      Float    @default(0)
+
+  discount       Float    @default(0)
+  total_amount   Float    @default(0)
+  paid_amount    Float    @default(0)
+  status         String   @default("DRAFT") // DRAFT, SENT, PARTIALLY_PAID, PAID, OVERDUE, CANCELLED
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  company   Company    @relation(fields: [company_id], references: [id])
+  client    Client     @relation(fields: [client_id], references: [id])
+  shipments Shipment[]
 }
 
 model CourierBill {
-  id              String   @id @default(uuid())
-  company_id      String
-  bill_number     String
-  courier_id      String
-  bill_date       DateTime
-  total_amount    Float
-  status          String
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
-  
-  company         Company  @relation(fields: [company_id], references: [id])
+  id           String   @id @default(uuid())
+  company_id   String
+  bill_number  String
+  courier_id   String
+  bill_date    DateTime
+  total_amount Float
+  status       String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
 }
 
 model AuditLog {
-  id              String   @id @default(uuid())
-  company_id      String
-  user_id         String?
-  action          String
-  entity_type     String?
-  entity_id       String?
-  details         String?  // JSON string
-  created_at      DateTime @default(now())
-  
-  company         Company  @relation(fields: [company_id], references: [id])
+  id          String   @id @default(uuid())
+  company_id  String
+  user_id     String?
+  action      String
+  entity_type String?
+  entity_id   String?
+  details     String? // JSON string
+  created_at  DateTime @default(now())
+
+  company Company @relation(fields: [company_id], references: [id])
 }
 
 model Setting {
-  id              String   @id @default(uuid())
-  company_id      String
-  key             String
-  value           String   // JSON string
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
-  
-  company         Company  @relation(fields: [company_id], references: [id])
-  
+  id         String   @id @default(uuid())
+  company_id String
+  key        String
+  value      String // JSON string
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
+
   @@unique([company_id, key])
 }

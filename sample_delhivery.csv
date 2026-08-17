@@ -1,0 +1,6 @@
+Waybill,Reference No,Consignee,Destination,Pincode,Status,COD Amount
+12345678901,REF-001,John Doe,Mumbai,400001,Delivered,0
+12345678902,REF-002,Jane Smith,Delhi,110001,Out for Delivery,1500
+12345678903,REF-003,Acme Corp,Bangalore,560001,In Transit,0
+12345678904,REF-004,Bob Wilson,Chennai,600001,RTO,2500
+12345678905,REF-005,Alice Brown,Hyderabad,500001,Exception,0
