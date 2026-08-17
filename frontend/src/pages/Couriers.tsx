@@ -85,6 +85,13 @@ const Couriers = () => {
   };
 
   const openEdit = () => {
+    let apiCreds = { api_key: '', api_secret: '', client_id: '', webhook_url: '' };
+    try {
+      if (selectedCourier.api_credentials) {
+        apiCreds = JSON.parse(selectedCourier.api_credentials);
+      }
+    } catch (e) {}
+
     setEditForm({
       courier_name: selectedCourier.courier_name || '',
       contact_person: selectedCourier.contact_person || '',
@@ -96,6 +103,10 @@ const Couriers = () => {
       status: selectedCourier.status || 'ACTIVE',
       notes: selectedCourier.notes || '',
       agreement_document: selectedCourier.agreement_document || '',
+      api_key: apiCreds.api_key || '',
+      api_secret: apiCreds.api_secret || '',
+      client_id: apiCreds.client_id || '',
+      webhook_url: apiCreds.webhook_url || '',
     });
     setEditMode(true);
   };
@@ -113,11 +124,23 @@ const Couriers = () => {
     e.preventDefault();
     setEditSaving(true);
     try {
-      const updated = await fetchApi(`/couriers/${selectedCourier.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(editForm)
+      const api_credentials = JSON.stringify({
+        api_key: editForm.api_key || '',
+        api_secret: editForm.api_secret || '',
+        client_id: editForm.client_id || '',
+        webhook_url: editForm.webhook_url || '',
       });
-      setSelectedCourier({ ...selectedCourier, ...editForm });
+
+      const payload = {
+        ...editForm,
+        api_credentials
+      };
+
+      await fetchApi(`/couriers/${selectedCourier.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      });
+      setSelectedCourier({ ...selectedCourier, ...payload });
       setEditMode(false);
       fetchCouriers();
     } catch (err) {
@@ -293,6 +316,32 @@ const Couriers = () => {
                     </div>
                   )}
 
+                  {/* API Credentials View */}
+                  <div className="mt-6 pt-6 border-t border-slate-100">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">🔑 API Keys & Integration Credentials</p>
+                    {selectedCourier.api_credentials ? (
+                      <div className="bg-slate-900 text-slate-100 rounded-xl p-4 font-mono text-xs space-y-2">
+                        {(() => {
+                          let creds: any = {};
+                          try { creds = JSON.parse(selectedCourier.api_credentials); } catch { creds = {}; }
+                          return (
+                            <>
+                              <div><span className="text-slate-400">API Key / Token:</span> <span className="text-emerald-400 font-bold">{creds.api_key ? '••••••••••••••••' : 'Not Set'}</span></div>
+                              <div><span className="text-slate-400">API Secret:</span> <span className="text-amber-400 font-bold">{creds.api_secret ? '••••••••••••••••' : 'Not Set'}</span></div>
+                              <div><span className="text-slate-400">Client ID / Account Code:</span> <span className="text-blue-400 font-bold">{creds.client_id || 'Not Set'}</span></div>
+                              <div><span className="text-slate-400">Webhook URL:</span> <span className="text-slate-300">{creds.webhook_url || '/api/webhooks/delhivery'}</span></div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs text-slate-500 flex justify-between items-center">
+                        <span>No API credentials configured for this courier partner.</span>
+                        <button onClick={openEdit} className="text-indigo-600 font-medium hover:underline">Add API Key</button>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Agreement Document */}
                   <div className="mt-6 pt-6 border-t border-slate-100">
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Agreement Document</p>
@@ -402,6 +451,41 @@ const Couriers = () => {
                         <textarea rows={2} value={editForm.notes}
                           onChange={e => setEditForm({...editForm, notes: e.target.value})}
                           className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* API & Webhook Credentials */}
+                  <div className="border-t border-slate-100 pt-5">
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">🔑 API Keys & Integration Credentials</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">API Key / Token</label>
+                        <input type="password" value={editForm.api_key}
+                          onChange={e => setEditForm({...editForm, api_key: e.target.value})}
+                          placeholder="e.g. live_delhivery_token_xxxxx"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">API Secret / License Key</label>
+                        <input type="password" value={editForm.api_secret}
+                          onChange={e => setEditForm({...editForm, api_secret: e.target.value})}
+                          placeholder="Secret Key"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Account Code / Client ID</label>
+                        <input type="text" value={editForm.client_id}
+                          onChange={e => setEditForm({...editForm, client_id: e.target.value})}
+                          placeholder="e.g. DELH_MUMB_001"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Tracking Webhook Callback URL</label>
+                        <input type="text" value={editForm.webhook_url}
+                          onChange={e => setEditForm({...editForm, webhook_url: e.target.value})}
+                          placeholder="https://your-domain.com/api/webhooks/delhivery"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
                       </div>
                     </div>
                   </div>

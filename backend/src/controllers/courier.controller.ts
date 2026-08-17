@@ -54,6 +54,7 @@ export const updateCourier = async (req: AuthenticatedRequest, res: Response) =>
         billing_cycle: data.billing_cycle,
         status: data.status,
         notes: data.notes,
+        api_credentials: data.api_credentials,
         agreement_document: data.agreement_document,
       }
     });
