@@ -18,6 +18,185 @@ const emptyRateCard = {
   rates_matrix: '{}',
 };
 
+const emptyCourierForm = {
+  courier_id: '',
+  courier_name: '',
+  status: 'ACTIVE',
+  contact_person: '',
+  phone: '',
+  email: '',
+  account_number: '',
+  gst_number: '',
+  billing_cycle: '',
+  notes: '',
+  api_key: '',
+  api_secret: '',
+  client_id: '',
+  webhook_url: '',
+  agreement_document: '',
+};
+
+/**
+ * Shared Form Fields component for both Add Courier and Edit Courier
+ */
+const CourierFormFields = ({ form, setForm, isAddMode }: { form: any; setForm: React.Dispatch<React.SetStateAction<any>>; isAddMode?: boolean }) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { alert('File size must be under 5MB'); return; }
+    const reader = new FileReader();
+    reader.onload = () => setForm((prev: any) => ({ ...prev, agreement_document: reader.result as string }));
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="space-y-5 text-left">
+      {/* Basic Info */}
+      <div>
+        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Basic Information</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {isAddMode && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Courier Code (e.g., BLUEDART) <span className="text-red-500">*</span></label>
+              <input required type="text" value={form.courier_id}
+                onChange={e => setForm({...form, courier_id: e.target.value.toUpperCase()})}
+                placeholder="e.g. DELHIVERY, BLUEDART"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm uppercase" />
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Courier Name <span className="text-red-500">*</span></label>
+            <input required type="text" value={form.courier_name}
+              onChange={e => setForm({...form, courier_name: e.target.value})}
+              placeholder="e.g. Delhivery Express"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+            <select value={form.status || 'ACTIVE'}
+              onChange={e => setForm({...form, status: e.target.value})}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 text-sm">
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="INACTIVE">INACTIVE</option>
+              <option value="SUSPENDED">SUSPENDED</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Contact Person</label>
+            <input type="text" value={form.contact_person || ''}
+              onChange={e => setForm({...form, contact_person: e.target.value})}
+              placeholder="Contact manager name"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+            <input type="text" value={form.phone || ''}
+              onChange={e => setForm({...form, phone: e.target.value})}
+              placeholder="+91 9876543210"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+            <input type="email" value={form.email || ''}
+              onChange={e => setForm({...form, email: e.target.value})}
+              placeholder="support@courier.com"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Account / Merchant Number</label>
+            <input type="text" value={form.account_number || ''}
+              onChange={e => setForm({...form, account_number: e.target.value})}
+              placeholder="e.g. ACC-881920"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">GST Number</label>
+            <input type="text" value={form.gst_number || ''}
+              onChange={e => setForm({...form, gst_number: e.target.value})}
+              placeholder="27AAAAA0000A1Z5"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 uppercase text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Billing Cycle</label>
+            <select value={form.billing_cycle || ''}
+              onChange={e => setForm({...form, billing_cycle: e.target.value})}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 text-sm">
+              <option value="">-- Select --</option>
+              <option value="WEEKLY">Weekly</option>
+              <option value="BIWEEKLY">Bi-Weekly</option>
+              <option value="MONTHLY">Monthly</option>
+            </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Notes / Remarks</label>
+            <textarea rows={2} value={form.notes || ''}
+              onChange={e => setForm({...form, notes: e.target.value})}
+              placeholder="Any operational notes..."
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm resize-none" />
+          </div>
+        </div>
+      </div>
+
+      {/* API & Webhook Credentials */}
+      <div className="border-t border-slate-100 pt-5">
+        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">🔑 API Keys & Integration Credentials</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">API Key / Token</label>
+            <input type="password" value={form.api_key || ''}
+              onChange={e => setForm({...form, api_key: e.target.value})}
+              placeholder="e.g. live_delhivery_token_xxxxx"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">API Secret / License Key</label>
+            <input type="password" value={form.api_secret || ''}
+              onChange={e => setForm({...form, api_secret: e.target.value})}
+              placeholder="Secret Key"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Account Code / Client ID</label>
+            <input type="text" value={form.client_id || ''}
+              onChange={e => setForm({...form, client_id: e.target.value})}
+              placeholder="e.g. DELH_MUMB_001"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Tracking Webhook Callback URL</label>
+            <input type="text" value={form.webhook_url || ''}
+              onChange={e => setForm({...form, webhook_url: e.target.value})}
+              placeholder="https://your-domain.com/api/webhooks/delhivery"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
+          </div>
+        </div>
+      </div>
+
+      {/* Agreement Document Upload */}
+      <div className="border-t border-slate-100 pt-5">
+        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Agreement Document</h4>
+        <p className="text-xs text-slate-500 mb-3">Upload a PDF, JPG, or PNG (max 5MB). Stored securely.</p>
+        <div className="flex items-start gap-4">
+          <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-xl p-6 cursor-pointer transition-colors bg-slate-50 hover:bg-indigo-50">
+            <FileText className="w-8 h-8 text-slate-400 mb-2" />
+            <span className="text-sm font-medium text-slate-600">Click to upload agreement</span>
+            <span className="text-xs text-slate-400 mt-1">PDF, JPG, PNG — max 5MB</span>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileUpload} className="hidden" />
+          </label>
+        </div>
+        {form.agreement_document && (
+          <div className="mt-3 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+            <FileText className="w-4 h-4 text-emerald-600" />
+            <span className="text-sm text-emerald-700 font-medium">Document ready to save</span>
+            <button type="button" onClick={() => setForm({...form, agreement_document: ''})}
+              className="ml-auto text-xs text-red-500 hover:text-red-700">Remove</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Couriers = () => {
   const [couriers, setCouriers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,17 +204,11 @@ const Couriers = () => {
   const [selectedCourier, setSelectedCourier] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<'details' | 'ratecard'>('details');
 
-  // Courier form
-  const [formData, setFormData] = useState({
-    courier_id: '',
-    courier_name: '',
-    tracking_url_format: '',
-    api_key: '',
-    api_secret: ''
-  });
+  // Add courier form state
+  const [formData, setFormData] = useState<any>(emptyCourierForm);
   const [saving, setSaving] = useState(false);
 
-  // Edit courier details
+  // Edit courier details state
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
   const [editSaving, setEditSaving] = useState(false);
@@ -111,15 +284,6 @@ const Couriers = () => {
     setEditMode(true);
   };
 
-  const handleAgreementUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { alert('File size must be under 5MB'); return; }
-    const reader = new FileReader();
-    reader.onload = () => setEditForm((prev: any) => ({ ...prev, agreement_document: reader.result as string }));
-    reader.readAsDataURL(file);
-  };
-
   const handleSaveDetails = async (e: React.FormEvent) => {
     e.preventDefault();
     setEditSaving(true);
@@ -152,14 +316,31 @@ const Couriers = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.courier_id || !formData.courier_name) {
+      return alert('Please fill in Courier Code and Courier Name');
+    }
+
     setSaving(true);
     try {
+      const api_credentials = JSON.stringify({
+        api_key: formData.api_key || '',
+        api_secret: formData.api_secret || '',
+        client_id: formData.client_id || '',
+        webhook_url: formData.webhook_url || '',
+      });
+
+      const payload = {
+        ...formData,
+        api_credentials,
+        status: formData.status || 'ACTIVE'
+      };
+
       await fetchApi('/couriers', {
         method: 'POST',
-        body: JSON.stringify({ ...formData, status: 'ACTIVE' })
+        body: JSON.stringify(payload)
       });
       setIsModalOpen(false);
-      setFormData({ courier_id: '', courier_name: '', tracking_url_format: '', api_key: '', api_secret: '' });
+      setFormData(emptyCourierForm);
       fetchCouriers();
     } catch (err) {
       console.error(err);
@@ -176,7 +357,6 @@ const Couriers = () => {
 
   const openEditRateCard = (rc: any) => {
     setEditingRc(rc);
-    // Parse matrix for editing
     let matrixStr = rc.rates_matrix || '{}';
     setRcForm({
       name: rc.name,
@@ -228,7 +408,6 @@ const Couriers = () => {
     fetchRateCards(selectedCourier.id);
   };
 
-  // Rate matrix editor: zones x zones grid
   const parseMatrix = (str: string) => {
     try { return JSON.parse(str || '{}'); } catch { return {}; }
   };
@@ -375,7 +554,7 @@ const Couriers = () => {
                 </div>
               </>
             ) : (
-              /* Edit Form */
+              /* Shared Edit Form */
               <form onSubmit={handleSaveDetails}>
                 <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 bg-slate-50 rounded-t-xl">
                   <h3 className="font-semibold text-slate-900">Edit Courier Details</h3>
@@ -383,135 +562,8 @@ const Couriers = () => {
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="p-6 space-y-5">
-
-                  {/* Basic Info */}
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Basic Information</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Courier Name <span className="text-red-500">*</span></label>
-                        <input required type="text" value={editForm.courier_name}
-                          onChange={e => setEditForm({...editForm, courier_name: e.target.value})}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                        <select value={editForm.status}
-                          onChange={e => setEditForm({...editForm, status: e.target.value})}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500">
-                          <option value="ACTIVE">ACTIVE</option>
-                          <option value="INACTIVE">INACTIVE</option>
-                          <option value="SUSPENDED">SUSPENDED</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Contact Person</label>
-                        <input type="text" value={editForm.contact_person}
-                          onChange={e => setEditForm({...editForm, contact_person: e.target.value})}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-                        <input type="text" value={editForm.phone}
-                          onChange={e => setEditForm({...editForm, phone: e.target.value})}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                        <input type="email" value={editForm.email}
-                          onChange={e => setEditForm({...editForm, email: e.target.value})}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Account Number</label>
-                        <input type="text" value={editForm.account_number}
-                          onChange={e => setEditForm({...editForm, account_number: e.target.value})}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">GST Number</label>
-                        <input type="text" value={editForm.gst_number}
-                          onChange={e => setEditForm({...editForm, gst_number: e.target.value})}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Billing Cycle</label>
-                        <select value={editForm.billing_cycle}
-                          onChange={e => setEditForm({...editForm, billing_cycle: e.target.value})}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500">
-                          <option value="">-- Select --</option>
-                          <option value="WEEKLY">Weekly</option>
-                          <option value="BIWEEKLY">Bi-Weekly</option>
-                          <option value="MONTHLY">Monthly</option>
-                        </select>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Notes / Remarks</label>
-                        <textarea rows={2} value={editForm.notes}
-                          onChange={e => setEditForm({...editForm, notes: e.target.value})}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* API & Webhook Credentials */}
-                  <div className="border-t border-slate-100 pt-5">
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">🔑 API Keys & Integration Credentials</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">API Key / Token</label>
-                        <input type="password" value={editForm.api_key}
-                          onChange={e => setEditForm({...editForm, api_key: e.target.value})}
-                          placeholder="e.g. live_delhivery_token_xxxxx"
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">API Secret / License Key</label>
-                        <input type="password" value={editForm.api_secret}
-                          onChange={e => setEditForm({...editForm, api_secret: e.target.value})}
-                          placeholder="Secret Key"
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Account Code / Client ID</label>
-                        <input type="text" value={editForm.client_id}
-                          onChange={e => setEditForm({...editForm, client_id: e.target.value})}
-                          placeholder="e.g. DELH_MUMB_001"
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Tracking Webhook Callback URL</label>
-                        <input type="text" value={editForm.webhook_url}
-                          onChange={e => setEditForm({...editForm, webhook_url: e.target.value})}
-                          placeholder="https://your-domain.com/api/webhooks/delhivery"
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Agreement Document Upload */}
-                  <div className="border-t border-slate-100 pt-5">
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Agreement Document</h4>
-                    <p className="text-xs text-slate-500 mb-3">Upload a PDF, JPG, or PNG (max 5MB). Stored securely.</p>
-                    <div className="flex items-start gap-4">
-                      <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-xl p-6 cursor-pointer transition-colors bg-slate-50 hover:bg-indigo-50">
-                        <FileText className="w-8 h-8 text-slate-400 mb-2" />
-                        <span className="text-sm font-medium text-slate-600">Click to upload agreement</span>
-                        <span className="text-xs text-slate-400 mt-1">PDF, JPG, PNG — max 5MB</span>
-                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleAgreementUpload} className="hidden" />
-                      </label>
-                    </div>
-                    {editForm.agreement_document && (
-                      <div className="mt-3 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
-                        <FileText className="w-4 h-4 text-emerald-600" />
-                        <span className="text-sm text-emerald-700 font-medium">Document ready to save</span>
-                        <button type="button" onClick={() => setEditForm({...editForm, agreement_document: ''})}
-                          className="ml-auto text-xs text-red-500 hover:text-red-700">Remove</button>
-                      </div>
-                    )}
-                  </div>
-
+                <div className="p-6">
+                  <CourierFormFields form={editForm} setForm={setEditForm} isAddMode={false} />
                 </div>
                 <div className="px-6 py-4 bg-slate-50 rounded-b-xl border-t border-slate-200 flex justify-end gap-3">
                   <button type="button" onClick={() => setEditMode(false)}
@@ -595,7 +647,6 @@ const Couriers = () => {
                                 </div>
                               ))}
                             </div>
-                            {/* Rate Matrix preview */}
                             {zoneKeys.length > 0 && (
                               <div className="overflow-x-auto">
                                 <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Rate Matrix (₹/kg)</p>
@@ -691,7 +742,6 @@ const Couriers = () => {
                       </div>
                     </div>
 
-                    {/* Rate Matrix */}
                     <div>
                       <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wide mb-1">Rate Matrix (₹/kg)</h4>
                       <p className="text-xs text-slate-500 mb-3">Enter rate per kg for each origin → destination zone pair. Leave blank if no rate.</p>
@@ -758,7 +808,7 @@ const Couriers = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">Courier Partners</h1>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => { setFormData(emptyCourierForm); setIsModalOpen(true); }}
           className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -820,7 +870,7 @@ const Couriers = () => {
         )}
       </div>
 
-      {/* Add Courier Modal */}
+      {/* Shared Add Courier Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -828,46 +878,29 @@ const Couriers = () => {
               <div className="absolute inset-0 bg-slate-900 opacity-75"></div>
             </div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-            <div className="relative z-10 inline-block align-bottom bg-white rounded-xl text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+            <div className="relative z-10 inline-block align-bottom bg-white rounded-2xl text-left shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl w-full">
               <form onSubmit={handleSubmit}>
-                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 rounded-t-xl">
-                  <div className="flex justify-between items-start mb-5">
-                    <h3 className="text-lg leading-6 font-bold text-slate-900">Add New Courier</h3>
-                    <button type="button" onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-500">
-                      <X className="w-5 h-5" />
-                    </button>
+                <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 rounded-t-2xl flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Add New Courier Partner</h3>
+                    <p className="text-xs text-slate-500">Fill in complete operational details & API credentials</p>
                   </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Courier Code (e.g., BLUEDART)</label>
-                      <input required type="text" value={formData.courier_id} onChange={e => setFormData({ ...formData, courier_id: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Courier Name</label>
-                      <input required type="text" value={formData.courier_name} onChange={e => setFormData({ ...formData, courier_name: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Tracking URL Format</label>
-                      <input type="text" placeholder="https://tracking.com?awb={AWB}" value={formData.tracking_url_format} onChange={e => setFormData({ ...formData, tracking_url_format: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">API Key</label>
-                        <input type="text" value={formData.api_key} onChange={e => setFormData({ ...formData, api_key: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">API Secret</label>
-                        <input type="password" value={formData.api_secret} onChange={e => setFormData({ ...formData, api_secret: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-slate-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-xl border-t border-slate-200">
-                  <button type="submit" disabled={saving} className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-70">
-                    {saving ? 'Saving...' : 'Save Courier'}
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                    <X className="w-5 h-5" />
                   </button>
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="mt-3 w-full inline-flex justify-center rounded-lg border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                </div>
+                
+                <div className="p-6 overflow-y-auto max-h-[70vh]">
+                  <CourierFormFields form={formData} setForm={setFormData} isAddMode={true} />
+                </div>
+
+                <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 rounded-b-2xl flex justify-end gap-3">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-600 hover:bg-slate-100">
                     Cancel
+                  </button>
+                  <button type="submit" disabled={saving} className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium flex items-center gap-2 disabled:opacity-70">
+                    <Save className="w-4 h-4" />
+                    {saving ? 'Saving Courier...' : 'Save Courier Partner'}
                   </button>
                 </div>
               </form>
