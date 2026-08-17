@@ -183,7 +183,7 @@ const Shipments = () => {
       {
         header: 'AWB Number',
         accessorKey: 'awb_number',
-        cell: info => (
+        cell: (info: any) => (
           <button 
             onClick={() => setTrackingAwb(info.getValue() as string)}
             className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
@@ -195,12 +195,12 @@ const Shipments = () => {
       {
         header: 'Date',
         accessorKey: 'booking_date',
-        cell: info => info.getValue() ? format(new Date(info.getValue() as string), 'dd MMM yyyy') : '-',
+        cell: (info: any) => info.getValue() ? format(new Date(info.getValue() as string), 'dd MMM yyyy') : '-',
       },
       {
         header: 'Sender (Client)',
         accessorKey: 'client.company_name',
-        cell: info => {
+        cell: (info: any) => {
           const row = info.row.original;
           return (
             <div>
@@ -222,7 +222,7 @@ const Shipments = () => {
       {
         header: 'Weight / CBM',
         accessorKey: 'actual_weight',
-        cell: info => {
+        cell: (info: any) => {
           const row = info.row.original;
           const actual = row.actual_weight;
           const vol = row.volumetric_weight;
@@ -239,7 +239,7 @@ const Shipments = () => {
       {
         header: 'Receiver',
         accessorKey: 'receiver_name',
-        cell: info => {
+        cell: (info: any) => {
           const row = info.row.original;
           return (
             <div>
@@ -255,7 +255,7 @@ const Shipments = () => {
       {
         header: 'Status',
         accessorKey: 'internal_status',
-        cell: info => {
+        cell: (info: any) => {
           const status = info.getValue() as string;
           let color = 'bg-slate-100 text-slate-800';
           if (status === 'DELIVERED') color = 'bg-emerald-100 text-emerald-800';
@@ -272,7 +272,7 @@ const Shipments = () => {
       {
         header: 'Actions',
         id: 'actions',
-        cell: info => {
+        cell: (info: any) => {
           const row = info.row.original;
           return (
             <div className="flex space-x-2">

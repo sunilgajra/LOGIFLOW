@@ -9,6 +9,10 @@ interface RateCard {
   docket_charge: number;
   min_booking_amount: number;
   rates_matrix: string;
+  fsc_percentage?: number;
+  idc_percentage?: number;
+  oda_charge?: number;
+  green_tax_rate?: number;
   client_id?: string;
   client?: { company_name: string };
 }

@@ -17,7 +17,7 @@ import Zones from './pages/Zones';
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         {/* Public Landing Page */}
         <Route path="/" element={<LandingPage />} />
