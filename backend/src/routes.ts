@@ -37,10 +37,13 @@ import { generateInvoice, getInvoicesByClient } from './controllers/invoice.cont
 import { getCompanySettings, updateCompanySettings } from './controllers/settings.controller';
 import { getRateCards, createRateCard, updateRateCard, deleteRateCard, getZoneMappings, saveZoneMapping } from './controllers/rate.controller';
 import { login } from './controllers/auth.controller';
+import { handleCourierWebhook } from './controllers/webhook.controller';
 
 // --- Public APIs ---
 router.post('/auth/login', login);
 router.get('/public/track/:awb', getPublicTracking);
+router.post('/webhooks/courier', handleCourierWebhook);
+router.post('/webhooks/delhivery', handleCourierWebhook);
 
 // --- Analytics API ---
 router.get('/analytics', requireAuth, getAnalytics);
