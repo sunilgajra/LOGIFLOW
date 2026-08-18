@@ -59,12 +59,28 @@ export default function Rates() {
     courier_id: ''
   });
 
-  const [calcResult, setCalcResult] = useState<any>(null);
+  const defaultCalcResult = {
+    actual_weight: 2.5,
+    volumetric_weight: 1.8,
+    chargeable_weight: 2.5,
+    client_charge: 285,
+    courier_cost: 195,
+    estimated_profit: 90,
+    profit_margin_pct: 31.6,
+    breakdown: { freight_charge: 112.5, docket_charge: 50, fsc_amount: 11.2, idc_amount: 2.25, oda_amount: 0, green_tax_amount: 15 }
+  };
+
+  const [calcResult, setCalcResult] = useState<any>(defaultCalcResult);
   const [calculating, setCalculating] = useState(false);
 
   useEffect(() => {
     fetchData();
+    handleCalculateRate();
   }, []);
+
+  useEffect(() => {
+    handleCalculateRate();
+  }, [calcInputs]);
 
   const fetchData = async () => {
     setLoading(true);
