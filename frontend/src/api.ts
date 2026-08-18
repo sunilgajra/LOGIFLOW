@@ -399,19 +399,58 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     if (endpoint.includes('/ndr')) {
+      if (options.method === 'POST') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        return {
+          success: true,
+          message: `NDR Action '${bodyData.action || 'REATTEMPT'}' recorded successfully`,
+          shipment: {
+            id: 'ndr-1',
+            internal_status: bodyData.action === 'RTO' ? 'RTO' : 'IN_TRANSIT'
+          }
+        };
+      }
+
       return [
         {
           id: 'ndr-1',
           awb_number: 'DELH88291034',
-          internal_status: 'NDR',
+          internal_status: 'EXCEPTION',
           courier_status: 'Undelivered: Customer Premises Closed',
+          remarks: 'Customer premises closed. Gate locked upon arrival.',
           delivery_attempt: 1,
           receiver_name: 'Rahul Sharma',
           receiver_phone: '+91 9876543210',
-          receiver_address: '102 Green Heights, Andheri East, Mumbai',
+          receiver_address: '102 Green Heights, Andheri East',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          pincode: '400069',
           client: { company_name: 'Apex Logistics' },
           courier: { courier_name: 'Delhivery Express' },
           updated_at: new Date().toISOString()
+        },
+        {
+          id: 'ndr-2',
+          awb_number: 'BLUED99102451',
+          internal_status: 'EXCEPTION',
+          courier_status: 'Undelivered: Incorrect Phone Number',
+          remarks: 'Phone number unreachable / switched off during call before delivery.',
+          delivery_attempt: 2,
+          receiver_name: 'Priya Verma',
+          receiver_phone: '+91 9123456789',
+          receiver_address: 'Flat 4B, MG Road',
+          city: 'Bengaluru',
+          state: 'Karnataka',
+          pincode: '560001',
+          client: { company_name: 'LogiFlow Merchant' },
+          courier: { courier_name: 'Blue Dart' },
+          updated_at: new Date(Date.now() - 3600000).toISOString()
         }
       ];
     }
