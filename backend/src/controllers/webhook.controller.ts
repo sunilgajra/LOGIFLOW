@@ -2,24 +2,24 @@ import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 
 /**
- * Normalizes raw courier status codes to internal status values.
+ * Normalizes raw courier status codes/strings to LogiFlow standard internal status values.
  */
 function normalizeStatus(rawStatus: string): string {
   const statusUpper = (rawStatus || '').toUpperCase().trim();
   
-  if (['DL', 'DELIVERED', 'FULFILLED'].includes(statusUpper) || statusUpper.includes('DELIVERED')) {
+  if (statusUpper.includes('DELIVERED') || statusUpper === 'DL' || statusUpper === 'FULFILLED') {
     return 'DELIVERED';
   }
-  if (['UD', 'OUT FOR DELIVERY', 'DISPATCHED', 'OUT_FOR_DELIVERY'].includes(statusUpper) || statusUpper.includes('OUT FOR DELIVERY')) {
+  if (statusUpper.includes('OUT FOR DELIVERY') || statusUpper.includes('OFD') || statusUpper.includes('DISPATCHED') || statusUpper === 'UD') {
     return 'OUT_FOR_DELIVERY';
   }
-  if (['RT', 'RTO', 'RETURNED', 'RETURN TO ORIGIN'].includes(statusUpper) || statusUpper.includes('RTO')) {
+  if (statusUpper.includes('RTO') || statusUpper.includes('RETURN') || statusUpper === 'RT' || statusUpper === 'DTO') {
     return 'RTO';
   }
-  if (['EX', 'EXCEPTION', 'NDR', 'UNDELIVERED'].includes(statusUpper) || statusUpper.includes('UNDELIVERED')) {
-    return 'EXCEPTION';
+  if (statusUpper.includes('NDR') || statusUpper.includes('UNDELIVERED') || statusUpper.includes('EXCEPTION') || statusUpper.includes('FAILED') || statusUpper === 'EX') {
+    return 'NDR';
   }
-  if (['BK', 'MANIFESTED', 'BOOKED'].includes(statusUpper)) {
+  if (statusUpper.includes('BOOKED') || statusUpper.includes('MANIFEST') || statusUpper.includes('PICKUP') || statusUpper === 'BK') {
     return 'BOOKED';
   }
   
@@ -27,14 +27,16 @@ function normalizeStatus(rawStatus: string): string {
 }
 
 /**
- * Webhook handler for Delhivery & generic courier webhooks.
- * Public endpoint: POST /api/webhooks/courier
+ * Webhook handler for Delhivery, BlueDart & generic courier webhooks.
+ * Public endpoints:
+ * POST /api/webhooks/courier
+ * POST /api/webhooks/delhivery
+ * POST /api/webhooks/bluedart
  */
 export const handleCourierWebhook = async (req: Request, res: Response) => {
   try {
     const payload = req.body;
     
-    // Support both Delhivery ScanDetail format and standard LogiFlow webhook format
     let awbNumber = '';
     let rawStatus = '';
     let location = '';
@@ -45,17 +47,25 @@ export const handleCourierWebhook = async (req: Request, res: Response) => {
     if (payload?.ScanDetail) {
       // Delhivery Push Webhook Format
       const detail = payload.ScanDetail;
-      awbNumber = detail.Waybill || detail.AWB || '';
-      rawStatus = detail.Status?.Status || detail.Scan || '';
+      awbNumber = detail.Waybill || detail.AWB || detail.waybill || '';
+      rawStatus = detail.Status?.Status || detail.Scan || detail.StatusType || '';
       location = detail.ScannedLocation || detail.Location || '';
-      remarks = detail.Status?.Instructions || detail.Instructions || '';
+      remarks = detail.Status?.Instructions || detail.Instructions || detail.Remarks || '';
       eventTime = detail.ScanDateTime ? new Date(detail.ScanDateTime) : new Date();
-    } else if (payload?.awb || payload?.awb_number) {
+    } else if (payload?.ShipmentDetails || payload?.AWBNo) {
+      // BlueDart Push Webhook Format
+      const details = payload.ShipmentDetails || payload;
+      awbNumber = details.AWBNo || details.WayBillNo || details.awb || '';
+      rawStatus = details.Status || details.ScanType || details.StatusType || '';
+      location = details.Location || details.ScannedLocation || '';
+      remarks = details.Remarks || details.Instructions || details.StatusInformation || '';
+      eventTime = details.ScanDate ? new Date(`${details.ScanDate} ${details.ScanTime || ''}`) : new Date();
+    } else if (payload?.awb || payload?.awb_number || payload?.waybill) {
       // Standard JSON format
-      awbNumber = payload.awb || payload.awb_number;
-      rawStatus = payload.status || payload.courier_status || '';
-      location = payload.location || '';
-      remarks = payload.remarks || '';
+      awbNumber = payload.awb || payload.awb_number || payload.waybill;
+      rawStatus = payload.status || payload.courier_status || payload.raw_status || '';
+      location = payload.location || payload.hub || '';
+      remarks = payload.remarks || payload.instructions || '';
       podUrl = payload.pod_url || payload.podImageUrl || '';
       eventTime = payload.timestamp ? new Date(payload.timestamp) : new Date();
     } else {
@@ -71,7 +81,7 @@ export const handleCourierWebhook = async (req: Request, res: Response) => {
 
     // Find target shipment
     const shipment = await prisma.shipment.findFirst({
-      where: { awb_number: awbNumber }
+      where: { awb_number: String(awbNumber) }
     });
 
     if (!shipment) {
@@ -80,7 +90,7 @@ export const handleCourierWebhook = async (req: Request, res: Response) => {
 
     const internalStatus = normalizeStatus(rawStatus);
 
-    // Update shipment details
+    // Build update object
     const updateData: any = {
       courier_status: rawStatus,
       internal_status: internalStatus,
@@ -96,6 +106,9 @@ export const handleCourierWebhook = async (req: Request, res: Response) => {
       if (podUrl) {
         updateData.podImageUrl = podUrl;
       }
+    } else if (internalStatus === 'NDR') {
+      updateData.delivery_attempt = (shipment.delivery_attempt || 0) + 1;
+      updateData.exception_reason = remarks || rawStatus || 'Delivery exception flagged by courier';
     }
 
     const updatedShipment = await prisma.shipment.update({
@@ -126,7 +139,8 @@ export const handleCourierWebhook = async (req: Request, res: Response) => {
           old_status: shipment.internal_status,
           new_status: internalStatus,
           raw_status: rawStatus,
-          location
+          location,
+          remarks
         })
       }
     });
@@ -137,7 +151,8 @@ export const handleCourierWebhook = async (req: Request, res: Response) => {
       success: true,
       message: `Webhook processed for AWB ${awbNumber}`,
       awb: awbNumber,
-      status: internalStatus
+      status: internalStatus,
+      raw_status: rawStatus
     });
 
   } catch (error: any) {

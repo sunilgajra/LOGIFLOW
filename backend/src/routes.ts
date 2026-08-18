@@ -8,7 +8,7 @@ import { getClients, createClient, updateClient, getClientById, uploadClientAgre
 import { getCouriers, createCourier, updateCourier } from './controllers/courier.controller';
 import { getShipments, bookShipment, updateShipment } from './controllers/shipment.controller';
 import { getAnalytics } from './controllers/analytics.controller';
-import { getPublicTracking } from './controllers/tracking.controller';
+import { getPublicTracking, syncShipmentTracking, syncAllActiveShipments } from './controllers/tracking.controller';
 import { previewImport, processImport } from './controllers/import.controller';
 import { generateInvoice, getInvoicesByClient } from './controllers/invoice.controller';
 import { getCompanySettings, updateCompanySettings } from './controllers/settings.controller';
@@ -43,6 +43,11 @@ router.post('/auth/login', login);
 router.get('/public/track/:awb', getPublicTracking);
 router.post('/webhooks/courier', handleCourierWebhook);
 router.post('/webhooks/delhivery', handleCourierWebhook);
+router.post('/webhooks/bluedart', handleCourierWebhook);
+
+// --- Tracking Sync API ---
+router.post('/tracking/sync/:awb', requireAuth, syncShipmentTracking);
+router.post('/tracking/sync-all', requireAuth, syncAllActiveShipments);
 
 // --- Analytics API ---
 router.get('/analytics', requireAuth, getAnalytics);
