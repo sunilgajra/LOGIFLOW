@@ -279,3 +279,66 @@ export const calculateCourierCost = async (shipmentData: any, companyId: string)
 
   return totalCost > 0 ? totalCost : null;
 };
+
+/**
+ * Express Controller Endpoint: POST /api/rates/calculate
+ * Computes itemized rate breakdown for client & courier, including estimated profit margin.
+ */
+export const calculateRateEstimate = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const payload = req.body;
+    
+    // Auto-calculate volumetric weight
+    const length = parseFloat(payload.length) || 0;
+    const width = parseFloat(payload.width) || 0;
+    const height = parseFloat(payload.height) || 0;
+    const divisor = parseFloat(payload.volumetric_divisor) || 5000;
+    
+    const actual_weight = parseFloat(payload.actual_weight) || 0;
+    let volumetric_weight = parseFloat(payload.volumetric_weight) || 0;
+    
+    if (volumetric_weight === 0 && length > 0 && width > 0 && height > 0) {
+      volumetric_weight = (length * width * height) / divisor;
+    }
+
+    const chargeable_weight = Math.max(actual_weight, volumetric_weight);
+
+    const calculationPayload = {
+      ...payload,
+      actual_weight,
+      volumetric_weight,
+      chargeable_weight,
+    };
+
+    const clientCostData = await calculateShipmentCost(calculationPayload, companyId);
+    const courierCostAmount = await calculateCourierCost(calculationPayload, companyId);
+
+    const clientCharge = clientCostData?.client_charge || 0;
+    const courierCost = courierCostAmount || 0;
+    const estimatedProfit = clientCharge > 0 && courierCost > 0 ? clientCharge - courierCost : 0;
+    const profitMarginPercentage = clientCharge > 0 ? (estimatedProfit / clientCharge) * 100 : 0;
+
+    res.json({
+      actual_weight,
+      volumetric_weight: Math.round(volumetric_weight * 100) / 100,
+      chargeable_weight: Math.round(chargeable_weight * 100) / 100,
+      client_charge: Math.round(clientCharge * 100) / 100,
+      courier_cost: Math.round(courierCost * 100) / 100,
+      estimated_profit: Math.round(estimatedProfit * 100) / 100,
+      profit_margin_pct: Math.round(profitMarginPercentage * 10) / 10,
+      breakdown: {
+        fsc_amount: Math.round((clientCostData?.fsc_amount || 0) * 100) / 100,
+        idc_amount: Math.round((clientCostData?.idc_amount || 0) * 100) / 100,
+        oda_amount: Math.round((clientCostData?.oda_amount || 0) * 100) / 100,
+        green_tax_amount: Math.round((clientCostData?.green_tax_amount || 0) * 100) / 100,
+      }
+    });
+  } catch (error: any) {
+    console.error('Error calculating rate estimate:', error);
+    res.status(500).json({ error: 'Failed to calculate rate estimate', details: error.message });
+  }
+};
+

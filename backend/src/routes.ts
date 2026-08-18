@@ -12,7 +12,7 @@ import { getPublicTracking, syncShipmentTracking, syncAllActiveShipments } from 
 import { previewImport, processImport } from './controllers/import.controller';
 import { generateInvoice, getInvoicesByClient } from './controllers/invoice.controller';
 import { getCompanySettings, updateCompanySettings } from './controllers/settings.controller';
-import { getRateCards, createRateCard, updateRateCard, deleteRateCard, getZoneMappings, saveZoneMapping } from './controllers/rate.controller';
+import { getRateCards, createRateCard, updateRateCard, deleteRateCard, getZoneMappings, saveZoneMapping, calculateRateEstimate } from './controllers/rate.controller';
 import { login } from './controllers/auth.controller';
 import { handleCourierWebhook } from './controllers/webhook.controller';
 import { getNDRShipments, processNDRAction } from './controllers/ndr.controller';
@@ -75,6 +75,7 @@ router.put('/settings/company', requireAuth, updateCompanySettings);
 // --- Rates API ---
 router.get('/rates', requireAuth, getRateCards);
 router.post('/rates', requireAuth, createRateCard);
+router.post('/rates/calculate', requireAuth, calculateRateEstimate);
 router.put('/rates/:id', requireAuth, updateRateCard);
 router.delete('/rates/:id', requireAuth, deleteRateCard);
 router.get('/zones', requireAuth, getZoneMappings);
