@@ -91,9 +91,20 @@ const ClientDetails = () => {
       if (res && res.error) {
         alert(res.error);
       } else {
-        alert('Invoice generated successfully!');
-        fetchClientData(); // Refresh data
         setShowInvoicePrompt(false);
+        if (res && res.invoice_number) {
+          setData((prev: any) => ({
+            ...prev,
+            invoices: [res, ...(prev?.invoices || [])],
+            stats: {
+              ...(prev?.stats || {}),
+              totalBilling: 0
+            }
+          }));
+          setSelectedInvoice(res);
+        } else {
+          fetchClientData();
+        }
       }
     } catch (err: any) {
       alert('Failed to generate invoice: ' + err.message);

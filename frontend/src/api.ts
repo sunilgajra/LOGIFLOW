@@ -295,27 +295,61 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     if (endpoint.includes('/invoices')) {
+      let bodyData: any = {};
+      try {
+        if (options.body && typeof options.body === 'string') {
+          bodyData = JSON.parse(options.body);
+        }
+      } catch (e) {}
+
+      const subtotal = 28500;
+      const total_fsc = 2850;
+      const total_idc = 570;
+      const total_oda = 0;
+      const total_green_tax = 180;
+      const off_loading_charges = Number(bodyData.off_loading_charges) || 0;
+      const vehicle_charges = Number(bodyData.vehicle_charges) || 0;
+      const insurance_charges = Number(bodyData.insurance_charges) || 0;
+      const rto_charges = Number(bodyData.rto_charges) || 0;
+
+      const taxable_amount = subtotal + off_loading_charges + vehicle_charges + insurance_charges + rto_charges;
+
+      let cgst_amount = 0;
+      let sgst_amount = 0;
+      let igst_amount = 0;
+
+      if (bodyData.tax_mode === 'INTER_STATE') {
+        igst_amount = Math.round(taxable_amount * 0.18 * 100) / 100;
+      } else {
+        cgst_amount = Math.round(taxable_amount * 0.09 * 100) / 100;
+        sgst_amount = Math.round(taxable_amount * 0.09 * 100) / 100;
+      }
+
+      const rawTotal = taxable_amount + cgst_amount + sgst_amount + igst_amount;
+      const total_amount = Math.round(rawTotal);
+      const round_off = Math.round((total_amount - rawTotal) * 100) / 100;
+
       return {
         id: 'inv-' + Date.now(),
-        invoice_number: 'INV-20260818-' + Math.floor(1000 + Math.random() * 9000),
+        invoice_number: 'INV-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000),
         invoice_date: new Date().toISOString(),
         due_date: new Date(Date.now() + 15 * 86400000).toISOString(),
         shipment_count: 12,
-        subtotal: 28500,
-        total_fsc: 2850,
-        total_idc: 570,
-        total_oda: 0,
-        total_green_tax: 180,
-        off_loading_charges: 200,
-        vehicle_charges: 1000,
-        insurance_charges: 0,
-        rto_charges: 0,
-        taxable_amount: 33300,
-        cgst_amount: 2997,
-        sgst_amount: 2997,
-        igst_amount: 0,
-        round_off: 0.0,
-        total_amount: 39294,
+        subtotal,
+        total_fsc,
+        total_idc,
+        total_oda,
+        total_green_tax,
+        off_loading_charges,
+        vehicle_charges,
+        insurance_charges,
+        rto_charges,
+        taxable_amount,
+        cgst_amount,
+        sgst_amount,
+        igst_amount,
+        round_off,
+        total_amount,
         status: 'SENT',
         shipments: [
           {
@@ -332,6 +366,21 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
             green_tax_amount: 15,
             oda_amount: 0,
             client_charge: 285
+          },
+          {
+            id: 'demo-2',
+            awb_number: 'BLUED99102451',
+            booking_date: new Date().toISOString(),
+            origin: 'Bengaluru',
+            city: 'Bengaluru',
+            state: 'Karnataka',
+            client_reference_no: 'REF-1003',
+            number_of_pieces: 1,
+            actual_weight: 1.0,
+            volumetric_weight: 0.8,
+            green_tax_amount: 15,
+            oda_amount: 0,
+            client_charge: 195
           }
         ]
       };
