@@ -10,7 +10,7 @@ import { getShipments, bookShipment, updateShipment } from './controllers/shipme
 import { getAnalytics } from './controllers/analytics.controller';
 import { getPublicTracking, syncShipmentTracking, syncAllActiveShipments } from './controllers/tracking.controller';
 import { previewImport, processImport } from './controllers/import.controller';
-import { generateInvoice, getInvoicesByClient } from './controllers/invoice.controller';
+import { generateInvoice, getInvoicesByClient, getInvoiceById } from './controllers/invoice.controller';
 import { getCompanySettings, updateCompanySettings } from './controllers/settings.controller';
 import { getRateCards, createRateCard, updateRateCard, deleteRateCard, getZoneMappings, saveZoneMapping, calculateRateEstimate } from './controllers/rate.controller';
 import { login } from './controllers/auth.controller';
@@ -66,6 +66,7 @@ router.post('/clients/:id/create-login', requireAuth, createClientLogin);
 
 // --- Invoices API ---
 router.post('/invoices/generate', requireAuth, generateInvoice);
+router.get('/invoices/:id', requireAuth, getInvoiceById);
 router.get('/clients/:clientId/invoices', requireAuth, getInvoicesByClient);
 
 // --- Settings API ---

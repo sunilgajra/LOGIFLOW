@@ -4,7 +4,7 @@ import { AuthenticatedRequest } from '../auth.middleware';
 
 export const generateInvoice = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { clientId } = req.body;
+    const { clientId, tax_mode } = req.body;
     
     if (!clientId) {
       return res.status(400).json({ error: 'Client ID is required' });
@@ -45,14 +45,21 @@ export const generateInvoice = async (req: AuthenticatedRequest, res: Response) 
     const rto_charges = parseFloat(req.body.rto_charges) || 0;
 
     // Subtotal already contains fsc_amount, idc_amount, oda_amount, green_tax_amount because we added it to client_charge in rate.controller
-    // So the new taxable amount adds the extra invoice-level charges:
     const taxable_amount = subtotal + off_loading_charges + vehicle_charges + insurance_charges + rto_charges;
 
-    const cgstAmount = taxable_amount * 0.09; // 9% CGST
-    const sgstAmount = taxable_amount * 0.09; // 9% SGST
+    let cgstAmount = 0;
+    let sgstAmount = 0;
+    let igstAmount = 0;
+
+    if (tax_mode === 'INTER_STATE') {
+      igstAmount = taxable_amount * 0.18; // 18% IGST
+    } else {
+      cgstAmount = taxable_amount * 0.09; // 9% CGST
+      sgstAmount = taxable_amount * 0.09; // 9% SGST
+    }
     
     // Total with exact decimals
-    const rawTotal = taxable_amount + cgstAmount + sgstAmount;
+    const rawTotal = taxable_amount + cgstAmount + sgstAmount + igstAmount;
     const roundedTotal = Math.round(rawTotal);
     const roundOff = roundedTotal - rawTotal;
 
@@ -83,6 +90,7 @@ export const generateInvoice = async (req: AuthenticatedRequest, res: Response) 
         taxable_amount,
         cgst_amount: cgstAmount,
         sgst_amount: sgstAmount,
+        igst_amount: igstAmount,
         round_off: roundOff,
         total_amount: roundedTotal,
         status: 'SENT',
@@ -92,6 +100,7 @@ export const generateInvoice = async (req: AuthenticatedRequest, res: Response) 
       },
       include: {
         client: true,
+        company: true,
         shipments: true
       }
     });
@@ -117,6 +126,8 @@ export const getInvoicesByClient = async (req: AuthenticatedRequest, res: Respon
       },
       orderBy: { created_at: 'desc' },
       include: {
+        company: true,
+        client: true,
         shipments: true
       }
     });
@@ -124,5 +135,34 @@ export const getInvoicesByClient = async (req: AuthenticatedRequest, res: Respon
     res.json(invoices);
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch invoices', details: error.message });
+  }
+};
+
+export const getInvoiceById = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id || '');
+    const invoice = await prisma.clientInvoice.findFirst({
+      where: {
+        id,
+        company_id: req.user?.company_id
+      },
+      include: {
+        client: true,
+        company: true,
+        shipments: true
+      }
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    if (req.user?.role === 'CLIENT' && req.user?.client_id !== invoice.client_id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    res.json(invoice);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch invoice details', details: error.message });
   }
 };

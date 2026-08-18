@@ -70,6 +70,7 @@ const ClientDetails = () => {
 
   const [showInvoicePrompt, setShowInvoicePrompt] = useState(false);
   const [extraCharges, setExtraCharges] = useState({
+    tax_mode: 'INTRA_STATE',
     off_loading_charges: 0,
     vehicle_charges: 0,
     insurance_charges: 0,
@@ -607,8 +608,14 @@ const ClientDetails = () => {
                      <div className="flex justify-between p-1 border-b divide-x-2 divide-green-600"><span className="flex-1">IDC Charges</span><span className="w-24 text-right">{selectedInvoice.total_idc?.toFixed(2) || '-'}</span></div>
                      <div className="flex justify-between p-1 border-b divide-x-2 divide-green-600"><span className="flex-1">RTO Charges</span><span className="w-24 text-right">{selectedInvoice.rto_charges?.toFixed(2) || '-'}</span></div>
                      <div className="flex justify-between p-1 border-b divide-x-2 divide-green-600 bg-green-100"><span className="flex-1">Sub Total</span><span className="w-24 text-right">{selectedInvoice.taxable_amount?.toFixed(2)}</span></div>
-                     <div className="flex justify-between p-1 border-b divide-x-2 divide-green-600"><span className="flex-1">CGST</span><span className="w-24 text-right">{selectedInvoice.cgst_amount?.toFixed(2)}</span></div>
-                     <div className="flex justify-between p-1 border-b divide-x-2 divide-green-600"><span className="flex-1">SGST</span><span className="w-24 text-right">{selectedInvoice.sgst_amount?.toFixed(2)}</span></div>
+                     {selectedInvoice.igst_amount > 0 ? (
+                       <div className="flex justify-between p-1 border-b divide-x-2 divide-green-600"><span className="flex-1">IGST (18%)</span><span className="w-24 text-right">{selectedInvoice.igst_amount?.toFixed(2)}</span></div>
+                     ) : (
+                       <>
+                         <div className="flex justify-between p-1 border-b divide-x-2 divide-green-600"><span className="flex-1">CGST (9%)</span><span className="w-24 text-right">{selectedInvoice.cgst_amount?.toFixed(2)}</span></div>
+                         <div className="flex justify-between p-1 border-b divide-x-2 divide-green-600"><span className="flex-1">SGST (9%)</span><span className="w-24 text-right">{selectedInvoice.sgst_amount?.toFixed(2)}</span></div>
+                       </>
+                     )}
                      <div className="flex justify-between p-1 border-b divide-x-2 divide-green-600"><span className="flex-1">Round off</span><span className="w-24 text-right">{selectedInvoice.round_off?.toFixed(2)}</span></div>
                      <div className="flex justify-between p-1 bg-green-200 divide-x-2 divide-green-600"><span className="flex-1 text-sm">Net Total</span><span className="w-24 text-right text-sm">{selectedInvoice.total_amount?.toFixed(2)}</span></div>
                    </div>
@@ -635,6 +642,17 @@ const ClientDetails = () => {
               <h3 className="text-lg font-bold text-slate-900 mb-4">Additional Invoice Charges</h3>
               
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">GST Tax Type</label>
+                  <select 
+                    value={extraCharges.tax_mode} 
+                    onChange={e => setExtraCharges({...extraCharges, tax_mode: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-md font-medium text-slate-800"
+                  >
+                    <option value="INTRA_STATE">Intra-State (CGST 9% + SGST 9%)</option>
+                    <option value="INTER_STATE">Inter-State (IGST 18%)</option>
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Off Loading Charges (Rs)</label>
                   <input 
