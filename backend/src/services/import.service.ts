@@ -39,12 +39,16 @@ export class ImportService {
     const norm = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
 
     const commonMappings = {
-      awb_number: ['awb', 'waybill', 'trackingno', 'consignmentno', 'refno'],
-      internal_status: ['status', 'currentstatus', 'deliverystatus', 'state'],
-      receiver_name: ['receiver', 'consignee', 'customername', 'to'],
-      receiver_phone: ['phone', 'mobile', 'contact', 'telephone'],
-      city: ['city', 'destination', 'location'],
+      awb_number: ['awb', 'waybill', 'trackingno', 'trackingid', 'tracking', 'consignmentno', 'dockno', 'cnno'],
+      internal_status: ['status', 'currentstatus', 'deliverystatus', 'shipmentstatus'],
+      receiver_name: ['receiver', 'consignee', 'customername', 'name', 'to', 'partyname'],
+      receiver_phone: ['phone', 'mobile', 'contact', 'telephone', 'receiverphone'],
+      city: ['city', 'destination', 'location', 'destcity'],
+      state: ['state', 'deststate', 'destinationstate', 'province'],
+      origin: ['origin', 'from', 'pickupcity', 'pickupstate'],
       pincode: ['pin', 'pincode', 'zip', 'postalcode'],
+      actual_weight: ['weight', 'actualweight', 'wgt', 'weightkg', 'chgweight'],
+      client_reference_no: ['ref', 'referenceno', 'clientref', 'orderid', 'orderno', 'invno'],
       amount_to_collect: ['cod', 'amount', 'value', 'collectable'],
     };
 
