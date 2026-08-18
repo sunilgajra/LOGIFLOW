@@ -3,28 +3,48 @@ export interface BookingRequest {
   senderName: string;
   senderAddress: string;
   senderPhone: string;
+  senderPincode?: string;
+  senderCity?: string;
+  senderState?: string;
   receiverName: string;
   receiverAddress: string;
   receiverPhone: string;
+  receiverPincode?: string;
+  receiverCity?: string;
+  receiverState?: string;
   weight: number;
   pieces: number;
   isCod: boolean;
   codAmount: number;
+  declaredValue?: number;
+  productDescription?: string;
+  clientRefNo?: string;
 }
 
 export interface BookingResponse {
   success: boolean;
   awbNumber?: string;
   labelUrl?: string;
+  rawResponse?: any;
   error?: string;
+}
+
+export interface TrackingScan {
+  status: string;
+  location?: string;
+  timestamp?: Date;
+  remarks?: string;
 }
 
 export interface TrackingResponse {
   success: boolean;
-  status?: string; // Standardized internal status (e.g., IN_TRANSIT, DELIVERED, EXCEPTION)
+  status?: string; // Standardized internal status (e.g., BOOKED, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED, RTO, NDR)
+  rawStatus?: string;
   location?: string;
   timestamp?: Date;
   remarks?: string;
+  scans?: TrackingScan[];
+  rawResponse?: any;
   error?: string;
 }
 
@@ -39,3 +59,4 @@ export interface ICourierProvider {
    */
   trackShipment(awbNumber: string): Promise<TrackingResponse>;
 }
+

@@ -47,7 +47,7 @@ export const createRateCard = async (req: AuthenticatedRequest, res: Response) =
 
 export const updateRateCard = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const data = req.body;
     const rateCard = await prisma.rateCard.update({
       where: { id, company_id: req.user?.company_id },
@@ -77,7 +77,7 @@ export const updateRateCard = async (req: AuthenticatedRequest, res: Response) =
 
 export const deleteRateCard = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     await prisma.rateCard.delete({
       where: { id, company_id: req.user?.company_id }
     });
@@ -169,9 +169,9 @@ export const calculateShipmentCost = async (shipmentData: any, companyId: string
     const originZone = originZoneMapping?.zone_name || 'DEFAULT';
 
     if (matrix[originZone] && matrix[originZone][destZone]) {
-      ratePerKg = parseFloat(matrix[originZone][destZone]);
-    } else if (matrix[destZone] && typeof matrix[destZone] === 'number' || typeof matrix[destZone] === 'string') {
-      ratePerKg = parseFloat(matrix[destZone]);
+      ratePerKg = parseFloat(String(matrix[originZone][destZone]));
+    } else if (matrix[destZone] && (typeof matrix[destZone] === 'number' || typeof matrix[destZone] === 'string')) {
+      ratePerKg = parseFloat(String(matrix[destZone]));
     }
   } catch (e) {
     console.error('Failed to parse rates matrix', e);
@@ -250,9 +250,9 @@ export const calculateCourierCost = async (shipmentData: any, companyId: string)
     const originZone = originZoneMapping?.zone_name || 'DEFAULT';
 
     if (matrix[originZone] && matrix[originZone][destZone]) {
-      ratePerKg = parseFloat(matrix[originZone][destZone]);
+      ratePerKg = parseFloat(String(matrix[originZone][destZone]));
     } else if (matrix[destZone] && (typeof matrix[destZone] === 'number' || typeof matrix[destZone] === 'string')) {
-      ratePerKg = parseFloat(matrix[destZone]);
+      ratePerKg = parseFloat(String(matrix[destZone]));
     }
   } catch (e) {
     console.error('Failed to parse courier rates matrix', e);

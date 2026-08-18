@@ -104,7 +104,7 @@ export const generateInvoice = async (req: AuthenticatedRequest, res: Response) 
 
 export const getInvoicesByClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { clientId } = req.params;
+    const clientId = String(req.params.clientId || '');
 
     if (req.user?.role === 'CLIENT' && req.user?.client_id !== clientId) {
       return res.status(403).json({ error: 'Access denied: You can only view your own invoices.' });

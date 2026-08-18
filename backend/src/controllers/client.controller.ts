@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthenticatedRequest } from '../auth.middleware';
+import bcrypt from 'bcrypt';
 
 export const getClients = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -36,7 +37,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
 
 export const updateClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const data = req.body;
     
     const client = await prisma.client.updateMany({
@@ -59,7 +60,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
 
 export const getClientById = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     
     const client = await prisma.client.findFirst({
       where: { id, company_id: req.user?.company_id },
@@ -128,7 +129,7 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
 
 export const uploadClientAgreement = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const { agreement_document } = req.body;
     const client = await prisma.client.updateMany({
       where: { id, company_id: req.user?.company_id },
@@ -141,15 +142,12 @@ export const uploadClientAgreement = async (req: AuthenticatedRequest, res: Resp
   }
 };
 
-import bcrypt from 'bcrypt';
-
-export const createClientLogin = async (req: Request, res: Response) => {
+export const createClientLogin = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const { email, password } = req.body;
 
-    const authReq = req as AuthenticatedRequest;
-    const client = await prisma.client.findUnique({ where: { id, company_id: authReq.user?.company_id } });
+    const client = await prisma.client.findFirst({ where: { id, company_id: req.user?.company_id } });
     if (!client) {
       return res.status(404).json({ error: 'Client not found' });
     }
@@ -163,7 +161,7 @@ export const createClientLogin = async (req: Request, res: Response) => {
 
     const user = await prisma.user.create({
       data: {
-        company_id: authReq.user!.company_id,
+        company_id: req.user!.company_id,
         email,
         password: hashedPassword,
         first_name: client.contact_person?.split(' ')[0] || client.company_name,
@@ -179,3 +177,4 @@ export const createClientLogin = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to create client login' });
   }
 };
+

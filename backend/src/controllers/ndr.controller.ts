@@ -55,7 +55,7 @@ export const getNDRShipments = async (req: Request, res: Response) => {
 export const processNDRAction = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const { action, remarks, new_phone, new_address, preferred_date } = req.body;
 
     if (!action) {

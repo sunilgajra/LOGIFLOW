@@ -3,7 +3,7 @@ import { prisma } from '../prisma';
 
 export const deliverShipment = async (req: Request, res: Response) => {
   try {
-    const { awb } = req.params;
+    const awb = String(req.params.awb || '');
     const { podImageUrl, podSignature } = req.body;
     // @ts-ignore
     const user = req.user;
@@ -11,7 +11,7 @@ export const deliverShipment = async (req: Request, res: Response) => {
     const shipment = await prisma.shipment.findFirst({
       where: {
         awb_number: awb,
-        company_id: user.company_id,
+        company_id: user?.company_id,
       },
     });
 

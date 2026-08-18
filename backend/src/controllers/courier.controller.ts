@@ -40,7 +40,7 @@ export const createCourier = async (req: AuthenticatedRequest, res: Response) =>
 
 export const updateCourier = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || '');
     const data = req.body;
     const courier = await prisma.courierPartner.update({
       where: { id, company_id: req.user?.company_id as string },
