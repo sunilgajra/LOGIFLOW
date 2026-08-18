@@ -25,6 +25,17 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     console.warn(`[API Fallback] ${endpoint}:`, error.message);
     
     // Demo Mode Fallback for mobile / static GitHub Pages preview when backend API is offline
+    if (endpoint.includes('/settings/company')) {
+      return {
+        name: 'LogiFlow Logistics Pvt Ltd',
+        address: '101 Trade Center, Connaught Place, New Delhi',
+        gst_number: '07AAAAA0000A1Z5',
+        pan_number: 'AAAAA0000A',
+        invoice_prefix: 'INV-',
+        branding_logo: ''
+      };
+    }
+
     if (endpoint.includes('/shipments')) {
       return {
         data: [
@@ -77,8 +88,106 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       };
     }
 
-    if (endpoint.includes('/clients') || endpoint.includes('/couriers') || endpoint.includes('/rates') || endpoint.includes('/ndr') || endpoint.includes('/zones')) {
-      return [];
+    if (endpoint.includes('/couriers')) {
+      return [
+        {
+          id: 'courier-1',
+          courier_name: 'Delhivery Express',
+          contact_person: 'Delhivery Support',
+          phone: '+91 124 6719500',
+          email: 'support@delhivery.com',
+          account_number: 'DELH-882190',
+          status: 'ACTIVE',
+          api_credentials: JSON.stringify({ mode: 'staging' }),
+          _count: { shipments: 86 }
+        },
+        {
+          id: 'courier-2',
+          courier_name: 'Blue Dart',
+          contact_person: 'BlueDart Support',
+          phone: '+91 1860 233 1234',
+          email: 'customersupport@bluedart.com',
+          account_number: 'BD-991204',
+          status: 'ACTIVE',
+          api_credentials: JSON.stringify({ mode: 'sandbox' }),
+          _count: { shipments: 42 }
+        }
+      ];
+    }
+
+    if (endpoint.includes('/clients')) {
+      return [
+        {
+          id: 'client-1',
+          client_id: 'CLI-001',
+          company_name: 'Apex Logistics',
+          contact_person: 'Rahul Sharma',
+          email: 'rahul@apex.com',
+          phone: '+91 9876543210',
+          status: 'ACTIVE',
+          billing_address: '102 Green Heights, Andheri East, Mumbai',
+          _count: { shipments: 64 }
+        },
+        {
+          id: 'client-2',
+          client_id: 'CLI-002',
+          company_name: 'LogiFlow Merchant',
+          contact_person: 'Priya Verma',
+          email: 'priya@merchant.com',
+          phone: '+91 9123456789',
+          status: 'ACTIVE',
+          billing_address: 'Flat 4B, MG Road, Bengaluru',
+          _count: { shipments: 38 }
+        }
+      ];
+    }
+
+    if (endpoint.includes('/rates')) {
+      return [
+        {
+          id: 'rate-1',
+          name: 'Standard Client Express Rate',
+          type: 'CLIENT',
+          min_weight_kg: 0.5,
+          docket_charge: 50,
+          min_booking_amount: 100,
+          volumetric_divisor: 5000,
+          fov_percentage: 0.2,
+          fov_minimum: 20,
+          fsc_percentage: 10,
+          idc_percentage: 2,
+          oda_charge: 150,
+          green_tax_rate: 15,
+          rates_matrix: JSON.stringify({ N1: 45, S1: 65, W1: 55, E1: 75 })
+        }
+      ];
+    }
+
+    if (endpoint.includes('/zones')) {
+      return [
+        { id: 'zone-1', state_name: 'Delhi', zone_name: 'N1' },
+        { id: 'zone-2', state_name: 'Maharashtra', zone_name: 'W1' },
+        { id: 'zone-3', state_name: 'Karnataka', zone_name: 'S1' },
+        { id: 'zone-4', state_name: 'West Bengal', zone_name: 'E1' }
+      ];
+    }
+
+    if (endpoint.includes('/ndr')) {
+      return [
+        {
+          id: 'ndr-1',
+          awb_number: 'DELH88291034',
+          internal_status: 'NDR',
+          courier_status: 'Undelivered: Customer Premises Closed',
+          delivery_attempt: 1,
+          receiver_name: 'Rahul Sharma',
+          receiver_phone: '+91 9876543210',
+          receiver_address: '102 Green Heights, Andheri East, Mumbai',
+          client: { company_name: 'Apex Logistics' },
+          courier: { courier_name: 'Delhivery Express' },
+          updated_at: new Date().toISOString()
+        }
+      ];
     }
 
     return null;

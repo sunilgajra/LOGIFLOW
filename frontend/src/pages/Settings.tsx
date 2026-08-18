@@ -17,17 +17,22 @@ const Settings = () => {
   useEffect(() => {
     fetchApi('/settings/company')
       .then(res => {
-        setFormData({
-          name: res.name || '',
-          address: res.address || '',
-          gst_number: res.gst_number || '',
-          pan_number: res.pan_number || '',
-          invoice_prefix: res.invoice_prefix || '',
-          branding_logo: res.branding_logo || ''
-        });
+        if (res) {
+          setFormData({
+            name: res.name || '',
+            address: res.address || '',
+            gst_number: res.gst_number || '',
+            pan_number: res.pan_number || '',
+            invoice_prefix: res.invoice_prefix || '',
+            branding_logo: res.branding_logo || ''
+          });
+        }
         setLoading(false);
       })
-      .catch(console.error);
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

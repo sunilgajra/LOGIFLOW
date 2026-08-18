@@ -49,7 +49,7 @@ const LandingPage = () => {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img 
-            src="/hero-bg.png" 
+            src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=2000&q=80" 
             alt="Logistics Background" 
             className="w-full h-full object-cover"
           />
