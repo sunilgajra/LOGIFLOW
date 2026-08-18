@@ -271,6 +271,32 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     if (endpoint.includes('/rates')) {
+      let bodyData: any = {};
+      try {
+        if (options.body && typeof options.body === 'string') {
+          bodyData = JSON.parse(options.body);
+        }
+      } catch (e) {}
+
+      if (options.method === 'POST' || options.method === 'PUT') {
+        return {
+          id: 'rc-' + Date.now(),
+          name: bodyData.name || 'New Rate Card',
+          type: bodyData.type || 'COURIER',
+          courier_id: bodyData.courier_id || 'courier-1',
+          client_id: bodyData.client_id || null,
+          min_weight_kg: parseFloat(bodyData.min_weight_kg || '0.5'),
+          docket_charge: parseFloat(bodyData.docket_charge || '50'),
+          min_booking_amount: parseFloat(bodyData.min_booking_amount || '100'),
+          volumetric_divisor: parseFloat(bodyData.volumetric_divisor || '5000'),
+          fsc_percentage: parseFloat(bodyData.fsc_percentage || '10'),
+          idc_percentage: parseFloat(bodyData.idc_percentage || '2'),
+          oda_charge: parseFloat(bodyData.oda_charge || '150'),
+          green_tax_rate: parseFloat(bodyData.green_tax_rate || '15'),
+          rates_matrix: bodyData.rates_matrix || JSON.stringify({ N1: { W1: 45, S1: 65 } })
+        };
+      }
+
       return [
         {
           id: 'rate-1',
@@ -286,7 +312,24 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           idc_percentage: 2,
           oda_charge: 150,
           green_tax_rate: 15,
-          rates_matrix: JSON.stringify({ N1: 45, S1: 65, W1: 55, E1: 75 })
+          rates_matrix: JSON.stringify({ N1: { W1: 45, S1: 65 } })
+        },
+        {
+          id: 'rate-2',
+          name: 'Delhivery Surface Rate Card 2024',
+          type: 'COURIER',
+          courier_id: 'courier-1',
+          min_weight_kg: 0.5,
+          docket_charge: 40,
+          min_booking_amount: 80,
+          volumetric_divisor: 5000,
+          fov_percentage: 0.2,
+          fov_minimum: 20,
+          fsc_percentage: 8,
+          idc_percentage: 2,
+          oda_charge: 120,
+          green_tax_rate: 15,
+          rates_matrix: JSON.stringify({ N1: { W1: 40, S1: 60 } })
         }
       ];
     }

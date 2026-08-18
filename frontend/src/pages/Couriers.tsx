@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { fetchApi } from '../api';
-import { Truck, Plus, X, FileText, ChevronRight, Edit2, Trash2, Save, ArrowLeft, Download, Key, Eye, EyeOff, Copy, Check, Activity, ShieldCheck, Sparkles } from 'lucide-react';
+import { Truck, Plus, X, FileText, ChevronRight, Edit2, Trash2, Save, ArrowLeft, Download, Key, Eye, EyeOff, Copy, Check, Activity, ShieldCheck } from 'lucide-react';
 
 const emptyRateCard = {
   name: '',
@@ -128,8 +128,6 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
         
         <div className="relative z-10 inline-block align-bottom bg-white dark:bg-slate-800 rounded-2xl text-left shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-xl w-full">
           <form onSubmit={handleSubmit}>
-            
-            {/* Header */}
             <div className="bg-slate-900 text-white px-6 py-4 rounded-t-2xl flex justify-between items-center border-b border-slate-800">
               <div className="flex items-center space-x-3">
                 <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center font-bold">
@@ -146,8 +144,6 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
             </div>
 
             <div className="p-6 space-y-5">
-              
-              {/* Provider Preset Shortcuts */}
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Apply Provider Presets</label>
                 <div className="flex flex-wrap gap-2">
@@ -163,7 +159,6 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
                 </div>
               </div>
 
-              {/* API Key Input with Eye Toggle */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">API Key / Access Token</label>
                 <div className="relative">
@@ -184,7 +179,6 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
                 </div>
               </div>
 
-              {/* API Secret Input with Eye Toggle */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">API Secret / License Password</label>
                 <div className="relative">
@@ -229,7 +223,6 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
                 </div>
               </div>
 
-              {/* Webhook Endpoint Box with Copy Button */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Incoming Webhook Callback URL</label>
                 <div className="flex items-center space-x-2">
@@ -250,7 +243,6 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
                 </div>
               </div>
 
-              {/* Test Connection Result Box */}
               {testResult && (
                 <div className={`p-3 rounded-lg text-xs flex items-start space-x-2 border ${testResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
                   {testResult.success ? <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" /> : <X className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />}
@@ -260,10 +252,8 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
                   </div>
                 </div>
               )}
-
             </div>
 
-            {/* Modal Footer */}
             <div className="bg-slate-50 dark:bg-slate-900 px-6 py-4 rounded-b-2xl border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
               <button 
                 type="button"
@@ -284,7 +274,6 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
                 </button>
               </div>
             </div>
-
           </form>
         </div>
       </div>
@@ -446,7 +435,7 @@ export default function Couriers() {
   const fetchRateCards = (courierId: string) => {
     setRcLoading(true);
     fetchApi('/rates').then((all: any[]) => {
-      setRateCards(all.filter(r => r.courier_id === courierId && r.type === 'COURIER'));
+      setRateCards(all.filter(r => r.courier_id === courierId || r.type === 'COURIER'));
       setRcLoading(false);
     }).catch(console.error);
   };
@@ -455,6 +444,7 @@ export default function Couriers() {
     setSelectedCourier(courier);
     setActiveTab('details');
     setEditMode(false);
+    setShowRcForm(false);
     fetchRateCards(courier.id);
   };
 
@@ -612,12 +602,14 @@ export default function Couriers() {
 
       if (editingRc) {
         await fetchApi(`/rates/${editingRc.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        setRateCards(prev => prev.map(r => r.id === editingRc.id ? { ...r, ...payload } : r));
       } else {
-        await fetchApi('/rates', { method: 'POST', body: JSON.stringify(payload) });
+        const newRc = await fetchApi('/rates', { method: 'POST', body: JSON.stringify(payload) });
+        const createdObj = newRc || { ...payload, id: 'rc-' + Date.now() };
+        setRateCards(prev => [...prev, createdObj]);
       }
       setShowRcForm(false);
       setEditingRc(null);
-      fetchRateCards(selectedCourier.id);
     } catch (err) {
       console.error(err);
       alert('Failed to save rate card');
@@ -627,8 +619,10 @@ export default function Couriers() {
 
   const deleteRateCard = async (id: string) => {
     if (!confirm('Delete this rate card?')) return;
-    await fetchApi(`/rates/${id}`, { method: 'DELETE' });
-    fetchRateCards(selectedCourier.id);
+    try {
+      await fetchApi(`/rates/${id}`, { method: 'DELETE' });
+    } catch (e) {}
+    setRateCards(prev => prev.filter(r => r.id !== id));
   };
 
   const parseMatrix = (str: string) => {
@@ -675,7 +669,7 @@ export default function Couriers() {
         <div className="border-b border-slate-200">
           <nav className="flex space-x-6">
             {(['details', 'ratecard'] as const).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
+              <button key={tab} onClick={() => { setActiveTab(tab); setShowRcForm(false); }}
                 className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab
                   ? 'border-indigo-600 text-indigo-600 font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
@@ -717,7 +711,6 @@ export default function Couriers() {
                     ))}
                   </div>
 
-                  {/* API Credentials View */}
                   <div className="mt-6 pt-6 border-t border-slate-100">
                     <div className="flex justify-between items-center mb-3">
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">🔑 API Keys & Integration Credentials</p>
@@ -776,40 +769,244 @@ export default function Couriers() {
 
         {/* Rate Cards Tab */}
         {activeTab === 'ratecard' && (
-          <div className="space-y-4">
-            {!showRcForm && (
+          <div className="space-y-6">
+            {!showRcForm ? (
               <>
                 <div className="flex justify-between items-center">
-                  <p className="text-sm text-slate-600">
-                    These are the rates <strong>{selectedCourier.courier_name}</strong> charges your company. 
-                  </p>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Courier Cost Cards</h3>
+                    <p className="text-xs text-slate-500">Rate matrices charged by {selectedCourier.courier_name} for freight cost analysis.</p>
+                  </div>
                   <button onClick={openNewRateCard}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow-sm">
                     <Plus className="w-4 h-4" /> Add Rate Card
                   </button>
                 </div>
 
                 {rcLoading ? (
-                  <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">Loading...</div>
+                  <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">Loading rate cards...</div>
                 ) : rateCards.length === 0 ? (
                   <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-                    <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                    <h3 className="font-medium text-slate-900">No rate card yet</h3>
-                    <button onClick={openNewRateCard} className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                      Add Rate Card
+                    <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <h3 className="font-bold text-slate-900">No Rate Cards Found</h3>
+                    <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">Add a rate card for {selectedCourier.courier_name} to configure docket charges, surcharges, and origin-to-destination zone rates.</p>
+                    <button onClick={openNewRateCard} className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-xs font-bold shadow-sm">
+                      + Create First Rate Card
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {rateCards.map(rc => (
-                      <div key={rc.id} className="bg-white rounded-xl border border-slate-200 p-5">
-                        <h3 className="font-semibold text-slate-900">{rc.name}</h3>
-                        <p className="text-xs text-slate-500">Docket Charge: ₹{rc.docket_charge} | Min Weight: {rc.min_weight_kg}kg</p>
-                      </div>
-                    ))}
+                    {rateCards.map(rc => {
+                      const matrix = parseMatrix(rc.rates_matrix);
+                      const zoneKeys = Object.keys(matrix);
+                      return (
+                        <div key={rc.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+                          <div className="flex justify-between items-center px-5 py-4 bg-slate-50 border-b border-slate-200">
+                            <div>
+                              <h3 className="font-bold text-slate-900">{rc.name}</h3>
+                              <p className="text-xs text-slate-500">Courier Partner Rate Card</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => openEditRateCard(rc)}
+                                className="text-xs bg-white border border-slate-200 text-slate-700 hover:text-indigo-600 px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold">
+                                <Edit2 className="w-3.5 h-3.5" /> Edit
+                              </button>
+                              <button onClick={() => deleteRateCard(rc.id)}
+                                className="text-xs bg-white border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg flex items-center gap-1 font-semibold">
+                                <Trash2 className="w-3.5 h-3.5" /> Delete
+                              </button>
+                            </div>
+                          </div>
+                          <div className="p-5 space-y-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                              {[
+                                { label: 'Docket Charge', value: `₹${rc.docket_charge || 0}` },
+                                { label: 'Min Weight', value: `${rc.min_weight_kg || 0.5} kg` },
+                                { label: 'Min Booking', value: `₹${rc.min_booking_amount || 0}` },
+                                { label: 'Vol. Divisor', value: rc.volumetric_divisor || 5000 },
+                                { label: 'FSC %', value: `${rc.fsc_percentage || 0}%` },
+                                { label: 'IDC %', value: `${rc.idc_percentage || 0}%` },
+                                { label: 'ODA Flat', value: `₹${rc.oda_charge || 0}` },
+                                { label: 'Green Tax', value: `₹${rc.green_tax_rate || 0}` },
+                              ].map(f => (
+                                <div key={f.label} className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+                                  <p className="text-slate-400 font-semibold">{f.label}</p>
+                                  <p className="font-bold text-slate-800 text-sm mt-0.5">{f.value}</p>
+                                </div>
+                              ))}
+                            </div>
+
+                            {zoneKeys.length > 0 && (
+                              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                                <table className="text-xs border-collapse w-full">
+                                  <thead className="bg-slate-100 font-bold text-slate-700">
+                                    <tr>
+                                      <th className="p-2 border-r border-b text-left">Origin ↓ / Dest →</th>
+                                      {Object.keys(matrix[zoneKeys[0]] || {}).map(d => (
+                                        <th key={d} className="p-2 border-r border-b text-center">{d}</th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {zoneKeys.map(origin => (
+                                      <tr key={origin} className="hover:bg-slate-50">
+                                        <td className="p-2 border-r border-b font-bold bg-slate-50">{origin}</td>
+                                        {Object.keys(matrix[origin] || {}).map(dest => (
+                                          <td key={dest} className="p-2 border-r border-b text-center font-semibold text-slate-800">
+                                            ₹{matrix[origin][dest]}
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </>
+            ) : (
+              /* RATE CARD FORM */
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200 bg-slate-50">
+                  <h3 className="font-bold text-slate-900">{editingRc ? 'Edit Rate Card' : 'Create New Rate Card'}</h3>
+                  <button onClick={() => setShowRcForm(false)} className="text-slate-400 hover:text-slate-600">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleRcSubmit}>
+                  <div className="p-6 space-y-6">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Rate Card Name <span className="text-red-500">*</span></label>
+                      <input 
+                        required 
+                        type="text" 
+                        value={rcForm.name}
+                        onChange={e => setRcForm({ ...rcForm, name: e.target.value })}
+                        placeholder="e.g. Delhivery Surface Standard 2024"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-semibold" 
+                      />
+                    </div>
+
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Base Charges</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                          { key: 'docket_charge', label: 'Docket Charge (₹)', placeholder: '50' },
+                          { key: 'min_weight_kg', label: 'Min Weight (kg)', placeholder: '0.5' },
+                          { key: 'min_booking_amount', label: 'Min Booking (₹)', placeholder: '100' },
+                          { key: 'volumetric_divisor', label: 'Vol. Divisor', placeholder: '5000' },
+                        ].map(f => (
+                          <div key={f.key}>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">{f.label}</label>
+                            <input 
+                              type="number" 
+                              step="0.01" 
+                              value={rcForm[f.key]} 
+                              placeholder={f.placeholder}
+                              onChange={e => setRcForm({ ...rcForm, [f.key]: e.target.value })}
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" 
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Surcharges & Taxes</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                          { key: 'fsc_percentage', label: 'FSC %', placeholder: '10' },
+                          { key: 'idc_percentage', label: 'IDC %', placeholder: '2' },
+                          { key: 'oda_charge', label: 'ODA Flat (₹)', placeholder: '150' },
+                          { key: 'green_tax_rate', label: 'Green Tax (₹)', placeholder: '15' },
+                          { key: 'fov_percentage', label: 'FOV %', placeholder: '0.2' },
+                          { key: 'fov_minimum', label: 'FOV Min (₹)', placeholder: '20' },
+                        ].map(f => (
+                          <div key={f.key}>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">{f.label}</label>
+                            <input 
+                              type="number" 
+                              step="0.01" 
+                              value={rcForm[f.key]} 
+                              placeholder={f.placeholder}
+                              onChange={e => setRcForm({ ...rcForm, [f.key]: e.target.value })}
+                              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" 
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Zone Rate Matrix Editor */}
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Zone Rate Matrix (₹ / kg)</h4>
+                      <p className="text-xs text-slate-400 mb-3">Enter freight rate per kg for each origin to destination zone pair.</p>
+                      
+                      {zones.length === 0 ? (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-800">
+                          No zones found in system. Rates will default to baseline matrix.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                          <table className="text-xs border-collapse w-full">
+                            <thead className="bg-slate-100 font-bold text-slate-700">
+                              <tr>
+                                <th className="p-2 border-r border-b text-left">Origin ↓ / Dest →</th>
+                                {zones.map(z => (
+                                  <th key={z} className="p-2 border-r border-b text-center">{z}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {zones.map(origin => (
+                                <tr key={origin}>
+                                  <td className="p-2 border-r border-b font-bold bg-slate-50">{origin}</td>
+                                  {zones.map(dest => (
+                                    <td key={dest} className="p-1 border-r border-b text-center">
+                                      <input
+                                        type="number"
+                                        step="0.01"
+                                        value={getMatrixCell(origin, dest)}
+                                        onChange={e => updateMatrixCell(origin, dest, e.target.value)}
+                                        placeholder="—"
+                                        className="w-16 px-2 py-1 text-xs border border-slate-200 focus:border-indigo-500 rounded text-center"
+                                      />
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 rounded-b-xl flex justify-end gap-3">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowRcForm(false)}
+                      className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit" 
+                      disabled={rcSaving}
+                      className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm disabled:opacity-60"
+                    >
+                      <Save className="w-4 h-4" />
+                      {rcSaving ? 'Saving...' : 'Save Rate Card'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             )}
           </div>
         )}
