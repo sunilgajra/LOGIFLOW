@@ -386,6 +386,57 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       };
     }
 
+    if (endpoint.includes('/imports/preview')) {
+      return {
+        fileId: 'demo-import-' + Date.now() + '.json',
+        headers: [
+          'AWB_NUMBER', 'STATUS', 'RECEIVER_NAME', 'CITY', 'STATE', 
+          'PINCODE', 'ACTUAL_WEIGHT', 'CLIENT_REF'
+        ],
+        mapping: {
+          awb_number: 'AWB_NUMBER',
+          internal_status: 'STATUS',
+          receiver_name: 'RECEIVER_NAME',
+          city: 'CITY',
+          state: 'STATE',
+          pincode: 'PINCODE',
+          actual_weight: 'ACTUAL_WEIGHT',
+          client_reference_no: 'CLIENT_REF'
+        },
+        sampleData: [
+          {
+            AWB_NUMBER: 'DELH88291034',
+            STATUS: 'Delivered',
+            RECEIVER_NAME: 'Rahul Sharma',
+            CITY: 'Mumbai',
+            STATE: 'Maharashtra',
+            PINCODE: '400069',
+            ACTUAL_WEIGHT: '2.5',
+            CLIENT_REF: 'REF-1002'
+          },
+          {
+            AWB_NUMBER: 'BLUED99102451',
+            STATUS: 'Out for Delivery',
+            RECEIVER_NAME: 'Priya Verma',
+            CITY: 'Bengaluru',
+            STATE: 'Karnataka',
+            PINCODE: '560001',
+            ACTUAL_WEIGHT: '1.0',
+            CLIENT_REF: 'REF-1003'
+          }
+        ]
+      };
+    }
+
+    if (endpoint.includes('/imports/process')) {
+      return {
+        message: 'Import complete',
+        imported: 10,
+        failed: 0,
+        total: 10
+      };
+    }
+
     return null;
   }
 };
