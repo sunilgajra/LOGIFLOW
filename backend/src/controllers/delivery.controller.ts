@@ -4,7 +4,7 @@ import { prisma } from '../prisma';
 export const deliverShipment = async (req: Request, res: Response) => {
   try {
     const awb = String(req.params.awb || '');
-    const { podImageUrl, podSignature } = req.body;
+    const { podImageUrl, podSignature, receivedBy } = req.body;
     // @ts-ignore
     const user = req.user;
 
@@ -26,6 +26,7 @@ export const deliverShipment = async (req: Request, res: Response) => {
         courier_status: 'Delivered',
         podImageUrl: podImageUrl || null,
         podSignature: podSignature || null,
+        receiver_name: receivedBy || shipment.receiver_name,
         deliveredAt: new Date(),
       },
     });

@@ -437,6 +437,25 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       };
     }
 
+    if (endpoint.includes('/deliver')) {
+      let bodyData: any = {};
+      try {
+        if (options.body && typeof options.body === 'string') {
+          bodyData = JSON.parse(options.body);
+        }
+      } catch (e) {}
+
+      return {
+        id: 'delivered-' + Date.now(),
+        internal_status: 'DELIVERED',
+        courier_status: 'Delivered',
+        podSignature: bodyData.podSignature || null,
+        podImageUrl: bodyData.podImageUrl || null,
+        receiver_name: bodyData.receivedBy || 'Recipient',
+        deliveredAt: new Date().toISOString()
+      };
+    }
+
     return null;
   }
 };
