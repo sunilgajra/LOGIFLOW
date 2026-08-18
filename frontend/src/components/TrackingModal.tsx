@@ -15,15 +15,22 @@ const TrackingModal: React.FC<TrackingModalProps> = ({ awbNumber, onClose }) => 
 
   useEffect(() => {
     setLoading(true);
-    // Notice that tracking is a public endpoint, so it might not require auth, 
-    // but fetchApi handles auth if token exists
+    setError('');
+    setData(null);
+
     fetchApi(`/public/track/${awbNumber}`)
       .then(res => {
-        setData(res);
+        if (!res || res.error || !res.status) {
+          setError(res?.error || 'Shipment tracking information unavailable.');
+          setData(null);
+        } else {
+          setData(res);
+        }
         setLoading(false);
       })
       .catch(err => {
-        setError(err.message);
+        setError(err.message || 'Shipment tracking information unavailable.');
+        setData(null);
         setLoading(false);
       });
   }, [awbNumber]);
@@ -52,11 +59,11 @@ const TrackingModal: React.FC<TrackingModalProps> = ({ awbNumber, onClose }) => 
               <div className="flex items-start justify-between mb-8 pb-6 border-b border-slate-100">
                 <div>
                   <p className="text-sm text-slate-500 uppercase tracking-wider mb-1">Current Status</p>
-                  <p className="text-xl font-bold text-slate-900">{data.status}</p>
+                  <p className="text-xl font-bold text-slate-900">{data?.status || 'BOOKED'}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-slate-500 uppercase tracking-wider mb-1">Destination</p>
-                  <p className="font-medium text-slate-800">{data.destination_city || 'N/A'}</p>
+                  <p className="font-medium text-slate-800">{data?.destination_city || 'N/A'}</p>
                 </div>
               </div>
 

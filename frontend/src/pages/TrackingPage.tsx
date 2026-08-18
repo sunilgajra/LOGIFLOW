@@ -20,11 +20,16 @@ export default function TrackingPage() {
 
     try {
       const data = await fetchApi(`/public/track/${awbNumber}`);
-      if (!data) throw new Error('Shipment not found');
-      setTrackingData(data);
+      if (!data || data.error || !data.status) {
+        setError(data?.error || 'Shipment not found. Please check your AWB number and try again.');
+        setTrackingData(null);
+      } else {
+        setTrackingData(data);
+      }
     } catch (err: any) {
       console.error(err);
       setError('Shipment not found. Please check your AWB number and try again.');
+      setTrackingData(null);
     }
     setLoading(false);
   };

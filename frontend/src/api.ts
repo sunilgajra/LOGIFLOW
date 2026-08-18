@@ -580,22 +580,25 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
 
     if (endpoint.includes('/public/track')) {
       const parts = endpoint.split('/');
-      const searchedAwb = parts[parts.length - 1] || 'DELH88291034';
+      const rawParam = parts[parts.length - 1] || 'DELH88291034';
+      const searchedAwb = decodeURIComponent(rawParam).trim().toUpperCase();
+
+      const isBlue = searchedAwb.includes('BLUE') || searchedAwb.startsWith('BLU');
 
       return {
-        id: 'track-demo-1',
-        awb_number: searchedAwb.toUpperCase(),
-        status: searchedAwb.includes('BLUE') ? 'IN_TRANSIT' : 'DELIVERED',
-        courier_name: searchedAwb.includes('BLUE') ? 'Blue Dart' : 'Delhivery Express',
+        id: 'track-demo-' + searchedAwb,
+        awb_number: searchedAwb || 'DELH88291034',
+        status: isBlue ? 'IN_TRANSIT' : 'DELIVERED',
+        courier_name: isBlue ? 'Blue Dart' : 'Delhivery Express',
         origin_city: 'Delhi',
         origin_state: 'Delhi',
-        destination_city: searchedAwb.includes('BLUE') ? 'Bengaluru' : 'Mumbai',
-        destination_state: searchedAwb.includes('BLUE') ? 'Karnataka' : 'Maharashtra',
-        receiver_name: searchedAwb.includes('BLUE') ? 'Priya Verma' : 'Rahul Sharma',
+        destination_city: isBlue ? 'Bengaluru' : 'Mumbai',
+        destination_state: isBlue ? 'Karnataka' : 'Maharashtra',
+        receiver_name: isBlue ? 'Priya Verma' : 'Rahul Sharma',
         booking_date: new Date(Date.now() - 3 * 86400000).toISOString(),
         expected_delivery: new Date(Date.now() + 1 * 86400000).toISOString(),
-        delivered_at: searchedAwb.includes('BLUE') ? null : new Date().toISOString(),
-        podSignature: searchedAwb.includes('BLUE') ? null : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="80"><path d="M 10 50 Q 50 10 90 50 T 170 50" fill="none" stroke="%231e293b" stroke-width="3"/></svg>',
+        delivered_at: isBlue ? null : new Date().toISOString(),
+        podSignature: isBlue ? null : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="80"><path d="M 10 50 Q 50 10 90 50 T 170 50" fill="none" stroke="%231e293b" stroke-width="3"/></svg>',
         history: [
           {
             timestamp: new Date(Date.now() - 3 * 86400000).toISOString(),
@@ -612,14 +615,14 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           {
             timestamp: new Date(Date.now() - 1 * 86400000).toISOString(),
             status: 'IN_TRANSIT',
-            location: searchedAwb.includes('BLUE') ? 'Bengaluru Gateway Hub' : 'Mumbai Central Delivery Station',
+            location: isBlue ? 'Bengaluru Gateway Hub' : 'Mumbai Central Delivery Station',
             details: 'Arrived at local destination delivery facility.'
           },
           {
             timestamp: new Date().toISOString(),
-            status: searchedAwb.includes('BLUE') ? 'OUT_FOR_DELIVERY' : 'DELIVERED',
-            location: searchedAwb.includes('BLUE') ? 'Bengaluru Out for Delivery' : 'Mumbai Recipient Premises',
-            details: searchedAwb.includes('BLUE') ? 'Package handed over to courier delivery agent.' : 'Package successfully delivered and signed by recipient.'
+            status: isBlue ? 'OUT_FOR_DELIVERY' : 'DELIVERED',
+            location: isBlue ? 'Bengaluru Out for Delivery' : 'Mumbai Recipient Premises',
+            details: isBlue ? 'Package handed over to courier delivery agent.' : 'Package successfully delivered and signed by recipient.'
           }
         ]
       };
