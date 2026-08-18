@@ -307,6 +307,20 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       };
     }
 
+    if (endpoint.includes('/create-login')) {
+      let bodyData: any = {};
+      try {
+        if (options.body && typeof options.body === 'string') {
+          bodyData = JSON.parse(options.body);
+        }
+      } catch (e) {}
+
+      return {
+        message: 'Client login created successfully',
+        user: { id: 'usr-' + Date.now(), email: bodyData.email || 'client@company.com' }
+      };
+    }
+
     if (endpoint === '/clients' || endpoint.startsWith('/clients?')) {
       return [
         {
