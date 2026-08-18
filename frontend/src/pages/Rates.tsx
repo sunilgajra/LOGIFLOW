@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '../api';
-import { Plus, Save, Trash2, Edit, Calculator, MapPin, CreditCard, DollarSign, TrendingUp, CheckCircle, HelpCircle } from 'lucide-react';
+import { Plus, Save, Trash2, Edit, Calculator, CreditCard } from 'lucide-react';
 
 interface RateCard {
   id: string;
@@ -23,24 +23,19 @@ interface RateCard {
   courier?: { courier_name: string };
 }
 
-interface ZoneMapping {
-  id?: string;
-  state_name: string;
-  zone_name: string;
-}
-
 const INDIAN_STATES = [
-  "Delhi", "Maharashtra", "Karnataka", "West Bengal", "Tamil Nadu", 
-  "Telangana", "Gujarat", "Haryana", "Uttar Pradesh", "Punjab", 
-  "Rajasthan", "Kerala", "Madhya Pradesh", "Bihar", "Odisha"
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
+  "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", 
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", 
+  "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi", "Jammu & Kashmir", "Ladakh", "Chandigarh",
+  "Dadra & Nagar Haveli and Daman & Diu", "Puducherry", "Andaman & Nicobar Islands", "Lakshadweep"
 ];
 
 export default function Rates() {
-  const [activeTab, setActiveTab] = useState<'cards' | 'calculator' | 'zones'>('cards');
+  const [activeTab, setActiveTab] = useState<'cards' | 'calculator'>('cards');
   const [rateCards, setRateCards] = useState<RateCard[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [couriers, setCouriers] = useState<any[]>([]);
-  const [zoneMappings, setZoneMappings] = useState<ZoneMapping[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Rate Card Editor State
@@ -66,9 +61,6 @@ export default function Rates() {
   const [calcResult, setCalcResult] = useState<any>(null);
   const [calculating, setCalculating] = useState(false);
 
-  // Zone Manager State
-  const [savingZone, setSavingZone] = useState<string | null>(null);
-
   useEffect(() => {
     fetchData();
   }, []);
@@ -76,16 +68,14 @@ export default function Rates() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [ratesRes, clientsRes, couriersRes, zonesRes] = await Promise.all([
+      const [ratesRes, clientsRes, couriersRes] = await Promise.all([
         fetchApi('/rates'),
         fetchApi('/clients'),
-        fetchApi('/couriers'),
-        fetchApi('/zones')
+        fetchApi('/couriers')
       ]);
       setRateCards(ratesRes || []);
       setClients(clientsRes || []);
       setCouriers(couriersRes || []);
-      setZoneMappings(zonesRes || []);
     } catch (error) {
       console.error(error);
     }
@@ -205,27 +195,6 @@ export default function Rates() {
     }
   };
 
-  const handleUpdateZone = async (stateName: string, zoneName: string) => {
-    setSavingZone(stateName);
-    try {
-      await fetchApi('/zones', {
-        method: 'POST',
-        body: JSON.stringify({ state_name: stateName, zone_name: zoneName })
-      });
-      setZoneMappings(prev => {
-        const existing = prev.find(z => z.state_name === stateName);
-        if (existing) {
-          return prev.map(z => z.state_name === stateName ? { ...z, zone_name: zoneName } : z);
-        }
-        return [...prev, { state_name: stateName, zone_name: zoneName }];
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSavingZone(null);
-    }
-  };
-
   return (
     <div className="space-y-6">
       
@@ -233,7 +202,7 @@ export default function Rates() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 dark:border-slate-700 pb-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Rate Cards & Pricing Engine</h1>
-          <p className="text-sm text-slate-500">Manage client pricing matrices, courier costs, state zones, and live shipping estimates.</p>
+          <p className="text-sm text-slate-500">Configure client pricing matrices, courier costs, and test live shipping rate estimates.</p>
         </div>
 
         <div className="flex space-x-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
@@ -248,12 +217,6 @@ export default function Rates() {
             className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'calculator' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
           >
             <Calculator className="w-4 h-4 mr-2" /> Rate Calculator
-          </button>
-          <button 
-            onClick={() => setActiveTab('zones')}
-            className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'zones' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
-          >
-            <MapPin className="w-4 h-4 mr-2" /> Zone Mappings
           </button>
         </div>
       </div>
@@ -618,43 +581,6 @@ export default function Rates() {
                 <p className="font-semibold">Enter shipment parameters and click 'Calculate Shipping Rates'</p>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* --- TAB 3: STATE ZONE MAPPINGS --- */}
-      {activeTab === 'zones' && (
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
-          <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-700">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">State-to-Zone Mappings</h2>
-              <p className="text-xs text-slate-500">Configure geographical zone codes for Indian states to route pricing matrix lookup.</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
-            {INDIAN_STATES.map(state => {
-              const currentMapping = zoneMappings.find(z => z.state_name === state);
-              const currentZone = currentMapping?.zone_name || 'N1';
-
-              return (
-                <div key={`zone-card-${state}`} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                  <div>
-                    <span className="font-bold text-sm text-slate-900 dark:text-white block">{state}</span>
-                    <span className="text-xs text-slate-500">Zone Code</span>
-                  </div>
-                  
-                  <select 
-                    value={currentZone}
-                    disabled={savingZone === state}
-                    onChange={e => handleUpdateZone(state, e.target.value)}
-                    className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-bold text-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    {zones.map(z => <option key={`opt-${z}`} value={z}>{z}</option>)}
-                  </select>
-                </div>
-              );
-            })}
           </div>
         </div>
       )}
