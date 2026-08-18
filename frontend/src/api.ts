@@ -115,7 +115,111 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       ];
     }
 
-    if (endpoint.includes('/clients')) {
+    if (endpoint.match(/\/clients\/[^\/]+/)) {
+      return {
+        client: {
+          id: 'client-1',
+          client_id: 'CLI-001',
+          company_name: 'Apex Logistics',
+          contact_person: 'Rahul Sharma',
+          email: 'rahul@apex.com',
+          phone: '+91 9876543210',
+          status: 'ACTIVE',
+          address: '102 Green Heights, Andheri East, Mumbai, MH 400069',
+          gst_number: '27AAAAA0000A1Z5',
+          agreement_document: '',
+          users: [{ id: 'user-1', email: 'rahul@apex.com', created_at: new Date().toISOString() }]
+        },
+        company: {
+          name: 'LogiFlow Logistics Pvt Ltd',
+          address: '408, 4th Floor, The Ambience Park, Sector 19A, Navi Mumbai 400705',
+          gst_number: '27CCFPB3558P1Z7',
+          pan_number: 'CCFPB3558P'
+        },
+        stats: {
+          totalShipments: 64,
+          delivered: 52,
+          inTransit: 8,
+          totalBilling: 28500
+        },
+        recentShipments: [
+          {
+            id: 'demo-1',
+            awb_number: 'DELH88291034',
+            booking_date: new Date().toISOString(),
+            receiver_name: 'Rahul Sharma',
+            city: 'Mumbai',
+            state: 'Maharashtra',
+            actual_weight: 2.5,
+            volumetric_weight: 1.8,
+            internal_status: 'IN_TRANSIT'
+          },
+          {
+            id: 'demo-2',
+            awb_number: 'BLUED99102451',
+            booking_date: new Date().toISOString(),
+            receiver_name: 'Priya Verma',
+            city: 'Bengaluru',
+            state: 'Karnataka',
+            actual_weight: 1.0,
+            volumetric_weight: 0.8,
+            internal_status: 'DELIVERED'
+          }
+        ],
+        invoices: [
+          {
+            id: 'inv-1',
+            invoice_number: 'INV-20260818-0001',
+            invoice_date: new Date().toISOString(),
+            due_date: new Date(Date.now() + 15 * 86400000).toISOString(),
+            shipment_count: 12,
+            subtotal: 24000,
+            total_fsc: 2400,
+            total_idc: 480,
+            total_oda: 0,
+            total_green_tax: 180,
+            off_loading_charges: 0,
+            vehicle_charges: 0,
+            insurance_charges: 0,
+            rto_charges: 0,
+            taxable_amount: 27060,
+            cgst_amount: 2435.4,
+            sgst_amount: 2435.4,
+            igst_amount: 0,
+            round_off: 0.2,
+            total_amount: 31931,
+            status: 'SENT',
+            shipments: [
+              {
+                id: 'demo-1',
+                awb_number: 'DELH88291034',
+                booking_date: new Date().toISOString(),
+                origin: 'Delhi',
+                city: 'Mumbai',
+                state: 'Maharashtra',
+                client_reference_no: 'REF-1002',
+                number_of_pieces: 1,
+                actual_weight: 2.5,
+                volumetric_weight: 1.8,
+                green_tax_amount: 15,
+                oda_amount: 0,
+                client_charge: 285
+              }
+            ]
+          }
+        ],
+        rateCards: [
+          {
+            id: 'rate-1',
+            name: 'Standard Client Express Rate',
+            min_weight_kg: 0.5,
+            docket_charge: 50
+          }
+        ]
+      };
+    }
+
+    if (endpoint === '/clients' || endpoint.startsWith('/clients?')) {
       return [
         {
           id: 'client-1',
