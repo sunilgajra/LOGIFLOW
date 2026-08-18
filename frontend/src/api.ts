@@ -26,13 +26,34 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     
     // Demo Mode Fallback for mobile / static GitHub Pages preview when backend API is offline
     if (endpoint.includes('/settings/company')) {
+      if (options.method === 'PUT') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        return {
+          success: true,
+          message: 'Company settings updated successfully',
+          ...bodyData
+        };
+      }
+
       return {
         name: 'LogiFlow Logistics Pvt Ltd',
-        address: '101 Trade Center, Connaught Place, New Delhi',
-        gst_number: '07AAAAA0000A1Z5',
-        pan_number: 'AAAAA0000A',
+        address: '408, 4th Floor, The Ambience Park, Sector 19A, Navi Mumbai, MH 400705',
+        gst_number: '27CCFPB3558P1Z7',
+        pan_number: 'CCFPB3558P',
         invoice_prefix: 'INV-',
-        branding_logo: ''
+        branding_logo: '',
+        bank_name: 'HDFC Bank Ltd',
+        account_name: 'LogiFlow Logistics Private Limited',
+        account_number: '50200088910245',
+        ifsc_code: 'HDFC0000128',
+        support_email: 'support@logiflow.in',
+        support_phone: '+91 22 6192 8800'
       };
     }
 
