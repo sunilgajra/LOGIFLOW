@@ -334,6 +334,53 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       ];
     }
 
+    if (endpoint.includes('/rates/calculate')) {
+      let bodyData: any = {};
+      try {
+        if (options.body && typeof options.body === 'string') {
+          bodyData = JSON.parse(options.body);
+        }
+      } catch (e) {}
+
+      const actual_weight = Number(bodyData.actual_weight) || 2.5;
+      const l = Number(bodyData.length) || 0;
+      const w = Number(bodyData.width) || 0;
+      const h = Number(bodyData.height) || 0;
+      const volumetric_weight = l && w && h ? Math.round(((l * w * h) / 5000) * 100) / 100 : 1.8;
+      const chargeable_weight = Math.max(actual_weight, volumetric_weight);
+
+      const baseRate = 45;
+      const freight_charge = Math.round(chargeable_weight * baseRate);
+      const docket_charge = 50;
+      const fsc_amount = Math.round(freight_charge * 0.10);
+      const idc_amount = Math.round(freight_charge * 0.02);
+      const green_tax_amount = 15;
+      const oda_amount = bodyData.is_oda ? 150 : 0;
+
+      const client_charge = Math.max(100, freight_charge + docket_charge + fsc_amount + idc_amount + green_tax_amount + oda_amount);
+      const courier_cost = Math.round(client_charge * 0.68);
+      const estimated_profit = client_charge - courier_cost;
+      const profit_margin_pct = Math.round((estimated_profit / client_charge) * 1000) / 10;
+
+      return {
+        actual_weight,
+        volumetric_weight,
+        chargeable_weight,
+        client_charge,
+        courier_cost,
+        estimated_profit,
+        profit_margin_pct,
+        breakdown: {
+          freight_charge,
+          docket_charge,
+          fsc_amount,
+          idc_amount,
+          green_tax_amount,
+          oda_amount
+        }
+      };
+    }
+
     if (endpoint.includes('/rates')) {
       let bodyData: any = {};
       try {
