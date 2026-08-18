@@ -278,6 +278,18 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
         }
       } catch (e) {}
 
+      const fullMockMatrix = JSON.stringify({
+        N1: { N1: 30, N2: 35, E: 55, NE: 75, W1: 45, W2: 50, S1: 65, S2: 70, C: 40 },
+        N2: { N1: 35, N2: 30, E: 50, NE: 70, W1: 40, W2: 45, S1: 60, S2: 65, C: 35 },
+        E:  { N1: 55, N2: 50, E: 25, NE: 40, W1: 50, W2: 55, S1: 55, S2: 60, C: 45 },
+        NE: { N1: 75, N2: 70, E: 40, NE: 30, W1: 70, W2: 75, S1: 75, S2: 80, C: 65 },
+        W1: { N1: 45, N2: 40, E: 50, NE: 70, W1: 25, W2: 30, S1: 45, S2: 50, C: 35 },
+        W2: { N1: 50, N2: 45, E: 55, NE: 75, W1: 30, W2: 25, S1: 50, S2: 55, C: 40 },
+        S1: { N1: 65, N2: 60, E: 55, NE: 75, W1: 45, W2: 50, S1: 25, S2: 30, C: 45 },
+        S2: { N1: 70, N2: 65, E: 60, NE: 80, W1: 50, W2: 55, S1: 30, S2: 25, C: 50 },
+        C:  { N1: 40, N2: 35, E: 45, NE: 65, W1: 35, W2: 40, S1: 45, S2: 50, C: 25 }
+      });
+
       if (options.method === 'POST' || options.method === 'PUT') {
         return {
           id: 'rc-' + Date.now(),
@@ -293,7 +305,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           idc_percentage: parseFloat(bodyData.idc_percentage || '2'),
           oda_charge: parseFloat(bodyData.oda_charge || '150'),
           green_tax_rate: parseFloat(bodyData.green_tax_rate || '15'),
-          rates_matrix: bodyData.rates_matrix || JSON.stringify({ N1: { W1: 45, S1: 65 } })
+          rates_matrix: bodyData.rates_matrix || fullMockMatrix
         };
       }
 
@@ -312,7 +324,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           idc_percentage: 2,
           oda_charge: 150,
           green_tax_rate: 15,
-          rates_matrix: JSON.stringify({ N1: { W1: 45, S1: 65 } })
+          rates_matrix: fullMockMatrix
         },
         {
           id: 'rate-2',
@@ -329,7 +341,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           idc_percentage: 2,
           oda_charge: 120,
           green_tax_rate: 15,
-          rates_matrix: JSON.stringify({ N1: { W1: 40, S1: 60 } })
+          rates_matrix: fullMockMatrix
         }
       ];
     }

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { fetchApi } from '../api';
-import { Truck, Plus, X, FileText, ChevronRight, Edit2, Trash2, Save, ArrowLeft, Download, Key, Eye, EyeOff, Copy, Check, Activity, ShieldCheck } from 'lucide-react';
+import { Truck, Plus, X, FileText, ChevronRight, Edit2, Trash2, Save, ArrowLeft, Key, Eye, EyeOff, Copy, Check, Activity, ShieldCheck } from 'lucide-react';
+
+const DEFAULT_ZONES = ["N1", "N2", "E", "NE", "W1", "W2", "S1", "S2", "C"];
 
 const emptyRateCard = {
   name: '',
@@ -411,8 +413,8 @@ export default function Couriers() {
   const [rcSaving, setRcSaving] = useState(false);
   const [showRcForm, setShowRcForm] = useState(false);
 
-  // Zones for rate matrix display
-  const [zones, setZones] = useState<string[]>([]);
+  // Master Indian Logistics Zones for full 9x9 matrix display & editor
+  const [zones, setZones] = useState<string[]>(DEFAULT_ZONES);
 
   const fetchCouriers = () => {
     setLoading(true);
@@ -427,9 +429,10 @@ export default function Couriers() {
   useEffect(() => {
     fetchCouriers();
     fetchApi('/zones').then((z: any[]) => {
-      const uniqueZones = [...new Set(z.map((z: any) => z.zone_name))].sort();
-      setZones(uniqueZones);
-    }).catch(console.error);
+      const fetchedZones = (Array.isArray(z) ? z : []).map((item: any) => item.zone_name);
+      const combined = Array.from(new Set([...DEFAULT_ZONES, ...fetchedZones])).sort();
+      setZones(combined);
+    }).catch(() => setZones(DEFAULT_ZONES));
   }, []);
 
   const fetchRateCards = (courierId: string) => {
@@ -798,7 +801,6 @@ export default function Couriers() {
                   <div className="space-y-4">
                     {rateCards.map(rc => {
                       const matrix = parseMatrix(rc.rates_matrix);
-                      const zoneKeys = Object.keys(matrix);
                       return (
                         <div key={rc.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
                           <div className="flex justify-between items-center px-5 py-4 bg-slate-50 border-b border-slate-200">
@@ -836,32 +838,38 @@ export default function Couriers() {
                               ))}
                             </div>
 
-                            {zoneKeys.length > 0 && (
+                            {/* FULL 9x9 ZONE RATE MATRIX DISPLAY */}
+                            <div>
+                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Multi-Zone Rate Matrix (₹ / kg)</p>
                               <div className="overflow-x-auto border border-slate-200 rounded-lg">
                                 <table className="text-xs border-collapse w-full">
                                   <thead className="bg-slate-100 font-bold text-slate-700">
                                     <tr>
-                                      <th className="p-2 border-r border-b text-left">Origin ↓ / Dest →</th>
-                                      {Object.keys(matrix[zoneKeys[0]] || {}).map(d => (
-                                        <th key={d} className="p-2 border-r border-b text-center">{d}</th>
+                                      <th className="p-2 border-r border-b text-left bg-slate-200">Origin ↓ / Dest →</th>
+                                      {zones.map(d => (
+                                        <th key={d} className="p-2 border-r border-b text-center min-w-[50px]">{d}</th>
                                       ))}
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {zoneKeys.map(origin => (
+                                    {zones.map(origin => (
                                       <tr key={origin} className="hover:bg-slate-50">
                                         <td className="p-2 border-r border-b font-bold bg-slate-50">{origin}</td>
-                                        {Object.keys(matrix[origin] || {}).map(dest => (
-                                          <td key={dest} className="p-2 border-r border-b text-center font-semibold text-slate-800">
-                                            ₹{matrix[origin][dest]}
-                                          </td>
-                                        ))}
+                                        {zones.map(dest => {
+                                          const val = matrix[origin]?.[dest];
+                                          return (
+                                            <td key={dest} className="p-2 border-r border-b text-center font-semibold text-slate-800">
+                                              {val !== undefined && val !== null && val !== '' ? `₹${val}` : '—'}
+                                            </td>
+                                          );
+                                        })}
                                       </tr>
                                     ))}
                                   </tbody>
                                 </table>
                               </div>
-                            )}
+                            </div>
+
                           </div>
                         </div>
                       );
@@ -945,46 +953,40 @@ export default function Couriers() {
 
                     {/* Zone Rate Matrix Editor */}
                     <div>
-                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Zone Rate Matrix (₹ / kg)</h4>
-                      <p className="text-xs text-slate-400 mb-3">Enter freight rate per kg for each origin to destination zone pair.</p>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Full Zone Rate Matrix (₹ / kg)</h4>
+                      <p className="text-xs text-slate-400 mb-3">Enter freight rate per kg for each origin to destination zone pair (all 9 Master Zones).</p>
                       
-                      {zones.length === 0 ? (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-800">
-                          No zones found in system. Rates will default to baseline matrix.
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                          <table className="text-xs border-collapse w-full">
-                            <thead className="bg-slate-100 font-bold text-slate-700">
-                              <tr>
-                                <th className="p-2 border-r border-b text-left">Origin ↓ / Dest →</th>
-                                {zones.map(z => (
-                                  <th key={z} className="p-2 border-r border-b text-center">{z}</th>
+                      <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                        <table className="text-xs border-collapse w-full">
+                          <thead className="bg-slate-100 font-bold text-slate-700">
+                            <tr>
+                              <th className="p-2 border-r border-b text-left bg-slate-200">Origin ↓ / Dest →</th>
+                              {zones.map(z => (
+                                <th key={z} className="p-2 border-r border-b text-center min-w-[55px]">{z}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {zones.map(origin => (
+                              <tr key={origin}>
+                                <td className="p-2 border-r border-b font-bold bg-slate-50">{origin}</td>
+                                {zones.map(dest => (
+                                  <td key={dest} className="p-1 border-r border-b text-center">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={getMatrixCell(origin, dest)}
+                                      onChange={e => updateMatrixCell(origin, dest, e.target.value)}
+                                      placeholder="—"
+                                      className="w-14 px-1.5 py-1 text-xs border border-slate-200 focus:border-indigo-500 rounded text-center font-medium"
+                                    />
+                                  </td>
                                 ))}
                               </tr>
-                            </thead>
-                            <tbody>
-                              {zones.map(origin => (
-                                <tr key={origin}>
-                                  <td className="p-2 border-r border-b font-bold bg-slate-50">{origin}</td>
-                                  {zones.map(dest => (
-                                    <td key={dest} className="p-1 border-r border-b text-center">
-                                      <input
-                                        type="number"
-                                        step="0.01"
-                                        value={getMatrixCell(origin, dest)}
-                                        onChange={e => updateMatrixCell(origin, dest, e.target.value)}
-                                        placeholder="—"
-                                        className="w-16 px-2 py-1 text-xs border border-slate-200 focus:border-indigo-500 rounded text-center"
-                                      />
-                                    </td>
-                                  ))}
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
 
