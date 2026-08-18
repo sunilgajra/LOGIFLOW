@@ -88,28 +88,52 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       };
     }
 
-    if (endpoint.includes('/couriers')) {
+    if (endpoint.match(/\/couriers\/[^\/]+/)) {
+      let bodyData: any = {};
+      try {
+        if (options.body && typeof options.body === 'string') {
+          bodyData = JSON.parse(options.body);
+        }
+      } catch (e) {}
+
+      return {
+        id: 'courier-1',
+        courier_id: 'DELHIVERY',
+        courier_name: bodyData.courier_name || 'Delhivery Express',
+        contact_person: bodyData.contact_person || 'Delhivery Support',
+        phone: bodyData.phone || '+91 124 6719500',
+        email: bodyData.email || 'support@delhivery.com',
+        account_number: bodyData.account_number || 'DELH-882190',
+        status: bodyData.status || 'ACTIVE',
+        api_credentials: bodyData.api_credentials || JSON.stringify({ mode: 'staging' }),
+        _count: { shipments: 86 }
+      };
+    }
+
+    if (endpoint === '/couriers' || endpoint.startsWith('/couriers?')) {
       return [
         {
           id: 'courier-1',
+          courier_id: 'DELHIVERY',
           courier_name: 'Delhivery Express',
           contact_person: 'Delhivery Support',
           phone: '+91 124 6719500',
           email: 'support@delhivery.com',
           account_number: 'DELH-882190',
           status: 'ACTIVE',
-          api_credentials: JSON.stringify({ mode: 'staging' }),
+          api_credentials: JSON.stringify({ api_key: 'live_delhivery_tok_demo99', api_secret: 'sec_delh_8892', client_id: 'DELH_MUMB_001', webhook_url: 'https://sunilgajra.github.io/LOGIFLOW/api/webhooks/delhivery' }),
           _count: { shipments: 86 }
         },
         {
           id: 'courier-2',
+          courier_id: 'BLUEDART',
           courier_name: 'Blue Dart',
           contact_person: 'BlueDart Support',
           phone: '+91 1860 233 1234',
           email: 'customersupport@bluedart.com',
           account_number: 'BD-991204',
           status: 'ACTIVE',
-          api_credentials: JSON.stringify({ mode: 'sandbox' }),
+          api_credentials: JSON.stringify({ api_key: 'bd_license_key_sandbox_99', api_secret: 'bd_pass_3321', client_id: 'BOM_BD_1001', webhook_url: 'https://sunilgajra.github.io/LOGIFLOW/api/webhooks/bluedart' }),
           _count: { shipments: 42 }
         }
       ];
