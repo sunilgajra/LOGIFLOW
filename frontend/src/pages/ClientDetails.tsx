@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchApi } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Building2, Phone, Mail, MapPin, Package, CheckCircle2, Truck, IndianRupee, FileText, Upload, Users, Key, Plus, ExternalLink, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Building2, Phone, Mail, MapPin, Package, CheckCircle2, Truck, IndianRupee, FileText, Upload, Users, Key, Plus, Printer, X } from 'lucide-react';
 import { format } from 'date-fns';
 import TrackingModal from '../components/TrackingModal';
 
@@ -157,8 +157,36 @@ export default function ClientDetails() {
   return (
     <div className="space-y-6 pb-12">
       
+      {/* Printable CSS Page Rule */}
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 8mm;
+          }
+          body {
+            background: #fff !important;
+            color: #000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+          .print-full-page {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-4 no-print">
         <button 
           onClick={() => navigate('/dashboard/clients')}
           className="p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl hover:bg-slate-50 text-slate-600 dark:text-slate-300 shadow-2xs transition-all"
@@ -177,7 +205,7 @@ export default function ClientDetails() {
       </div>
 
       {/* Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 no-print">
         
         {/* Contact Info */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-700 p-5 space-y-3">
@@ -280,7 +308,7 @@ export default function ClientDetails() {
 
       {/* Sub-Account Portal Access */}
       {user?.role !== 'CLIENT' && (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-700 p-6 space-y-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-700 p-6 space-y-4 no-print">
           <div className="flex justify-between items-center">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center">
               <Key className="w-4 h-4 mr-2 text-purple-600" /> Client Sub-Account Portal Credentials
@@ -322,7 +350,7 @@ export default function ClientDetails() {
       )}
 
       {/* Agreement & Rate Cards */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-700 p-6 space-y-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-700 p-6 space-y-4 no-print">
         <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center">
           <FileText className="w-4 h-4 mr-2 text-blue-600" /> Business Agreement & Assigned Rate Cards
         </h3>
@@ -383,7 +411,7 @@ export default function ClientDetails() {
       </div>
 
       {/* Generated Invoices */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xs border border-slate-200 dark:border-slate-700 overflow-hidden no-print">
         <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
           <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Generated Tax Invoices ({invoices?.length || 0})</h2>
         </div>
@@ -425,7 +453,7 @@ export default function ClientDetails() {
                         onClick={() => setSelectedInvoice(inv)}
                         className="text-blue-600 hover:text-blue-800 font-bold bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-lg"
                       >
-                        View Tax PDF
+                        View Standard A4 PDF
                       </button>
                     </td>
                   </tr>
@@ -436,126 +464,230 @@ export default function ClientDetails() {
         </div>
       </div>
 
-      {/* Invoice Modal */}
+      {/* STANDARD A4 TAX INVOICE MODAL & PRINT CONTAINER */}
       {selectedInvoice && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity print:hidden" onClick={() => setSelectedInvoice(null)}>
-              <div className="absolute inset-0 bg-slate-900/75"></div>
-            </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 print:p-0 print:bg-white">
+          <div className="relative w-full max-w-[215mm] bg-white text-slate-900 rounded-2xl shadow-2xl overflow-hidden print-full-page print:rounded-none print:shadow-none my-6">
             
-            <div className="relative z-10 inline-block align-bottom bg-white rounded-2xl text-left shadow-2xl transform transition-all sm:my-8 sm:align-middle w-full max-w-4xl print:w-full print:max-w-none print:shadow-none print:m-0 print:rounded-none">
-              
-              {/* Toolbar */}
-              <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center rounded-t-2xl print:hidden">
-                <h3 className="text-sm font-bold text-slate-900">Tax Invoice: {selectedInvoice.invoice_number}</h3>
-                <div className="flex space-x-3">
-                  <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md">
-                    Print / Save PDF
-                  </button>
-                  <button onClick={() => setSelectedInvoice(null)} className="text-slate-600 bg-white border border-slate-300 rounded-xl px-4 py-2 text-xs font-semibold">
-                    Close
-                  </button>
-                </div>
+            {/* Screen Action Toolbar */}
+            <div className="bg-slate-900 text-white px-6 py-3 flex justify-between items-center no-print">
+              <div className="flex items-center space-x-2">
+                <FileText className="w-5 h-5 text-blue-400" />
+                <span className="font-bold text-sm">Standard A4 Tax Invoice Preview — {selectedInvoice.invoice_number}</span>
               </div>
-
-              {/* Printable Invoice Body */}
-              <div className="p-8 bg-white text-slate-900 print:p-0 print:text-[10px]">
-                <div className="border-2 border-emerald-600 mb-2">
-                  <div className="text-center bg-emerald-50 py-1 font-bold border-b-2 border-emerald-600 text-sm">
-                    TAX INVOICE
-                    <br/>
-                    {company?.name || 'LOGIFLOW LOGISTICS PVT LTD'}
-                  </div>
-                  <div className="text-center text-xs pb-1 font-medium border-b-2 border-emerald-600">
-                    {company?.address || '408, 4th Floor, The Ambience Park, Sector 19A, Navi Mumbai 400705'}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 text-xs divide-x-2 divide-emerald-600">
-                    <div className="p-2 space-y-1">
-                      <p><strong>GST IN:</strong> {company?.gst_number || '27CCFPB3558P1Z7'}</p>
-                      <p><strong>PAN:</strong> {company?.pan_number || 'CCFPB3558P'}</p>
-                      <p><strong>Tax Payable On Reverse Charge:</strong> No</p>
-                      <p><strong>Invoice Serial Number:</strong> {selectedInvoice.invoice_number}</p>
-                      <p><strong>Invoice Date:</strong> {format(new Date(selectedInvoice.invoice_date || Date.now()), 'dd/MM/yyyy')}</p>
-                    </div>
-                    <div className="p-2 space-y-1">
-                      <p><strong>Transportation Mode:</strong> AIR AND SURFACE</p>
-                      <p><strong>Place Of Supply:</strong> MAHARASHTRA TO PAN INDIA</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 text-xs divide-x-2 divide-emerald-600 border-t-2 border-emerald-600">
-                    <div className="p-2 space-y-1">
-                      <p className="font-bold underline">Details Of Receiver (Billed To)</p>
-                      <p><strong>Name:</strong> {client.company_name}</p>
-                      <p><strong>Address:</strong> {client.address}</p>
-                    </div>
-                    <div className="p-2 space-y-1">
-                      <p className="font-bold underline">Details Of Consignee (Shipped To)</p>
-                      <p><strong>GSTIN:</strong> {client.gst_number || '-'}</p>
-                      <p><strong>State:</strong> MAHARASHTRA</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-2 border-emerald-600 overflow-x-auto">
-                  <table className="w-full text-center text-[10px] divide-y-2 divide-emerald-600">
-                    <thead className="bg-emerald-50 font-bold">
-                      <tr className="divide-x-2 divide-emerald-600">
-                        <th className="p-1">SR NO</th>
-                        <th className="p-1">AWB NO</th>
-                        <th className="p-1">DATE</th>
-                        <th className="p-1">Pickup</th>
-                        <th className="p-1">Destination</th>
-                        <th className="p-1">QTY</th>
-                        <th className="p-1">R.WGT</th>
-                        <th className="p-1">Total Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-emerald-600 font-medium">
-                      {selectedInvoice.shipments?.map((s: any, idx: number) => {
-                         const rwgt = Math.max(s.actual_weight || 0, s.volumetric_weight || 0);
-                         return (
-                        <tr key={s.id} className="divide-x-2 divide-emerald-600">
-                          <td className="p-1">{idx + 1}</td>
-                          <td className="p-1">{s.awb_number}</td>
-                          <td className="p-1">{s.booking_date ? format(new Date(s.booking_date), 'd-MMM') : '-'}</td>
-                          <td className="p-1">{s.origin || '-'}</td>
-                          <td className="p-1">{s.city || s.state || '-'}</td>
-                          <td className="p-1">{s.number_of_pieces || 1}</td>
-                          <td className="p-1">{rwgt.toFixed(2)}</td>
-                          <td className="p-1">{s.client_charge ? s.client_charge.toFixed(2) : '0.00'}</td>
-                        </tr>
-                      )})}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="flex justify-end border-2 border-t-0 border-emerald-600 text-xs font-bold divide-x-2 divide-emerald-600">
-                   <div className="flex-1 p-2">
-                     <p className="text-blue-600 underline mb-2">Bank Account Details:</p>
-                     <p>{company?.bank_name || 'HDFC Bank Ltd'}</p>
-                     <p>A/C Name: {company?.account_name || 'LogiFlow Logistics Pvt Ltd'}</p>
-                     <p>A/C NO: {company?.account_number || '50200088910245'}</p>
-                     <p>IFSC CODE: {company?.ifsc_code || 'HDFC0000128'}</p>
-                   </div>
-                   <div className="w-1/3">
-                     <div className="flex justify-between p-1 border-b divide-x-2 divide-emerald-600"><span className="flex-1">Taxable Amount</span><span className="w-24 text-right">{selectedInvoice.taxable_amount?.toFixed(2)}</span></div>
-                     <div className="flex justify-between p-1 border-b divide-x-2 divide-emerald-600 bg-emerald-100"><span className="flex-1">Total Tax</span><span className="w-24 text-right">{((selectedInvoice.cgst_amount || 0) + (selectedInvoice.sgst_amount || 0) + (selectedInvoice.igst_amount || 0)).toFixed(2)}</span></div>
-                     <div className="flex justify-between p-1 bg-emerald-200 divide-x-2 divide-emerald-600"><span className="flex-1 text-sm">Net Payable Total</span><span className="w-24 text-right text-sm">{selectedInvoice.total_amount?.toFixed(2)}</span></div>
-                   </div>
-                </div>
-
+              <div className="flex items-center space-x-3">
+                <button 
+                  onClick={() => window.print()} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center"
+                >
+                  <Printer className="w-4 h-4 mr-1.5" /> Print / Save A4 PDF
+                </button>
+                <button 
+                  onClick={() => setSelectedInvoice(null)} 
+                  className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
+
+            {/* Standard A4 Printable Invoice Sheet (210mm x 297mm) */}
+            <div className="w-[210mm] max-w-full min-h-[297mm] bg-white text-slate-900 font-sans mx-auto p-8 border border-slate-200 print:border-none print:p-4 print:w-full space-y-4 text-xs">
+              
+              {/* Header Box */}
+              <div className="border-2 border-slate-800 rounded-lg overflow-hidden">
+                
+                {/* Title Banner */}
+                <div className="bg-slate-900 text-white p-3 flex justify-between items-center border-b-2 border-slate-800">
+                  <div>
+                    {company?.branding_logo ? (
+                      <img src={company.branding_logo} alt="Company Logo" className="max-h-10 object-contain mb-1" />
+                    ) : null}
+                    <h2 className="text-base font-black tracking-wide uppercase">{company?.name || 'LOGIFLOW LOGISTICS PRIVATE LIMITED'}</h2>
+                    <p className="text-[10px] text-slate-300">{company?.address || '408, 4th Floor, Ambience Park, Sector 19A, Vashi, Navi Mumbai, MH 400705'}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block bg-blue-600 text-white px-3 py-1 text-xs font-black uppercase tracking-wider rounded">TAX INVOICE</span>
+                    <p className="text-[11px] font-mono font-bold mt-1 text-slate-200">Invoice #: {selectedInvoice.invoice_number}</p>
+                  </div>
+                </div>
+
+                {/* Company GSTIN & Document Meta Grid */}
+                <div className="grid grid-cols-2 text-[11px] divide-x border-b border-slate-800">
+                  <div className="p-2.5 space-y-1 bg-slate-50">
+                    <p><strong className="text-slate-700">GSTIN:</strong> <span className="font-mono font-bold uppercase">{company?.gst_number || '27CCFPB3558P1Z7'}</span></p>
+                    <p><strong className="text-slate-700">PAN:</strong> <span className="font-mono font-bold uppercase">{company?.pan_number || 'CCFPB3558P'}</span></p>
+                    <p><strong className="text-slate-700">State Code:</strong> <span className="font-bold">27 (Maharashtra)</span></p>
+                    <p><strong className="text-slate-700">Reverse Charge:</strong> <span className="font-bold">NO</span></p>
+                  </div>
+                  <div className="p-2.5 space-y-1 bg-slate-50">
+                    <p><strong className="text-slate-700">Invoice Date:</strong> <span className="font-bold">{format(new Date(selectedInvoice.invoice_date || Date.now()), 'dd/MM/yyyy')}</span></p>
+                    <p><strong className="text-slate-700">Due Date:</strong> <span className="font-bold">{format(new Date(selectedInvoice.due_date || Date.now()), 'dd/MM/yyyy')}</span></p>
+                    <p><strong className="text-slate-700">Transport Mode:</strong> <span className="font-bold">EXPRESS SURFACE / AIR</span></p>
+                    <p><strong className="text-slate-700">Place of Supply:</strong> <span className="font-bold">MAHARASHTRA TO PAN INDIA</span></p>
+                  </div>
+                </div>
+
+                {/* Receiver (Billed To) & Consignee Grid */}
+                <div className="grid grid-cols-2 text-[11px] divide-x">
+                  <div className="p-3 space-y-1">
+                    <p className="font-extrabold uppercase text-blue-700 text-[10px] tracking-wider mb-1">BILLED TO (RECEIVER)</p>
+                    <p className="font-bold text-sm text-slate-900">{client.company_name}</p>
+                    <p className="text-slate-600 leading-tight">{client.address || 'Registered Merchant Office Address'}</p>
+                    <p><strong className="text-slate-700">GSTIN:</strong> <span className="font-mono font-bold">{client.gst_number || 'UNREGISTERED'}</span></p>
+                    <p><strong className="text-slate-700">PAN:</strong> <span className="font-mono font-bold">{client.pan_number || '-'}</span></p>
+                    <p><strong className="text-slate-700">Contact:</strong> {client.contact_person} ({client.phone || client.email})</p>
+                  </div>
+                  <div className="p-3 space-y-1">
+                    <p className="font-extrabold uppercase text-indigo-700 text-[10px] tracking-wider mb-1">SHIPPED TO (CONSIGNEE)</p>
+                    <p className="font-bold text-slate-900">{client.company_name}</p>
+                    <p className="text-slate-600 leading-tight">{client.address || 'Same as Billed Address'}</p>
+                    <p><strong className="text-slate-700">State:</strong> MAHARASHTRA</p>
+                    <p><strong className="text-slate-700">Dispatch Hub:</strong> WEST ZONE LOGISTICS HUB</p>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Itemized Shipment Manifest Table */}
+              <div className="border-2 border-slate-800 rounded-lg overflow-hidden">
+                <table className="w-full text-center text-[10px] border-collapse">
+                  <thead>
+                    <tr className="bg-slate-800 text-white font-bold uppercase tracking-wider">
+                      <th className="p-1.5 border-r border-slate-700">#</th>
+                      <th className="p-1.5 border-r border-slate-700">AWB NUMBER</th>
+                      <th className="p-1.5 border-r border-slate-700">DATE</th>
+                      <th className="p-1.5 border-r border-slate-700">ORIGIN</th>
+                      <th className="p-1.5 border-r border-slate-700">DESTINATION</th>
+                      <th className="p-1.5 border-r border-slate-700">PCS</th>
+                      <th className="p-1.5 border-r border-slate-700">WEIGHT (KG)</th>
+                      <th className="p-1.5 border-r border-slate-700">FREIGHT (₹)</th>
+                      <th className="p-1.5">TOTAL (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-300 font-medium">
+                    {selectedInvoice.shipments?.map((s: any, idx: number) => {
+                      const rwgt = Math.max(s.actual_weight || 0, s.volumetric_weight || 0);
+                      const freight = (s.client_charge || 0) - (s.green_tax_amount || 0) - (s.oda_amount || 0);
+                      return (
+                        <tr key={s.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                          <td className="p-1.5 border-r border-slate-300">{idx + 1}</td>
+                          <td className="p-1.5 border-r border-slate-300 font-mono font-bold text-slate-900">{s.awb_number}</td>
+                          <td className="p-1.5 border-r border-slate-300">{s.booking_date ? format(new Date(s.booking_date), 'dd-MMM-yyyy') : '-'}</td>
+                          <td className="p-1.5 border-r border-slate-300">{s.origin || 'MH'}</td>
+                          <td className="p-1.5 border-r border-slate-300">{s.city || s.state || '-'}</td>
+                          <td className="p-1.5 border-r border-slate-300">{s.number_of_pieces || 1}</td>
+                          <td className="p-1.5 border-r border-slate-300 font-bold">{rwgt.toFixed(2)}</td>
+                          <td className="p-1.5 border-r border-slate-300">{freight > 0 ? freight.toFixed(2) : (s.client_charge || 0).toFixed(2)}</td>
+                          <td className="p-1.5 font-bold text-slate-900">₹{(s.client_charge || 0).toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Financial Calculation & Bank Details Footer */}
+              <div className="border-2 border-slate-800 rounded-lg overflow-hidden grid grid-cols-2 divide-x divide-slate-800">
+                
+                {/* Left Side: Bank Details & Stamp */}
+                <div className="p-3 space-y-3 bg-slate-50 flex flex-col justify-between">
+                  <div>
+                    <p className="font-extrabold uppercase text-blue-700 text-[10px] tracking-wider mb-1">REMITTANCE BANK ACCOUNT DETAILS</p>
+                    <div className="space-y-0.5 text-[11px]">
+                      <p><strong className="text-slate-700">Bank Name:</strong> {company?.bank_name || 'HDFC Bank Ltd'}</p>
+                      <p><strong className="text-slate-700">Account Name:</strong> {company?.account_name || 'LogiFlow Logistics Pvt Ltd'}</p>
+                      <p><strong className="text-slate-700">Account Number:</strong> <span className="font-mono font-bold">{company?.account_number || '50200088910245'}</span></p>
+                      <p><strong className="text-slate-700">IFSC Code:</strong> <span className="font-mono font-bold uppercase">{company?.ifsc_code || 'HDFC0000128'}</span></p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-300">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase mb-4">FOR {company?.name || 'LOGIFLOW LOGISTICS PVT LTD'}</p>
+                    <div className="h-8 border-b border-dashed border-slate-400"></div>
+                    <p className="text-[9px] text-center font-bold text-slate-600 mt-1 uppercase">AUTHORIZED SIGNATORY</p>
+                  </div>
+                </div>
+
+                {/* Right Side: Tax Breakdown Table */}
+                <div className="text-[11px] divide-y divide-slate-300">
+                  <div className="flex justify-between p-2">
+                    <span className="text-slate-600">Freight Subtotal</span>
+                    <span className="font-bold">₹{selectedInvoice.subtotal?.toFixed(2)}</span>
+                  </div>
+                  {selectedInvoice.off_loading_charges > 0 && (
+                    <div className="flex justify-between p-2">
+                      <span className="text-slate-600">Off Loading Charges</span>
+                      <span className="font-bold">₹{selectedInvoice.off_loading_charges.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {selectedInvoice.vehicle_charges > 0 && (
+                    <div className="flex justify-between p-2">
+                      <span className="text-slate-600">Vehicle Charges</span>
+                      <span className="font-bold">₹{selectedInvoice.vehicle_charges.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {selectedInvoice.insurance_charges > 0 && (
+                    <div className="flex justify-between p-2">
+                      <span className="text-slate-600">Insurance Charges</span>
+                      <span className="font-bold">₹{selectedInvoice.insurance_charges.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {selectedInvoice.rto_charges > 0 && (
+                    <div className="flex justify-between p-2">
+                      <span className="text-slate-600">RTO Charges</span>
+                      <span className="font-bold">₹{selectedInvoice.rto_charges.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between p-2 bg-slate-100 font-bold">
+                    <span>Taxable Value</span>
+                    <span>₹{selectedInvoice.taxable_amount?.toFixed(2)}</span>
+                  </div>
+                  {selectedInvoice.igst_amount > 0 ? (
+                    <div className="flex justify-between p-2">
+                      <span className="text-slate-600">IGST (18%)</span>
+                      <span className="font-bold">₹{selectedInvoice.igst_amount?.toFixed(2)}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between p-2">
+                        <span className="text-slate-600">CGST (9%)</span>
+                        <span className="font-bold">₹{(selectedInvoice.cgst_amount || 0).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between p-2">
+                        <span className="text-slate-600">SGST (9%)</span>
+                        <span className="font-bold">₹{(selectedInvoice.sgst_amount || 0).toFixed(2)}</span>
+                      </div>
+                    </>
+                  )}
+                  {selectedInvoice.round_off !== 0 && (
+                    <div className="flex justify-between p-2">
+                      <span className="text-slate-600">Round Off</span>
+                      <span className="font-bold">₹{(selectedInvoice.round_off || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between p-2.5 bg-slate-900 text-white font-black text-xs">
+                    <span>NET PAYABLE AMOUNT</span>
+                    <span>₹{selectedInvoice.total_amount?.toFixed(2)}</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Bottom Notice */}
+              <div className="text-[9px] text-slate-500 text-center pt-2">
+                This is a computer-generated Tax Invoice issued under Indian GST Rules 2017. No signature required if electronically transmitted.
+              </div>
+
+            </div>
+
           </div>
         </div>
       )}
 
       {/* Generate Invoice Extra Charges Modal */}
       {showInvoicePrompt && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto no-print">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
             <div className="fixed inset-0 transition-opacity" onClick={() => setShowInvoicePrompt(false)}>
               <div className="absolute inset-0 bg-slate-900/75 backdrop-blur-xs"></div>
@@ -627,7 +759,7 @@ export default function ClientDetails() {
 
       {/* Create Login Modal */}
       {showLoginModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto no-print">
           <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
             <div className="fixed inset-0 transition-opacity" onClick={() => setShowLoginModal(false)}>
               <div className="absolute inset-0 bg-slate-900/75 backdrop-blur-xs"></div>
