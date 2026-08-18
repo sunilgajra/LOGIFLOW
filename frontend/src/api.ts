@@ -472,11 +472,28 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     if (endpoint.includes('/zones')) {
+      if (options.method === 'POST') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        return {
+          id: 'zone-' + Date.now(),
+          state_name: bodyData.state_name || 'Delhi',
+          zone_name: bodyData.zone_name || 'N1'
+        };
+      }
+
       return [
         { id: 'zone-1', state_name: 'Delhi', zone_name: 'N1' },
         { id: 'zone-2', state_name: 'Maharashtra', zone_name: 'W1' },
         { id: 'zone-3', state_name: 'Karnataka', zone_name: 'S1' },
-        { id: 'zone-4', state_name: 'West Bengal', zone_name: 'E1' }
+        { id: 'zone-4', state_name: 'West Bengal', zone_name: 'E' },
+        { id: 'zone-5', state_name: 'Assam', zone_name: 'NE' },
+        { id: 'zone-6', state_name: 'Madhya Pradesh', zone_name: 'C' }
       ];
     }
 
