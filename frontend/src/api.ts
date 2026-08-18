@@ -294,6 +294,49 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       ];
     }
 
+    if (endpoint.includes('/invoices')) {
+      return {
+        id: 'inv-' + Date.now(),
+        invoice_number: 'INV-20260818-' + Math.floor(1000 + Math.random() * 9000),
+        invoice_date: new Date().toISOString(),
+        due_date: new Date(Date.now() + 15 * 86400000).toISOString(),
+        shipment_count: 12,
+        subtotal: 28500,
+        total_fsc: 2850,
+        total_idc: 570,
+        total_oda: 0,
+        total_green_tax: 180,
+        off_loading_charges: 200,
+        vehicle_charges: 1000,
+        insurance_charges: 0,
+        rto_charges: 0,
+        taxable_amount: 33300,
+        cgst_amount: 2997,
+        sgst_amount: 2997,
+        igst_amount: 0,
+        round_off: 0.0,
+        total_amount: 39294,
+        status: 'SENT',
+        shipments: [
+          {
+            id: 'demo-1',
+            awb_number: 'DELH88291034',
+            booking_date: new Date().toISOString(),
+            origin: 'Delhi',
+            city: 'Mumbai',
+            state: 'Maharashtra',
+            client_reference_no: 'REF-1002',
+            number_of_pieces: 1,
+            actual_weight: 2.5,
+            volumetric_weight: 1.8,
+            green_tax_amount: 15,
+            oda_amount: 0,
+            client_charge: 285
+          }
+        ]
+      };
+    }
+
     return null;
   }
 };

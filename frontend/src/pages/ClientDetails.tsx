@@ -88,7 +88,7 @@ const ClientDetails = () => {
            ...extraCharges
         })
       });
-      if (res.error) {
+      if (res && res.error) {
         alert(res.error);
       } else {
         alert('Invoice generated successfully!');
