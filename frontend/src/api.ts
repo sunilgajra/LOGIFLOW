@@ -79,11 +79,54 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
         totalShipments: 128,
         inTransit: 34,
         delivered: 89,
-        exception: 5,
-        totalRevenue: 245000,
-        monthlyTrends: [
-          { month: 'Jan', shipments: 45 },
-          { month: 'Feb', shipments: 83 }
+        exceptions: 5,
+        totalRevenue: 248500,
+        slaRate: 98.4,
+        avgDeliveryDays: 2.1,
+        chartData: [
+          { name: 'Mon', shipments: 18, revenue: 32000 },
+          { name: 'Tue', shipments: 24, revenue: 41000 },
+          { name: 'Wed', shipments: 29, revenue: 52000 },
+          { name: 'Thu', shipments: 22, revenue: 38000 },
+          { name: 'Fri', shipments: 35, revenue: 61000 },
+          { name: 'Sat', shipments: 19, revenue: 31000 },
+          { name: 'Sun', shipments: 12, revenue: 19500 }
+        ],
+        courierBreakdown: [
+          { name: 'Delhivery Express', count: 86, percent: 67, slaScore: '99.1%' },
+          { name: 'Blue Dart', count: 42, percent: 33, slaScore: '98.5%' }
+        ],
+        recentActivity: [
+          {
+            id: 'ship-101',
+            awb_number: 'DELH88291034',
+            receiver_name: 'Rahul Sharma',
+            city: 'Mumbai',
+            internal_status: 'IN_TRANSIT',
+            client: { company_name: 'Apex Logistics' },
+            courier: { courier_name: 'Delhivery Express' },
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'ship-102',
+            awb_number: 'BLUED99102451',
+            receiver_name: 'Priya Verma',
+            city: 'Bengaluru',
+            internal_status: 'DELIVERED',
+            client: { company_name: 'LogiFlow Merchant' },
+            courier: { courier_name: 'Blue Dart' },
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'ship-103',
+            awb_number: 'DELH77129033',
+            receiver_name: 'Amit Patel',
+            city: 'Ahmedabad',
+            internal_status: 'BOOKED',
+            client: { company_name: 'Apex Logistics' },
+            courier: { courier_name: 'Delhivery Express' },
+            created_at: new Date().toISOString()
+          }
         ]
       };
     }
