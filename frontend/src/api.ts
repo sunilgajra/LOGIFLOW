@@ -124,7 +124,7 @@ const INITIAL_DEMO_SHIPMENTS = [
     volumetric_weight: 1.8,
     chargeable_weight: 2.5,
     client_charge: 285,
-    internal_status: 'IN_TRANSIT',
+    internal_status: 'PENDING_APPROVAL',
     client_id: 'client-1',
     courier_id: 'courier-1',
     client: { company_name: 'Apex Logistics' },
@@ -602,6 +602,14 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       if (clientFilter) {
         list = list.filter((s: any) => s.client_id === clientFilter || s.client?.id === clientFilter);
       }
+
+      try {
+        const urlObj = new URL('http://dummy.com' + endpoint);
+        const statusParam = urlObj.searchParams.get('status');
+        if (statusParam) {
+          list = list.filter((s: any) => s.internal_status === statusParam);
+        }
+      } catch (e) {}
 
       return {
         data: list,
