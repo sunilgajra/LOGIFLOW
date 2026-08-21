@@ -32,6 +32,7 @@ model Company {
   zoneMappings     ZoneMapping[]
   warehouses       Warehouse[]
   pickup_requests  PickupRequest[]
+  support_tickets  SupportTicket[]
 }
 
 model User {
@@ -395,4 +396,26 @@ model PickupRequest {
 
   @@index([company_id])
   @@index([pickup_id])
+}
+
+model SupportTicket {
+  id           String   @id @default(uuid())
+  company_id   String
+  ticket_id    String   @unique
+  awb_number   String?
+  raised_by    String
+  category     String
+  sub_category String?
+  description  String
+  status       String   @default("Open") // Open, Resolved, Closed
+  priority     String   @default("Medium") // High, Medium, Low
+  last_update  DateTime @default(now())
+  cc_emails    String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
+
+  @@index([company_id])
+  @@index([ticket_id])
 }

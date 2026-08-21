@@ -425,6 +425,72 @@ const saveDemoPickups = (list: any[]) => {
   localStorage.setItem('demo_pickups', JSON.stringify(list));
 };
 
+const INITIAL_DEMO_TICKETS = [
+  {
+    id: 't-1',
+    ticket_id: 'J1787056533769436',
+    awb_number: '313032596',
+    raised_by: 'cs@pswarehousing.com',
+    category: 'Delay in delivery or return / Delivery instructions (Reattempt, hold, etc.)',
+    sub_category: 'Delay in delivery to consignee / Reattempt delivery',
+    description: 'Shipment delayed beyond promised SLA. Consignee requesting urgent re-attempt.',
+    status: 'Open',
+    priority: 'Medium',
+    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+    last_update: new Date().toISOString()
+  },
+  {
+    id: 't-2',
+    ticket_id: 'J1787215583420410',
+    awb_number: '286749011',
+    raised_by: 'cs@pswarehousing.com',
+    category: 'Update shipment details',
+    sub_category: 'Update appointment date and time',
+    description: 'Consignee requested updated warehouse dock slot for 24 Aug.',
+    status: 'Open',
+    priority: 'Medium',
+    created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+    last_update: new Date().toISOString()
+  },
+  {
+    id: 't-3',
+    ticket_id: 'J1786354012801172',
+    awb_number: '306986668',
+    raised_by: 'pswarehousing@gmail.com',
+    category: 'Update shipment details',
+    sub_category: 'Update appointment date and time',
+    description: 'Updated phone number for consignee supervisor.',
+    status: 'Open',
+    priority: 'Low',
+    created_at: new Date(Date.now() - 11 * 86400000).toISOString(),
+    last_update: new Date().toISOString()
+  },
+  {
+    id: 't-4',
+    ticket_id: 'J1787300725275272',
+    awb_number: '313103109',
+    raised_by: 'pswarehousing@gmail.com',
+    category: 'Issue with delivered/returned shipment (damage, missing, wrong, partial, etc.)',
+    sub_category: 'Partial / Short shipment delivered',
+    description: 'Shortage of 2 boxes out of 37 boxes reported upon dock unloading.',
+    status: 'Open',
+    priority: 'High',
+    created_at: new Date().toISOString(),
+    last_update: new Date().toISOString()
+  }
+];
+
+const getDemoTickets = () => {
+  const stored = localStorage.getItem('demo_tickets');
+  if (stored) {
+    try { return JSON.parse(stored); } catch (e) {}
+  }
+  return INITIAL_DEMO_TICKETS;
+};
+const saveDemoTickets = (list: any[]) => {
+  localStorage.setItem('demo_tickets', JSON.stringify(list));
+};
+
 // --- Main API Fetch Function with automatic offline demo persistence ---
 export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   let token = localStorage.getItem('token');
@@ -1150,6 +1216,57 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       }
 
       return getDemoPickups();
+    }
+
+    if (endpoint.includes('/support/tickets')) {
+      if (options.method === 'POST') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        const list = getDemoTickets();
+        const newTicket = {
+          id: 't-' + Date.now(),
+          ticket_id: `J${Date.now()}${Math.floor(100 + Math.random() * 900)}`,
+          awb_number: bodyData.awb_number || 'General',
+          raised_by: 'cs@pswarehousing.com',
+          category: bodyData.category || 'Delay in delivery or return',
+          sub_category: bodyData.sub_category || 'Delivery instruction',
+          description: bodyData.description || 'Issue raised by merchant',
+          status: 'Open',
+          priority: 'Medium',
+          created_at: new Date().toISOString(),
+          last_update: new Date().toISOString()
+        };
+        const updated = [newTicket, ...list];
+        saveDemoTickets(updated);
+        return newTicket;
+      }
+
+      if (options.method === 'PUT') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        const parts = endpoint.split('/');
+        const tId = parts[3];
+        const list = getDemoTickets();
+        const idx = list.findIndex((t: any) => t.id === tId || t.ticket_id === tId);
+
+        if (idx !== -1) {
+          list[idx] = { ...list[idx], ...bodyData, last_update: new Date().toISOString() };
+          saveDemoTickets(list);
+          return list[idx];
+        }
+      }
+
+      return getDemoTickets();
     }
 
     return null;

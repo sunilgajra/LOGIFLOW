@@ -20,6 +20,7 @@ import { getNDRShipments, processNDRAction } from './controllers/ndr.controller'
 import { deliverShipment } from './controllers/delivery.controller';
 import { getWarehouses, createWarehouse, updateWarehouse } from './controllers/warehouse.controller';
 import { getPickupRequests, createPickupRequest, updatePickupRequestStatus } from './controllers/pickup.controller';
+import { getSupportTickets, createSupportTicket, updateTicketStatus } from './controllers/support.controller';
 
 const upload = multer({ dest: 'uploads/' });
 const router = Router();
@@ -115,6 +116,11 @@ router.put('/warehouses/:id', requireAuth, updateWarehouse);
 router.get('/pickups', requireAuth, getPickupRequests);
 router.post('/pickups', requireAuth, createPickupRequest);
 router.put('/pickups/:id/status', requireAuth, updatePickupRequestStatus);
+
+// --- Support Tickets API ---
+router.get('/support/tickets', requireAuth, getSupportTickets);
+router.post('/support/tickets', requireAuth, createSupportTicket);
+router.put('/support/tickets/:id/status', requireAuth, updateTicketStatus);
 
 export default router;
 

@@ -20,6 +20,7 @@ import Reports from './pages/Reports';
 import Appointments from './pages/Appointments';
 import Warehouses from './pages/Warehouses';
 import PickupRequests from './pages/PickupRequests';
+import Support from './pages/Support';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
           <Route path="shipments" element={<Shipments />} />
           <Route path="pickups" element={<PickupRequests />} />
           <Route path="appointments" element={<Appointments />} />
+          <Route path="support" element={<Support />} />
           <Route path="warehouses" element={<Warehouses />} />
           <Route path="ndr" element={<NDRManagement />} />
           <Route path="reports" element={<Reports />} />
