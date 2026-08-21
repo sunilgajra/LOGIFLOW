@@ -491,6 +491,16 @@ const saveDemoTickets = (list: any[]) => {
   localStorage.setItem('demo_tickets', JSON.stringify(list));
 };
 
+const getCurrentUserClientFilter = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user?.role === 'CLIENT' && user?.client_id) {
+      return user.client_id;
+    }
+  } catch (e) {}
+  return null;
+};
+
 // --- Main API Fetch Function with automatic offline demo persistence ---
 export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   let token = localStorage.getItem('token');
@@ -515,6 +525,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     return await response.json();
   } catch (error: any) {
     console.warn(`[API Fallback] ${endpoint}:`, error.message);
+    const clientFilter = getCurrentUserClientFilter();
     
     // --- 1. SHIPMENTS API FALLBACK ---
     if (endpoint === '/shipments' || endpoint.startsWith('/shipments?')) {
@@ -587,9 +598,14 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
         }
       }
 
+      let list = getDemoShipments();
+      if (clientFilter) {
+        list = list.filter((s: any) => s.client_id === clientFilter || s.client?.id === clientFilter);
+      }
+
       return {
-        data: getDemoShipments(),
-        pagination: { totalPages: 1, totalItems: getDemoShipments().length, page: 1 }
+        data: list,
+        pagination: { totalPages: 1, totalItems: list.length, page: 1 }
       };
     }
 
@@ -623,7 +639,11 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
         return newClient;
       }
 
-      return getDemoClients();
+      let list = getDemoClients();
+      if (clientFilter) {
+        list = list.filter((c: any) => c.id === clientFilter || c.client_id === clientFilter);
+      }
+      return list;
     }
 
     if (endpoint.match(/\/clients\/[^\/]+/)) {
@@ -906,6 +926,10 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     if (endpoint.includes('/analytics/monthly-report')) {
+      let shipments = getDemoShipments();
+      if (clientFilter) {
+        shipments = shipments.filter((s: any) => s.client_id === clientFilter || s.client?.id === clientFilter);
+      }
       return {
         period: {
           month: 8,
@@ -915,34 +939,37 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           endDate: new Date(2026, 7, 31).toISOString()
         },
         metrics: {
-          totalShipments: getDemoShipments().length,
-          delivered: getDemoShipments().filter((s: any) => s.internal_status === 'DELIVERED').length,
-          inTransit: getDemoShipments().filter((s: any) => s.internal_status === 'IN_TRANSIT').length,
-          exceptions: 1,
-          rto: 0,
+          totalShipments: shipments.length,
+          delivered: shipments.filter((s: any) => s.internal_status === 'DELIVERED').length,
+          inTransit: shipments.filter((s: any) => s.internal_status === 'IN_TRANSIT').length,
+          exceptions: shipments.filter((s: any) => s.internal_status === 'EXCEPTION' || s.internal_status === 'NDR').length,
+          rto: shipments.filter((s: any) => s.internal_status === 'RTO').length,
           slaRate: '98.4%',
-          totalFreightCharges: getDemoShipments().reduce((sum: number, s: any) => sum + (s.client_charge || 0), 0),
-          totalCourierCost: 168980,
-          totalProfit: 79520,
-          totalActualWeight: 142.5,
-          totalChargeableWeight: 168.0
+          totalFreightCharges: shipments.reduce((sum: number, s: any) => sum + (s.client_charge || 0), 0),
+          totalCourierCost: Math.round(shipments.reduce((sum: number, s: any) => sum + (s.client_charge || 0), 0) * 0.68),
+          totalProfit: Math.round(shipments.reduce((sum: number, s: any) => sum + (s.client_charge || 0), 0) * 0.32),
+          totalActualWeight: shipments.reduce((sum: number, s: any) => sum + (s.actual_weight || 0), 0),
+          totalChargeableWeight: shipments.reduce((sum: number, s: any) => sum + (s.chargeable_weight || 0), 0)
         },
         statusBreakdown: [
-          { status: 'DELIVERED', count: getDemoShipments().filter((s: any) => s.internal_status === 'DELIVERED').length },
-          { status: 'IN_TRANSIT', count: getDemoShipments().filter((s: any) => s.internal_status === 'IN_TRANSIT').length },
-          { status: 'BOOKED', count: getDemoShipments().filter((s: any) => s.internal_status === 'BOOKED').length }
+          { status: 'DELIVERED', count: shipments.filter((s: any) => s.internal_status === 'DELIVERED').length },
+          { status: 'IN_TRANSIT', count: shipments.filter((s: any) => s.internal_status === 'IN_TRANSIT').length },
+          { status: 'BOOKED', count: shipments.filter((s: any) => s.internal_status === 'BOOKED').length }
         ],
         topDestinations: [
-          { city: 'Mumbai', count: 42 },
-          { city: 'Bengaluru', count: 28 },
-          { city: 'Delhi', count: 24 }
+          { city: 'Mumbai', count: shipments.filter((s: any) => s.city === 'Mumbai').length || 1 },
+          { city: 'Bengaluru', count: shipments.filter((s: any) => s.city === 'Bengaluru').length || 1 },
+          { city: 'Delhi', count: shipments.filter((s: any) => s.city === 'Delhi').length || 1 }
         ],
-        shipments: getDemoShipments()
+        shipments: shipments
       };
     }
 
     if (endpoint.includes('/analytics')) {
-      const shipments = getDemoShipments();
+      let shipments = getDemoShipments();
+      if (clientFilter) {
+        shipments = shipments.filter((s: any) => s.client_id === clientFilter || s.client?.id === clientFilter);
+      }
       return {
         totalShipments: shipments.length,
         inTransit: shipments.filter((s: any) => s.internal_status === 'IN_TRANSIT').length,
@@ -952,13 +979,11 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
         slaRate: 98.4,
         avgDeliveryDays: 2.1,
         chartData: [
-          { name: 'Mon', shipments: 18, revenue: 32000 },
-          { name: 'Tue', shipments: 24, revenue: 41000 },
-          { name: 'Wed', shipments: 29, revenue: 52000 },
-          { name: 'Thu', shipments: 22, revenue: 38000 },
-          { name: 'Fri', shipments: 35, revenue: 61000 },
-          { name: 'Sat', shipments: 19, revenue: 31000 },
-          { name: 'Sun', shipments: 12, revenue: 19500 }
+          { name: 'Mon', shipments: Math.ceil(shipments.length * 0.2), revenue: Math.ceil(shipments.reduce((s: number, x: any) => s + (x.client_charge || 0), 0) * 0.2) },
+          { name: 'Tue', shipments: Math.ceil(shipments.length * 0.3), revenue: Math.ceil(shipments.reduce((s: number, x: any) => s + (x.client_charge || 0), 0) * 0.3) },
+          { name: 'Wed', shipments: Math.ceil(shipments.length * 0.25), revenue: Math.ceil(shipments.reduce((s: number, x: any) => s + (x.client_charge || 0), 0) * 0.25) },
+          { name: 'Thu', shipments: Math.ceil(shipments.length * 0.15), revenue: Math.ceil(shipments.reduce((s: number, x: any) => s + (x.client_charge || 0), 0) * 0.15) },
+          { name: 'Fri', shipments: Math.ceil(shipments.length * 0.1), revenue: Math.ceil(shipments.reduce((s: number, x: any) => s + (x.client_charge || 0), 0) * 0.1) }
         ],
         courierBreakdown: getDemoCouriers().map((c: any) => ({
           name: c.courier_name,

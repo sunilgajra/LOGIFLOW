@@ -7,8 +7,13 @@ export const getPickupRequests = async (req: AuthenticatedRequest, res: Response
     const companyId = req.user?.company_id;
     if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
 
+    const where: any = { company_id: String(companyId) };
+    if (req.user?.role === 'CLIENT' && req.user?.client_id) {
+      where.client_id = req.user.client_id;
+    }
+
     const requests = await prisma.pickupRequest.findMany({
-      where: { company_id: String(companyId) },
+      where,
       orderBy: { created_at: 'desc' },
       include: { warehouse: true }
     });
@@ -30,12 +35,15 @@ export const createPickupRequest = async (req: AuthenticatedRequest, res: Respon
       pickup_date,
       pickup_slot,
       box_count,
-      lrn_numbers
+      lrn_numbers,
+      client_id
     } = req.body;
 
     if (!facility_name || !pickup_date || !pickup_slot) {
       return res.status(400).json({ error: 'Missing required pickup details (facility, date, or slot)' });
     }
+
+    const assignedClientId = req.user?.role === 'CLIENT' ? req.user.client_id : (client_id || null);
 
     // Generate 9-digit Pickup ID (e.g. 314936152)
     const count = await prisma.pickupRequest.count({
@@ -46,6 +54,7 @@ export const createPickupRequest = async (req: AuthenticatedRequest, res: Respon
     const pickupRequest = await prisma.pickupRequest.create({
       data: {
         company_id: String(companyId),
+        client_id: assignedClientId,
         pickup_id: pickupId,
         warehouse_id: warehouse_id || null,
         facility_name,

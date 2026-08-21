@@ -7,8 +7,13 @@ export const getWarehouses = async (req: AuthenticatedRequest, res: Response) =>
     const companyId = req.user?.company_id;
     if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
 
+    const where: any = { company_id: String(companyId) };
+    if (req.user?.role === 'CLIENT' && req.user?.client_id) {
+      where.client_id = req.user.client_id;
+    }
+
     const warehouses = await prisma.warehouse.findMany({
-      where: { company_id: String(companyId) },
+      where,
       orderBy: { created_at: 'desc' }
     });
 
@@ -35,16 +40,20 @@ export const createWarehouse = async (req: AuthenticatedRequest, res: Response) 
       default_pickup_slot,
       working_days,
       return_same_as_pickup,
-      return_address
+      return_address,
+      client_id
     } = req.body;
 
     if (!facility_name || !address_line || !pincode || !city || !state || !contact_phone) {
       return res.status(400).json({ error: 'Missing required address or facility fields' });
     }
 
+    const assignedClientId = req.user?.role === 'CLIENT' ? req.user.client_id : (client_id || null);
+
     const warehouse = await prisma.warehouse.create({
       data: {
         company_id: String(companyId),
+        client_id: assignedClientId,
         facility_name,
         contact_person: contact_person || null,
         contact_phone,

@@ -7,8 +7,13 @@ export const getSupportTickets = async (req: AuthenticatedRequest, res: Response
     const companyId = req.user?.company_id;
     if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
 
+    const where: any = { company_id: String(companyId) };
+    if (req.user?.role === 'CLIENT' && req.user?.client_id) {
+      where.client_id = req.user.client_id;
+    }
+
     const tickets = await prisma.supportTicket.findMany({
-      where: { company_id: String(companyId) },
+      where,
       orderBy: { created_at: 'desc' }
     });
 
@@ -28,13 +33,15 @@ export const createSupportTicket = async (req: AuthenticatedRequest, res: Respon
       category,
       sub_category,
       description,
-      cc_emails
+      cc_emails,
+      client_id
     } = req.body;
 
     if (!category) {
       return res.status(400).json({ error: 'Category is required to raise a support ticket' });
     }
 
+    const assignedClientId = req.user?.role === 'CLIENT' ? req.user.client_id : (client_id || null);
     const userEmail = (req.user as any)?.email || 'cs@pswarehousing.com';
 
     // Generate unique 16-character Ticket ID matching Delhivery format: J1787056533769436
@@ -43,6 +50,7 @@ export const createSupportTicket = async (req: AuthenticatedRequest, res: Respon
     const ticket = await prisma.supportTicket.create({
       data: {
         company_id: String(companyId),
+        client_id: assignedClientId,
         ticket_id: ticketId,
         awb_number: awb_number || null,
         raised_by: userEmail,

@@ -72,11 +72,14 @@ model Client {
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
 
-  company   Company         @relation(fields: [company_id], references: [id])
-  shipments Shipment[]
-  invoices  ClientInvoice[]
-  rateCards RateCard[]
-  users     User[]
+  company          Company          @relation(fields: [company_id], references: [id])
+  shipments        Shipment[]
+  invoices         ClientInvoice[]
+  rateCards        RateCard[]
+  users            User[]
+  warehouses       Warehouse[]
+  pickup_requests  PickupRequest[]
+  support_tickets  SupportTicket[]
 }
 
 model CourierPartner {
@@ -352,8 +355,9 @@ model Setting {
 model Warehouse {
   id                    String   @id @default(uuid())
   company_id            String
+  client_id             String?
   facility_name         String
-  contact_person       String?
+  contact_person        String?
   contact_phone         String
   email                 String?
   address_line          String
@@ -368,15 +372,18 @@ model Warehouse {
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
 
-  company Company @relation(fields: [company_id], references: [id])
+  company         Company         @relation(fields: [company_id], references: [id])
+  client          Client?         @relation(fields: [client_id], references: [id])
   pickup_requests PickupRequest[]
 
   @@index([company_id])
+  @@index([client_id])
 }
 
 model PickupRequest {
   id              String   @id @default(uuid())
   company_id      String
+  client_id       String?
   pickup_id       String   @unique
   warehouse_id    String?
   facility_name   String
@@ -392,15 +399,18 @@ model PickupRequest {
   updated_at      DateTime @updatedAt
 
   company   Company    @relation(fields: [company_id], references: [id])
+  client    Client?    @relation(fields: [client_id], references: [id])
   warehouse Warehouse? @relation(fields: [warehouse_id], references: [id])
 
   @@index([company_id])
+  @@index([client_id])
   @@index([pickup_id])
 }
 
 model SupportTicket {
   id           String   @id @default(uuid())
   company_id   String
+  client_id    String?
   ticket_id    String   @unique
   awb_number   String?
   raised_by    String
@@ -415,7 +425,9 @@ model SupportTicket {
   updated_at   DateTime @updatedAt
 
   company Company @relation(fields: [company_id], references: [id])
+  client  Client? @relation(fields: [client_id], references: [id])
 
   @@index([company_id])
+  @@index([client_id])
   @@index([ticket_id])
 }
