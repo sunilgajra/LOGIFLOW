@@ -44,14 +44,33 @@ const LoginPage = () => {
     } catch (err: any) {
       console.warn('Backend API connection failed, falling back to Demo Mode login:', err.message);
 
-      // Demo Mode Fallback for mobile / static GitHub Pages preview
+      // Demo Mode Fallback for mobile / static preview
       const isDriver = email.toLowerCase().includes('driver');
+      const isClient = email.toLowerCase().includes('client') || email.toLowerCase().includes('rahul') || email.toLowerCase().includes('apex');
+
+      let role = 'SUPER_ADMIN';
+      let firstName = 'Admin';
+      let lastName = 'User';
+      let clientId = undefined;
+
+      if (isDriver) {
+        role = 'OPERATIONS';
+        firstName = 'Delivery';
+        lastName = 'Driver';
+      } else if (isClient) {
+        role = 'CLIENT';
+        firstName = 'Rahul';
+        lastName = 'Sharma';
+        clientId = 'client-1';
+      }
+
       const demoUser = {
-        id: isDriver ? 'driver-demo-id' : 'admin-demo-id',
+        id: isDriver ? 'driver-demo-id' : (isClient ? 'client-demo-id' : 'admin-demo-id'),
         email: email || 'admin@logiflow.com',
-        first_name: isDriver ? 'Demo' : 'Admin',
-        last_name: isDriver ? 'Driver' : 'User',
-        role: isDriver ? 'OPERATIONS' : 'SUPER_ADMIN'
+        first_name: firstName,
+        last_name: lastName,
+        role: role,
+        client_id: clientId,
       };
 
       login('demo-preview-token', demoUser);
