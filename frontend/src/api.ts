@@ -591,7 +591,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
         const parts = endpoint.split('/');
         const shipmentId = parts[parts.length - 1];
         const list = getDemoShipments();
-        const idx = list.findIndex((s: any) => s.id === shipmentId);
+        const idx = list.findIndex((s: any) => String(s.id) === String(shipmentId) || String(s.awb_number) === String(shipmentId));
 
         if (idx !== -1) {
           list[idx] = { ...list[idx], ...bodyData };

@@ -189,15 +189,24 @@ const Shipments = () => {
     fetchShipments(1, search);
   };
 
-  const handleApproveShipment = async (shipmentId: string) => {
+  const handleApproveShipment = async (row: any) => {
+    const targetId = row.id || row.awb_number;
+
+    // Instant local UI state update
+    setData(prev => prev.map((s: any) => 
+      (s.id === targetId || s.awb_number === targetId || s.id === row.id) 
+        ? { ...s, internal_status: 'BOOKED' } 
+        : s
+    ));
+
     try {
-      await fetchApi(`/shipments/${shipmentId}`, {
+      await fetchApi(`/shipments/${targetId}`, {
         method: 'PUT',
         body: JSON.stringify({ internal_status: 'BOOKED' })
       });
-      fetchShipments(page, search);
+      fetchShipments(page, search, activeStatusTab);
     } catch (e) {
-      alert('Failed to approve shipment');
+      console.error(e);
     }
   };
 
@@ -321,7 +330,7 @@ const Shipments = () => {
             <div className="flex items-center space-x-2">
               {user?.role !== 'CLIENT' && isPending && (
                 <button 
-                  onClick={() => handleApproveShipment(row.id)}
+                  onClick={() => handleApproveShipment(row)}
                   className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2.5 py-1 rounded shadow-sm transition-colors flex items-center"
                 >
                   Confirm Order
