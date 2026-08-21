@@ -17,6 +17,7 @@ import Zones from './pages/Zones';
 import NDRManagement from './pages/NDRManagement';
 import Users from './pages/Users';
 import Reports from './pages/Reports';
+import Appointments from './pages/Appointments';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="shipments" element={<Shipments />} />
+          <Route path="appointments" element={<Appointments />} />
           <Route path="ndr" element={<NDRManagement />} />
           <Route path="reports" element={<Reports />} />
           <Route path="users" element={<Users />} />

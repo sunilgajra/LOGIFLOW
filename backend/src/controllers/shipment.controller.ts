@@ -175,6 +175,13 @@ export const bookShipment = async (req: AuthenticatedRequest, res: Response) => 
         declared_value: parseFloat(payload.declared_value) || 0,
         internal_status: 'BOOKED',
         label_url: labelUrl,
+
+        appointment_date: payload.appointment_date ? new Date(payload.appointment_date) : null,
+        appointment_slot: payload.appointment_slot || null,
+        appointment_token: payload.appointment_token || (payload.appointment_date ? `APT-${Math.floor(100000 + Math.random() * 900000)}` : null),
+        dock_number: payload.dock_number || null,
+        appointment_status: payload.appointment_status || (payload.appointment_date ? 'SCHEDULED' : 'NOT_REQUIRED'),
+        appointment_notes: payload.appointment_notes || null,
         
         // Add assigned rates
         client_charge: clientChargeAmount,
@@ -280,6 +287,12 @@ export const updateShipment = async (req: AuthenticatedRequest, res: Response) =
         package_type: payload.package_type,
         internal_status: payload.internal_status,
         remarks: payload.remarks,
+        appointment_date: payload.appointment_date !== undefined ? (payload.appointment_date ? new Date(payload.appointment_date) : null) : undefined,
+        appointment_slot: payload.appointment_slot !== undefined ? payload.appointment_slot : undefined,
+        appointment_token: payload.appointment_token !== undefined ? payload.appointment_token : undefined,
+        dock_number: payload.dock_number !== undefined ? payload.dock_number : undefined,
+        appointment_status: payload.appointment_status !== undefined ? payload.appointment_status : undefined,
+        appointment_notes: payload.appointment_notes !== undefined ? payload.appointment_notes : undefined,
       },
       include: { client: true, courier: true }
     });

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Truck, UploadCloud, Settings, Bell, Search, 
-  LogOut, FileText, MapPin, ShieldAlert, Menu, X, BarChart3, UserCheck
+  LogOut, FileText, MapPin, ShieldAlert, Menu, X, BarChart3, UserCheck, Calendar
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,6 +24,7 @@ const DashboardLayout = () => {
   const allNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
     { name: 'Shipments', href: '/dashboard/shipments', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
+    { name: 'Dock Appointments', href: '/dashboard/appointments', icon: Calendar, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
     { name: 'Monthly Reports', href: '/dashboard/reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS'] },
     { name: 'NDR Action Desk', href: '/dashboard/ndr', icon: ShieldAlert, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS'] },
     { name: 'Billing / Invoices', href: `/dashboard/clients/${user?.client_id}`, icon: FileText, roles: ['CLIENT'] },
