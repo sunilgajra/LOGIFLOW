@@ -19,6 +19,7 @@ import Users from './pages/Users';
 import Reports from './pages/Reports';
 import Appointments from './pages/Appointments';
 import Warehouses from './pages/Warehouses';
+import PickupRequests from './pages/PickupRequests';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="shipments" element={<Shipments />} />
+          <Route path="pickups" element={<PickupRequests />} />
           <Route path="appointments" element={<Appointments />} />
           <Route path="warehouses" element={<Warehouses />} />
           <Route path="ndr" element={<NDRManagement />} />

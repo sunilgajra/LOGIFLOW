@@ -31,6 +31,7 @@ model Company {
   settings         Setting[]
   zoneMappings     ZoneMapping[]
   warehouses       Warehouse[]
+  pickup_requests  PickupRequest[]
 }
 
 model User {
@@ -367,6 +368,31 @@ model Warehouse {
   updated_at            DateTime @updatedAt
 
   company Company @relation(fields: [company_id], references: [id])
+  pickup_requests PickupRequest[]
 
   @@index([company_id])
+}
+
+model PickupRequest {
+  id              String   @id @default(uuid())
+  company_id      String
+  pickup_id       String   @unique
+  warehouse_id    String?
+  facility_name   String
+  pickup_date     DateTime
+  pickup_slot     String
+  box_count       Int      @default(1)
+  lrn_numbers     String?
+  status          String   @default("Scheduled") // Scheduled, Out for Pickup, Picked, Not Picked, Cancelled
+  escalated       Boolean  @default(false)
+  otp_verified    Boolean  @default(false)
+  executive_phone String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  company   Company    @relation(fields: [company_id], references: [id])
+  warehouse Warehouse? @relation(fields: [warehouse_id], references: [id])
+
+  @@index([company_id])
+  @@index([pickup_id])
 }

@@ -19,6 +19,7 @@ import { handleCourierWebhook } from './controllers/webhook.controller';
 import { getNDRShipments, processNDRAction } from './controllers/ndr.controller';
 import { deliverShipment } from './controllers/delivery.controller';
 import { getWarehouses, createWarehouse, updateWarehouse } from './controllers/warehouse.controller';
+import { getPickupRequests, createPickupRequest, updatePickupRequestStatus } from './controllers/pickup.controller';
 
 const upload = multer({ dest: 'uploads/' });
 const router = Router();
@@ -109,6 +110,11 @@ router.post('/shipments/:awb/deliver', requireAuth, deliverShipment);
 router.get('/warehouses', requireAuth, getWarehouses);
 router.post('/warehouses', requireAuth, createWarehouse);
 router.put('/warehouses/:id', requireAuth, updateWarehouse);
+
+// --- Domestic Pickup Requests API ---
+router.get('/pickups', requireAuth, getPickupRequests);
+router.post('/pickups', requireAuth, createPickupRequest);
+router.put('/pickups/:id/status', requireAuth, updatePickupRequestStatus);
 
 export default router;
 

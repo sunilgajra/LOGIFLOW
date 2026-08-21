@@ -339,6 +339,92 @@ const saveDemoWarehouses = (list: any[]) => {
   localStorage.setItem('demo_warehouses', JSON.stringify(list));
 };
 
+const INITIAL_DEMO_PICKUPS = [
+  {
+    id: 'pk-1',
+    pickup_id: '314936152',
+    facility_name: 'Avenue Supermarts Ltd - Haryana',
+    pickup_date: new Date(Date.now() + 86400000).toISOString(),
+    pickup_slot: '10:00 AM - 02:00 PM',
+    box_count: 69,
+    status: 'Scheduled',
+    escalated: false,
+    otp_verified: false,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'pk-2',
+    pickup_id: '314891785',
+    facility_name: '201305 - PROSTARM INFO SYSTEMS LTD',
+    pickup_date: new Date().toISOString(),
+    pickup_slot: '02:00 PM - 06:00 PM',
+    box_count: 12,
+    status: 'Picked',
+    escalated: false,
+    otp_verified: false,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'pk-3',
+    pickup_id: '314731633',
+    facility_name: 'Prostam',
+    pickup_date: new Date().toISOString(),
+    pickup_slot: '02:00 PM - 06:00 PM',
+    box_count: 5,
+    status: 'Picked',
+    escalated: false,
+    otp_verified: false,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'pk-4',
+    pickup_id: '314697020',
+    facility_name: '641602 - PROSTARM INFO',
+    pickup_date: new Date().toISOString(),
+    pickup_slot: '02:00 PM - 06:00 PM',
+    box_count: 8,
+    status: 'Out for Pickup',
+    escalated: false,
+    otp_verified: false,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'pk-5',
+    pickup_id: '314660291',
+    facility_name: '522256 - PROSTARM INFO SYSTEMS LTD',
+    pickup_date: new Date().toISOString(),
+    pickup_slot: '02:00 PM - 06:00 PM',
+    box_count: 15,
+    status: 'Picked',
+    escalated: true,
+    otp_verified: false,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'pk-6',
+    pickup_id: '314643936',
+    facility_name: '249402 - PROSTARM INFO',
+    pickup_date: new Date().toISOString(),
+    pickup_slot: '02:00 PM - 06:00 PM',
+    box_count: 3,
+    status: 'Not Picked',
+    escalated: true,
+    otp_verified: true,
+    created_at: new Date().toISOString()
+  }
+];
+
+const getDemoPickups = () => {
+  const stored = localStorage.getItem('demo_pickups');
+  if (stored) {
+    try { return JSON.parse(stored); } catch (e) {}
+  }
+  return INITIAL_DEMO_PICKUPS;
+};
+const saveDemoPickups = (list: any[]) => {
+  localStorage.setItem('demo_pickups', JSON.stringify(list));
+};
+
 // --- Main API Fetch Function with automatic offline demo persistence ---
 export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   let token = localStorage.getItem('token');
@@ -1014,6 +1100,56 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       }
 
       return getDemoWarehouses();
+    }
+
+    if (endpoint.includes('/pickups')) {
+      if (options.method === 'POST') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        const list = getDemoPickups();
+        const newPk = {
+          id: 'pk-' + Date.now(),
+          pickup_id: String(314900000 + list.length + Math.floor(Math.random() * 900)),
+          facility_name: bodyData.facility_name || '276001 - PROSTARM INFO',
+          pickup_date: bodyData.pickup_date || new Date().toISOString(),
+          pickup_slot: bodyData.pickup_slot || '14:00:00 - 18:00:00',
+          box_count: Number(bodyData.box_count) || 1,
+          status: 'Scheduled',
+          escalated: false,
+          otp_verified: false,
+          created_at: new Date().toISOString()
+        };
+        const updated = [newPk, ...list];
+        saveDemoPickups(updated);
+        return newPk;
+      }
+
+      if (options.method === 'PUT') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        const parts = endpoint.split('/');
+        const pkId = parts[2];
+        const list = getDemoPickups();
+        const idx = list.findIndex((p: any) => p.id === pkId || p.pickup_id === pkId);
+
+        if (idx !== -1) {
+          list[idx] = { ...list[idx], ...bodyData };
+          saveDemoPickups(list);
+          return list[idx];
+        }
+      }
+
+      return getDemoPickups();
     }
 
     return null;

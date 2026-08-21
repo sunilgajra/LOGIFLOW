@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Truck, UploadCloud, Settings, Bell, Search, 
-  LogOut, FileText, MapPin, ShieldAlert, Menu, X, BarChart3, UserCheck, Calendar, Building2
+  LogOut, FileText, MapPin, ShieldAlert, Menu, X, BarChart3, UserCheck, Calendar, Building2, Package
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,6 +24,7 @@ const DashboardLayout = () => {
   const allNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
     { name: 'Shipments', href: '/dashboard/shipments', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
+    { name: 'Pickup Requests', href: '/dashboard/pickups', icon: Package, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
     { name: 'Manage Warehouses', href: '/dashboard/warehouses', icon: Building2, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS'] },
     { name: 'Dock Appointments', href: '/dashboard/appointments', icon: Calendar, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
     { name: 'Monthly Reports', href: '/dashboard/reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS'] },
