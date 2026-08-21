@@ -144,13 +144,16 @@ export const bookShipment = async (req: AuthenticatedRequest, res: Response) => 
     const clientChargeAmount = costDetails?.client_charge || 0;
     const profitAmount = clientChargeAmount > 0 && courierCostAmount > 0 ? clientChargeAmount - courierCostAmount : null;
 
+    const clientId = payload.client_id && String(payload.client_id).trim() !== '' ? String(payload.client_id) : null;
+    const courierId = payload.courier_id && String(payload.courier_id).trim() !== '' ? String(payload.courier_id) : null;
+
     // Save to database
     const shipment = await prisma.shipment.create({
       data: {
         company_id: companyId,
         awb_number: finalAwbNumber,
-        client_id: payload.client_id,
-        courier_id: payload.courier_id,
+        client_id: clientId,
+        courier_id: courierId,
         booking_date: payload.booking_date ? new Date(payload.booking_date) : new Date(),
         origin: payload.origin,
         destination: payload.destination,

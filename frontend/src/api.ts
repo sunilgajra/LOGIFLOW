@@ -1,5 +1,207 @@
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// --- Local Demo State Persistence Helpers ---
+const INITIAL_DEMO_CLIENTS = [
+  {
+    id: 'client-1',
+    client_id: 'CLI-001',
+    company_name: 'Apex Logistics',
+    contact_person: 'Rahul Sharma',
+    email: 'rahul@apex.com',
+    phone: '+91 9876543210',
+    status: 'ACTIVE',
+    address: '102 Green Heights, Andheri East, Mumbai, MH 400069',
+    gst_number: '27AAAAA0000A1Z5',
+    pan_number: 'AAAAA0000A',
+    _count: { shipments: 64 },
+    users: [{ id: 'user-1', email: 'rahul@apex.com', created_at: new Date().toISOString() }]
+  },
+  {
+    id: 'client-2',
+    client_id: 'CLI-002',
+    company_name: 'LogiFlow Merchant',
+    contact_person: 'Priya Verma',
+    email: 'priya@merchant.com',
+    phone: '+91 9123456789',
+    status: 'ACTIVE',
+    address: 'Flat 4B, MG Road, Bengaluru, KA 560001',
+    gst_number: '29BBBBB1111B2Z6',
+    pan_number: 'BBBBB1111B',
+    _count: { shipments: 38 },
+    users: [{ id: 'user-2', email: 'priya@merchant.com', created_at: new Date().toISOString() }]
+  }
+];
+
+const INITIAL_DEMO_COURIERS = [
+  {
+    id: 'courier-1',
+    courier_id: 'DELHIVERY',
+    courier_name: 'Delhivery Express',
+    contact_person: 'Delhivery Support',
+    phone: '+91 124 6719500',
+    email: 'support@delhivery.com',
+    account_number: 'DELH-882190',
+    status: 'ACTIVE',
+    api_credentials: JSON.stringify({ api_key: 'live_delhivery_tok_demo99', api_secret: 'sec_delh_8892', client_id: 'DELH_MUMB_001', webhook_url: 'https://sunilgajra.github.io/LOGIFLOW/api/webhooks/delhivery' }),
+    _count: { shipments: 86 }
+  },
+  {
+    id: 'courier-2',
+    courier_id: 'BLUEDART',
+    courier_name: 'Blue Dart',
+    contact_person: 'BlueDart Support',
+    phone: '+91 1860 233 1234',
+    email: 'customersupport@bluedart.com',
+    account_number: 'BD-991204',
+    status: 'ACTIVE',
+    api_credentials: JSON.stringify({ api_key: 'bd_license_key_sandbox_99', api_secret: 'bd_pass_3321', client_id: 'BOM_BD_1001', webhook_url: 'https://sunilgajra.github.io/LOGIFLOW/api/webhooks/bluedart' }),
+    _count: { shipments: 42 }
+  }
+];
+
+const INITIAL_DEMO_RATES = [
+  {
+    id: 'rate-1',
+    name: 'Standard Client Express Rate',
+    type: 'CLIENT',
+    client_id: 'client-1',
+    courier_id: null,
+    min_weight_kg: 0.5,
+    docket_charge: 50,
+    min_booking_amount: 100,
+    volumetric_divisor: 5000,
+    fov_percentage: 0.2,
+    fov_minimum: 20,
+    fsc_percentage: 10,
+    idc_percentage: 2,
+    oda_charge: 150,
+    green_tax_rate: 15,
+    rates_matrix: JSON.stringify({
+      N1: { N1: 30, N2: 35, E: 55, NE: 75, W1: 45, W2: 50, S1: 65, S2: 70, C: 40 },
+      W1: { N1: 45, N2: 40, E: 50, NE: 70, W1: 25, W2: 30, S1: 45, S2: 50, C: 35 }
+    })
+  },
+  {
+    id: 'rate-2',
+    name: 'Delhivery Surface Rate Card 2024',
+    type: 'COURIER',
+    courier_id: 'courier-1',
+    client_id: null,
+    min_weight_kg: 0.5,
+    docket_charge: 40,
+    min_booking_amount: 80,
+    volumetric_divisor: 5000,
+    fov_percentage: 0.2,
+    fov_minimum: 20,
+    fsc_percentage: 8,
+    idc_percentage: 2,
+    oda_charge: 120,
+    green_tax_rate: 15,
+    rates_matrix: JSON.stringify({
+      N1: { N1: 25, N2: 30, E: 45, NE: 65, W1: 35, W2: 40, S1: 55, S2: 60, C: 30 },
+      W1: { N1: 35, N2: 30, E: 40, NE: 60, W1: 20, W2: 25, S1: 35, S2: 40, C: 25 }
+    })
+  }
+];
+
+const INITIAL_DEMO_SHIPMENTS = [
+  {
+    id: 'demo-1',
+    awb_number: 'DELH88291034',
+    booking_date: new Date().toISOString(),
+    receiver_name: 'Rahul Sharma',
+    receiver_phone: '+91 9876543210',
+    receiver_address: '102 Green Heights, Andheri East',
+    city: 'Mumbai',
+    state: 'Maharashtra',
+    pincode: '400069',
+    origin: 'Delhi',
+    destination: 'Mumbai',
+    service_type: 'EXPRESS',
+    package_type: 'PARCEL',
+    number_of_pieces: 1,
+    actual_weight: 2.5,
+    volumetric_weight: 1.8,
+    chargeable_weight: 2.5,
+    client_charge: 285,
+    internal_status: 'IN_TRANSIT',
+    client_id: 'client-1',
+    courier_id: 'courier-1',
+    client: { company_name: 'Apex Logistics' },
+    courier: { courier_name: 'Delhivery Express' }
+  },
+  {
+    id: 'demo-2',
+    awb_number: 'BLUED99102451',
+    booking_date: new Date().toISOString(),
+    receiver_name: 'Priya Verma',
+    receiver_phone: '+91 9123456789',
+    receiver_address: 'Flat 4B, MG Road',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    pincode: '560001',
+    origin: 'Bengaluru',
+    destination: 'Bengaluru',
+    service_type: 'EXPRESS',
+    package_type: 'PARCEL',
+    number_of_pieces: 1,
+    actual_weight: 1.0,
+    volumetric_weight: 0.8,
+    chargeable_weight: 1.0,
+    client_charge: 195,
+    internal_status: 'DELIVERED',
+    client_id: 'client-2',
+    courier_id: 'courier-2',
+    client: { company_name: 'LogiFlow Merchant' },
+    courier: { courier_name: 'Blue Dart' }
+  }
+];
+
+const getDemoClients = () => {
+  const stored = localStorage.getItem('demo_clients');
+  if (stored) {
+    try { return JSON.parse(stored); } catch (e) {}
+  }
+  return INITIAL_DEMO_CLIENTS;
+};
+const saveDemoClients = (clients: any[]) => {
+  localStorage.setItem('demo_clients', JSON.stringify(clients));
+};
+
+const getDemoCouriers = () => {
+  const stored = localStorage.getItem('demo_couriers');
+  if (stored) {
+    try { return JSON.parse(stored); } catch (e) {}
+  }
+  return INITIAL_DEMO_COURIERS;
+};
+const saveDemoCouriers = (couriers: any[]) => {
+  localStorage.setItem('demo_couriers', JSON.stringify(couriers));
+};
+
+const getDemoRates = () => {
+  const stored = localStorage.getItem('demo_rates');
+  if (stored) {
+    try { return JSON.parse(stored); } catch (e) {}
+  }
+  return INITIAL_DEMO_RATES;
+};
+const saveDemoRates = (rates: any[]) => {
+  localStorage.setItem('demo_rates', JSON.stringify(rates));
+};
+
+const getDemoShipments = () => {
+  const stored = localStorage.getItem('demo_shipments');
+  if (stored) {
+    try { return JSON.parse(stored); } catch (e) {}
+  }
+  return INITIAL_DEMO_SHIPMENTS;
+};
+const saveDemoShipments = (shipments: any[]) => {
+  localStorage.setItem('demo_shipments', JSON.stringify(shipments));
+};
+
+// --- Main API Fetch Function with automatic offline demo persistence ---
 export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   let token = localStorage.getItem('token');
 
@@ -24,7 +226,325 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   } catch (error: any) {
     console.warn(`[API Fallback] ${endpoint}:`, error.message);
     
-    // Demo Mode Fallback for mobile / static GitHub Pages preview when backend API is offline
+    // --- 1. SHIPMENTS API FALLBACK ---
+    if (endpoint === '/shipments' || endpoint.startsWith('/shipments?')) {
+      if (options.method === 'POST') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        const list = getDemoShipments();
+        const clientList = getDemoClients();
+        const courierList = getDemoCouriers();
+
+        const selectedClient = clientList.find((c: any) => c.id === bodyData.client_id) || { company_name: 'Apex Logistics' };
+        const selectedCourier = courierList.find((c: any) => c.id === bodyData.courier_id) || { courier_name: 'Delhivery Express' };
+
+        const newShipment = {
+          id: 'shipment-' + Date.now(),
+          awb_number: bodyData.awb_number || `AWB${Math.floor(Date.now() / 1000)}${Math.floor(Math.random() * 100)}`,
+          booking_date: bodyData.booking_date || new Date().toISOString(),
+          receiver_name: bodyData.receiver_name || 'Recipient',
+          receiver_phone: bodyData.receiver_phone || '',
+          receiver_address: bodyData.receiver_address || '',
+          sender_name: bodyData.sender_name || 'Sender',
+          sender_phone: bodyData.sender_phone || '',
+          sender_address: bodyData.sender_address || '',
+          city: bodyData.city || 'Mumbai',
+          state: bodyData.state || 'Maharashtra',
+          pincode: bodyData.pincode || '400001',
+          origin: bodyData.origin || 'Delhi',
+          destination: bodyData.destination || bodyData.city || 'Mumbai',
+          service_type: bodyData.service_type || 'EXPRESS',
+          package_type: bodyData.package_type || 'PARCEL',
+          number_of_pieces: Number(bodyData.number_of_pieces) || 1,
+          actual_weight: parseFloat(bodyData.actual_weight) || 1.0,
+          volumetric_weight: parseFloat(bodyData.volumetric_weight) || 1.0,
+          chargeable_weight: parseFloat(bodyData.chargeable_weight) || 1.0,
+          client_charge: parseFloat(bodyData.client_charge) || 250,
+          internal_status: 'BOOKED',
+          client_id: bodyData.client_id || null,
+          courier_id: bodyData.courier_id || null,
+          client: { company_name: selectedClient.company_name },
+          courier: { courier_name: selectedCourier.courier_name }
+        };
+
+        const updatedList = [newShipment, ...list];
+        saveDemoShipments(updatedList);
+        return { message: 'Shipment booked successfully', shipment: newShipment };
+      }
+
+      if (options.method === 'PUT') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        const parts = endpoint.split('/');
+        const shipmentId = parts[parts.length - 1];
+        const list = getDemoShipments();
+        const idx = list.findIndex((s: any) => s.id === shipmentId);
+
+        if (idx !== -1) {
+          list[idx] = { ...list[idx], ...bodyData };
+          saveDemoShipments(list);
+          return { message: 'Shipment updated successfully', shipment: list[idx] };
+        }
+      }
+
+      return {
+        data: getDemoShipments(),
+        pagination: { totalPages: 1, totalItems: getDemoShipments().length, page: 1 }
+      };
+    }
+
+    // --- 2. CLIENTS API FALLBACK ---
+    if (endpoint === '/clients' || endpoint.startsWith('/clients?')) {
+      if (options.method === 'POST') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        const list = getDemoClients();
+        const newClient = {
+          id: 'client-' + Date.now(),
+          client_id: bodyData.client_id || `CLI-00${list.length + 1}`,
+          company_name: bodyData.company_name || 'New Merchant Client',
+          contact_person: bodyData.contact_person || '',
+          email: bodyData.email || '',
+          phone: bodyData.phone || '',
+          address: bodyData.address || '',
+          gst_number: bodyData.gst_number || '',
+          pan_number: bodyData.pan_number || '',
+          status: bodyData.status || 'ACTIVE',
+          _count: { shipments: 0 },
+          users: []
+        };
+        const updatedList = [newClient, ...list];
+        saveDemoClients(updatedList);
+        return newClient;
+      }
+
+      return getDemoClients();
+    }
+
+    if (endpoint.match(/\/clients\/[^\/]+/)) {
+      const parts = endpoint.split('/');
+      const clientId = parts[2];
+
+      let bodyData: any = {};
+      try {
+        if (options.body && typeof options.body === 'string') {
+          bodyData = JSON.parse(options.body);
+        }
+      } catch (e) {}
+
+      const list = getDemoClients();
+      const clientIndex = list.findIndex((c: any) => c.id === clientId);
+
+      if (options.method === 'PUT' && clientIndex !== -1) {
+        list[clientIndex] = { ...list[clientIndex], ...bodyData };
+        saveDemoClients(list);
+        return { success: true, client: list[clientIndex] };
+      }
+
+      const client = clientIndex !== -1 ? list[clientIndex] : list[0];
+      const shipments = getDemoShipments().filter((s: any) => s.client_id === client.id || s.client?.company_name === client.company_name);
+
+      return {
+        client,
+        company: {
+          name: 'LogiFlow Logistics Pvt Ltd',
+          address: '408, 4th Floor, The Ambience Park, Sector 19A, Navi Mumbai 400705',
+          gst_number: '27CCFPB3558P1Z7',
+          pan_number: 'CCFPB3558P'
+        },
+        stats: {
+          totalShipments: shipments.length,
+          delivered: shipments.filter((s: any) => s.internal_status === 'DELIVERED').length,
+          inTransit: shipments.filter((s: any) => s.internal_status === 'IN_TRANSIT').length,
+          totalBilling: shipments.reduce((sum: number, s: any) => sum + (s.client_charge || 0), 0)
+        },
+        recentShipments: shipments,
+        invoices: [],
+        rateCards: getDemoRates().filter((r: any) => r.client_id === client.id)
+      };
+    }
+
+    // --- 3. COURIERS API FALLBACK ---
+    if (endpoint === '/couriers' || endpoint.startsWith('/couriers?')) {
+      if (options.method === 'POST') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        const list = getDemoCouriers();
+        const newCourier = {
+          id: 'courier-' + Date.now(),
+          courier_id: bodyData.courier_id || `CP-${Math.floor(100 + Math.random() * 900)}`,
+          courier_name: bodyData.courier_name || 'New Delivery Partner',
+          contact_person: bodyData.contact_person || '',
+          phone: bodyData.phone || '',
+          email: bodyData.email || '',
+          account_number: bodyData.account_number || '',
+          status: bodyData.status || 'ACTIVE',
+          api_credentials: typeof bodyData.api_credentials === 'string' ? bodyData.api_credentials : JSON.stringify(bodyData.api_credentials || {}),
+          _count: { shipments: 0 }
+        };
+        const updatedList = [newCourier, ...list];
+        saveDemoCouriers(updatedList);
+        return newCourier;
+      }
+
+      return getDemoCouriers();
+    }
+
+    if (endpoint.match(/\/couriers\/[^\/]+/)) {
+      const parts = endpoint.split('/');
+      const courierId = parts[2];
+
+      let bodyData: any = {};
+      try {
+        if (options.body && typeof options.body === 'string') {
+          bodyData = JSON.parse(options.body);
+        }
+      } catch (e) {}
+
+      const list = getDemoCouriers();
+      const idx = list.findIndex((c: any) => c.id === courierId);
+
+      if (options.method === 'PUT' && idx !== -1) {
+        list[idx] = { ...list[idx], ...bodyData };
+        saveDemoCouriers(list);
+        return list[idx];
+      }
+
+      return idx !== -1 ? list[idx] : list[0];
+    }
+
+    // --- 4. RATES API FALLBACK ---
+    if (endpoint === '/rates' || endpoint.startsWith('/rates?')) {
+      if (options.method === 'POST') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        const list = getDemoRates();
+        const newRate = {
+          id: 'rc-' + Date.now(),
+          name: bodyData.name || 'New Rate Card',
+          type: bodyData.type || 'CLIENT',
+          courier_id: bodyData.courier_id || null,
+          client_id: bodyData.client_id || null,
+          min_weight_kg: parseFloat(bodyData.min_weight_kg || '0.5'),
+          docket_charge: parseFloat(bodyData.docket_charge || '50'),
+          min_booking_amount: parseFloat(bodyData.min_booking_amount || '100'),
+          volumetric_divisor: parseFloat(bodyData.volumetric_divisor || '5000'),
+          fov_percentage: parseFloat(bodyData.fov_percentage || '0'),
+          fov_minimum: parseFloat(bodyData.fov_minimum || '0'),
+          fsc_percentage: parseFloat(bodyData.fsc_percentage || '10'),
+          idc_percentage: parseFloat(bodyData.idc_percentage || '2'),
+          oda_charge: parseFloat(bodyData.oda_charge || '150'),
+          green_tax_rate: parseFloat(bodyData.green_tax_rate || '15'),
+          rates_matrix: typeof bodyData.rates_matrix === 'string' ? bodyData.rates_matrix : JSON.stringify(bodyData.rates_matrix || {})
+        };
+
+        const updatedList = [newRate, ...list];
+        saveDemoRates(updatedList);
+        return newRate;
+      }
+
+      return getDemoRates();
+    }
+
+    if (endpoint.match(/\/rates\/[^\/]+/)) {
+      const parts = endpoint.split('/');
+      const rateId = parts[2];
+
+      let bodyData: any = {};
+      try {
+        if (options.body && typeof options.body === 'string') {
+          bodyData = JSON.parse(options.body);
+        }
+      } catch (e) {}
+
+      const list = getDemoRates();
+      const idx = list.findIndex((r: any) => r.id === rateId);
+
+      if (options.method === 'DELETE' && idx !== -1) {
+        const filtered = list.filter((r: any) => r.id !== rateId);
+        saveDemoRates(filtered);
+        return { success: true };
+      }
+
+      if (options.method === 'PUT' && idx !== -1) {
+        list[idx] = { ...list[idx], ...bodyData };
+        saveDemoRates(list);
+        return list[idx];
+      }
+    }
+
+    if (endpoint.includes('/rates/calculate')) {
+      let bodyData: any = {};
+      try {
+        if (options.body && typeof options.body === 'string') {
+          bodyData = JSON.parse(options.body);
+        }
+      } catch (e) {}
+
+      const actual_weight = Number(bodyData.actual_weight) || 2.5;
+      const l = Number(bodyData.length) || 0;
+      const w = Number(bodyData.width) || 0;
+      const h = Number(bodyData.height) || 0;
+      const volumetric_weight = l && w && h ? Math.round(((l * w * h) / 5000) * 100) / 100 : 1.8;
+      const chargeable_weight = Math.max(actual_weight, volumetric_weight);
+
+      const baseRate = 45;
+      const freight_charge = Math.round(chargeable_weight * baseRate);
+      const docket_charge = 50;
+      const fsc_amount = Math.round(freight_charge * 0.10);
+      const idc_amount = Math.round(freight_charge * 0.02);
+      const green_tax_amount = 15;
+      const oda_amount = bodyData.is_oda ? 150 : 0;
+
+      const client_charge = Math.max(100, freight_charge + docket_charge + fsc_amount + idc_amount + green_tax_amount + oda_amount);
+      const courier_cost = Math.round(client_charge * 0.68);
+      const estimated_profit = client_charge - courier_cost;
+      const profit_margin_pct = Math.round((estimated_profit / client_charge) * 1000) / 10;
+
+      return {
+        actual_weight,
+        volumetric_weight,
+        chargeable_weight,
+        client_charge,
+        courier_cost,
+        estimated_profit,
+        profit_margin_pct,
+        breakdown: {
+          freight_charge,
+          docket_charge,
+          fsc_amount,
+          idc_amount,
+          green_tax_amount,
+          oda_amount
+        }
+      };
+    }
+
     if (endpoint.includes('/settings/company')) {
       if (options.method === 'PUT') {
         let bodyData: any = {};
@@ -54,44 +574,6 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
         ifsc_code: 'HDFC0000128',
         support_email: 'support@logiflow.in',
         support_phone: '+91 22 6192 8800'
-      };
-    }
-
-    if (endpoint.includes('/shipments')) {
-      return {
-        data: [
-          {
-            id: 'demo-1',
-            awb_number: 'DELH88291034',
-            booking_date: new Date().toISOString(),
-            receiver_name: 'Rahul Sharma',
-            receiver_phone: '+91 9876543210',
-            receiver_address: '102 Green Heights, Andheri East',
-            city: 'Mumbai',
-            state: 'MH',
-            pincode: '400069',
-            internal_status: 'IN_TRANSIT',
-            actual_weight: 2.5,
-            client: { company_name: 'Apex Logistics' },
-            courier: { courier_name: 'Delhivery Express' }
-          },
-          {
-            id: 'demo-2',
-            awb_number: 'BLUED99102451',
-            booking_date: new Date().toISOString(),
-            receiver_name: 'Priya Verma',
-            receiver_phone: '+91 9123456789',
-            receiver_address: 'Flat 4B, MG Road',
-            city: 'Bengaluru',
-            state: 'KA',
-            pincode: '560001',
-            internal_status: 'DELIVERED',
-            actual_weight: 1.0,
-            client: { company_name: 'LogiFlow Merchant' },
-            courier: { courier_name: 'Blue Dart' }
-          }
-        ],
-        pagination: { totalPages: 1, totalItems: 2, page: 1 }
       };
     }
 
@@ -158,56 +640,40 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           endDate: new Date(2026, 7, 31).toISOString()
         },
         metrics: {
-          totalShipments: 128,
-          delivered: 89,
-          inTransit: 34,
-          exceptions: 3,
-          rto: 2,
+          totalShipments: getDemoShipments().length,
+          delivered: getDemoShipments().filter((s: any) => s.internal_status === 'DELIVERED').length,
+          inTransit: getDemoShipments().filter((s: any) => s.internal_status === 'IN_TRANSIT').length,
+          exceptions: 1,
+          rto: 0,
           slaRate: '98.4%',
-          totalFreightCharges: 248500,
+          totalFreightCharges: getDemoShipments().reduce((sum: number, s: any) => sum + (s.client_charge || 0), 0),
           totalCourierCost: 168980,
           totalProfit: 79520,
           totalActualWeight: 142.5,
           totalChargeableWeight: 168.0
         },
         statusBreakdown: [
-          { status: 'DELIVERED', count: 89 },
-          { status: 'IN_TRANSIT', count: 34 },
-          { status: 'EXCEPTION', count: 3 },
-          { status: 'RTO', count: 2 }
+          { status: 'DELIVERED', count: getDemoShipments().filter((s: any) => s.internal_status === 'DELIVERED').length },
+          { status: 'IN_TRANSIT', count: getDemoShipments().filter((s: any) => s.internal_status === 'IN_TRANSIT').length },
+          { status: 'BOOKED', count: getDemoShipments().filter((s: any) => s.internal_status === 'BOOKED').length }
         ],
         topDestinations: [
           { city: 'Mumbai', count: 42 },
           { city: 'Bengaluru', count: 28 },
-          { city: 'Delhi', count: 24 },
-          { city: 'Ahmedabad', count: 18 },
-          { city: 'Pune', count: 16 }
+          { city: 'Delhi', count: 24 }
         ],
-        shipments: [
-          {
-            id: 'demo-1',
-            awb_number: 'DELH88291034',
-            booking_date: new Date().toISOString(),
-            receiver_name: 'Rahul Sharma',
-            city: 'Mumbai',
-            state: 'MH',
-            internal_status: 'IN_TRANSIT',
-            actual_weight: 2.5,
-            client_charge: 285,
-            client: { company_name: 'Apex Logistics' },
-            courier: { courier_name: 'Delhivery Express' }
-          }
-        ]
+        shipments: getDemoShipments()
       };
     }
 
     if (endpoint.includes('/analytics')) {
+      const shipments = getDemoShipments();
       return {
-        totalShipments: 128,
-        inTransit: 34,
-        delivered: 89,
-        exceptions: 5,
-        totalRevenue: 248500,
+        totalShipments: shipments.length,
+        inTransit: shipments.filter((s: any) => s.internal_status === 'IN_TRANSIT').length,
+        delivered: shipments.filter((s: any) => s.internal_status === 'DELIVERED').length,
+        exceptions: shipments.filter((s: any) => s.internal_status === 'EXCEPTION' || s.internal_status === 'NDR').length,
+        totalRevenue: shipments.reduce((sum: number, s: any) => sum + (s.client_charge || 0), 0),
         slaRate: 98.4,
         avgDeliveryDays: 2.1,
         chartData: [
@@ -219,362 +685,14 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           { name: 'Sat', shipments: 19, revenue: 31000 },
           { name: 'Sun', shipments: 12, revenue: 19500 }
         ],
-        courierBreakdown: [
-          { name: 'Delhivery Express', count: 86, percent: 67, slaScore: '99.1%' },
-          { name: 'Blue Dart', count: 42, percent: 33, slaScore: '98.5%' }
-        ],
-        recentActivity: [
-          {
-            id: 'ship-101',
-            awb_number: 'DELH88291034',
-            receiver_name: 'Rahul Sharma',
-            city: 'Mumbai',
-            internal_status: 'IN_TRANSIT',
-            client: { company_name: 'Apex Logistics' },
-            courier: { courier_name: 'Delhivery Express' },
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'ship-102',
-            awb_number: 'BLUED99102451',
-            receiver_name: 'Priya Verma',
-            city: 'Bengaluru',
-            internal_status: 'DELIVERED',
-            client: { company_name: 'LogiFlow Merchant' },
-            courier: { courier_name: 'Blue Dart' },
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'ship-103',
-            awb_number: 'DELH77129033',
-            receiver_name: 'Amit Patel',
-            city: 'Ahmedabad',
-            internal_status: 'BOOKED',
-            client: { company_name: 'Apex Logistics' },
-            courier: { courier_name: 'Delhivery Express' },
-            created_at: new Date().toISOString()
-          }
-        ]
+        courierBreakdown: getDemoCouriers().map((c: any) => ({
+          name: c.courier_name,
+          count: shipments.filter((s: any) => s.courier_id === c.id || s.courier?.courier_name === c.courier_name).length || 1,
+          percent: 50,
+          slaScore: '99.1%'
+        })),
+        recentActivity: shipments.slice(0, 5)
       };
-    }
-
-    if (endpoint.match(/\/couriers\/[^\/]+/)) {
-      let bodyData: any = {};
-      try {
-        if (options.body && typeof options.body === 'string') {
-          bodyData = JSON.parse(options.body);
-        }
-      } catch (e) {}
-
-      return {
-        id: 'courier-1',
-        courier_id: 'DELHIVERY',
-        courier_name: bodyData.courier_name || 'Delhivery Express',
-        contact_person: bodyData.contact_person || 'Delhivery Support',
-        phone: bodyData.phone || '+91 124 6719500',
-        email: bodyData.email || 'support@delhivery.com',
-        account_number: bodyData.account_number || 'DELH-882190',
-        status: bodyData.status || 'ACTIVE',
-        api_credentials: bodyData.api_credentials || JSON.stringify({ mode: 'staging' }),
-        _count: { shipments: 86 }
-      };
-    }
-
-    if (endpoint === '/couriers' || endpoint.startsWith('/couriers?')) {
-      return [
-        {
-          id: 'courier-1',
-          courier_id: 'DELHIVERY',
-          courier_name: 'Delhivery Express',
-          contact_person: 'Delhivery Support',
-          phone: '+91 124 6719500',
-          email: 'support@delhivery.com',
-          account_number: 'DELH-882190',
-          status: 'ACTIVE',
-          api_credentials: JSON.stringify({ api_key: 'live_delhivery_tok_demo99', api_secret: 'sec_delh_8892', client_id: 'DELH_MUMB_001', webhook_url: 'https://sunilgajra.github.io/LOGIFLOW/api/webhooks/delhivery' }),
-          _count: { shipments: 86 }
-        },
-        {
-          id: 'courier-2',
-          courier_id: 'BLUEDART',
-          courier_name: 'Blue Dart',
-          contact_person: 'BlueDart Support',
-          phone: '+91 1860 233 1234',
-          email: 'customersupport@bluedart.com',
-          account_number: 'BD-991204',
-          status: 'ACTIVE',
-          api_credentials: JSON.stringify({ api_key: 'bd_license_key_sandbox_99', api_secret: 'bd_pass_3321', client_id: 'BOM_BD_1001', webhook_url: 'https://sunilgajra.github.io/LOGIFLOW/api/webhooks/bluedart' }),
-          _count: { shipments: 42 }
-        }
-      ];
-    }
-
-    if (endpoint.match(/\/clients\/[^\/]+/)) {
-      return {
-        client: {
-          id: 'client-1',
-          client_id: 'CLI-001',
-          company_name: 'Apex Logistics',
-          contact_person: 'Rahul Sharma',
-          email: 'rahul@apex.com',
-          phone: '+91 9876543210',
-          status: 'ACTIVE',
-          address: '102 Green Heights, Andheri East, Mumbai, MH 400069',
-          gst_number: '27AAAAA0000A1Z5',
-          agreement_document: '',
-          users: [{ id: 'user-1', email: 'rahul@apex.com', created_at: new Date().toISOString() }]
-        },
-        company: {
-          name: 'LogiFlow Logistics Pvt Ltd',
-          address: '408, 4th Floor, The Ambience Park, Sector 19A, Navi Mumbai 400705',
-          gst_number: '27CCFPB3558P1Z7',
-          pan_number: 'CCFPB3558P'
-        },
-        stats: {
-          totalShipments: 64,
-          delivered: 52,
-          inTransit: 8,
-          totalBilling: 28500
-        },
-        recentShipments: [
-          {
-            id: 'demo-1',
-            awb_number: 'DELH88291034',
-            booking_date: new Date().toISOString(),
-            receiver_name: 'Rahul Sharma',
-            city: 'Mumbai',
-            state: 'Maharashtra',
-            actual_weight: 2.5,
-            volumetric_weight: 1.8,
-            internal_status: 'IN_TRANSIT'
-          },
-          {
-            id: 'demo-2',
-            awb_number: 'BLUED99102451',
-            booking_date: new Date().toISOString(),
-            receiver_name: 'Priya Verma',
-            city: 'Bengaluru',
-            state: 'Karnataka',
-            actual_weight: 1.0,
-            volumetric_weight: 0.8,
-            internal_status: 'DELIVERED'
-          }
-        ],
-        invoices: [
-          {
-            id: 'inv-1',
-            invoice_number: 'INV-20260818-0001',
-            invoice_date: new Date().toISOString(),
-            due_date: new Date(Date.now() + 15 * 86400000).toISOString(),
-            shipment_count: 12,
-            subtotal: 24000,
-            total_fsc: 2400,
-            total_idc: 480,
-            total_oda: 0,
-            total_green_tax: 180,
-            off_loading_charges: 0,
-            vehicle_charges: 0,
-            insurance_charges: 0,
-            rto_charges: 0,
-            taxable_amount: 27060,
-            cgst_amount: 2435.4,
-            sgst_amount: 2435.4,
-            igst_amount: 0,
-            round_off: 0.2,
-            total_amount: 31931,
-            status: 'SENT',
-            shipments: [
-              {
-                id: 'demo-1',
-                awb_number: 'DELH88291034',
-                booking_date: new Date().toISOString(),
-                origin: 'Delhi',
-                city: 'Mumbai',
-                state: 'Maharashtra',
-                client_reference_no: 'REF-1002',
-                number_of_pieces: 1,
-                actual_weight: 2.5,
-                volumetric_weight: 1.8,
-                green_tax_amount: 15,
-                oda_amount: 0,
-                client_charge: 285
-              }
-            ]
-          }
-        ],
-        rateCards: [
-          {
-            id: 'rate-1',
-            name: 'Standard Client Express Rate',
-            min_weight_kg: 0.5,
-            docket_charge: 50
-          }
-        ]
-      };
-    }
-
-    if (endpoint.includes('/create-login')) {
-      let bodyData: any = {};
-      try {
-        if (options.body && typeof options.body === 'string') {
-          bodyData = JSON.parse(options.body);
-        }
-      } catch (e) {}
-
-      return {
-        message: 'Client login created successfully',
-        user: { id: 'usr-' + Date.now(), email: bodyData.email || 'client@company.com' }
-      };
-    }
-
-    if (endpoint === '/clients' || endpoint.startsWith('/clients?')) {
-      return [
-        {
-          id: 'client-1',
-          client_id: 'CLI-001',
-          company_name: 'Apex Logistics',
-          contact_person: 'Rahul Sharma',
-          email: 'rahul@apex.com',
-          phone: '+91 9876543210',
-          status: 'ACTIVE',
-          billing_address: '102 Green Heights, Andheri East, Mumbai',
-          _count: { shipments: 64 }
-        },
-        {
-          id: 'client-2',
-          client_id: 'CLI-002',
-          company_name: 'LogiFlow Merchant',
-          contact_person: 'Priya Verma',
-          email: 'priya@merchant.com',
-          phone: '+91 9123456789',
-          status: 'ACTIVE',
-          billing_address: 'Flat 4B, MG Road, Bengaluru',
-          _count: { shipments: 38 }
-        }
-      ];
-    }
-
-    if (endpoint.includes('/rates/calculate')) {
-      let bodyData: any = {};
-      try {
-        if (options.body && typeof options.body === 'string') {
-          bodyData = JSON.parse(options.body);
-        }
-      } catch (e) {}
-
-      const actual_weight = Number(bodyData.actual_weight) || 2.5;
-      const l = Number(bodyData.length) || 0;
-      const w = Number(bodyData.width) || 0;
-      const h = Number(bodyData.height) || 0;
-      const volumetric_weight = l && w && h ? Math.round(((l * w * h) / 5000) * 100) / 100 : 1.8;
-      const chargeable_weight = Math.max(actual_weight, volumetric_weight);
-
-      const baseRate = 45;
-      const freight_charge = Math.round(chargeable_weight * baseRate);
-      const docket_charge = 50;
-      const fsc_amount = Math.round(freight_charge * 0.10);
-      const idc_amount = Math.round(freight_charge * 0.02);
-      const green_tax_amount = 15;
-      const oda_amount = bodyData.is_oda ? 150 : 0;
-
-      const client_charge = Math.max(100, freight_charge + docket_charge + fsc_amount + idc_amount + green_tax_amount + oda_amount);
-      const courier_cost = Math.round(client_charge * 0.68);
-      const estimated_profit = client_charge - courier_cost;
-      const profit_margin_pct = Math.round((estimated_profit / client_charge) * 1000) / 10;
-
-      return {
-        actual_weight,
-        volumetric_weight,
-        chargeable_weight,
-        client_charge,
-        courier_cost,
-        estimated_profit,
-        profit_margin_pct,
-        breakdown: {
-          freight_charge,
-          docket_charge,
-          fsc_amount,
-          idc_amount,
-          green_tax_amount,
-          oda_amount
-        }
-      };
-    }
-
-    if (endpoint.includes('/rates')) {
-      let bodyData: any = {};
-      try {
-        if (options.body && typeof options.body === 'string') {
-          bodyData = JSON.parse(options.body);
-        }
-      } catch (e) {}
-
-      const fullMockMatrix = JSON.stringify({
-        N1: { N1: 30, N2: 35, E: 55, NE: 75, W1: 45, W2: 50, S1: 65, S2: 70, C: 40 },
-        N2: { N1: 35, N2: 30, E: 50, NE: 70, W1: 40, W2: 45, S1: 60, S2: 65, C: 35 },
-        E:  { N1: 55, N2: 50, E: 25, NE: 40, W1: 50, W2: 55, S1: 55, S2: 60, C: 45 },
-        NE: { N1: 75, N2: 70, E: 40, NE: 30, W1: 70, W2: 75, S1: 75, S2: 80, C: 65 },
-        W1: { N1: 45, N2: 40, E: 50, NE: 70, W1: 25, W2: 30, S1: 45, S2: 50, C: 35 },
-        W2: { N1: 50, N2: 45, E: 55, NE: 75, W1: 30, W2: 25, S1: 50, S2: 55, C: 40 },
-        S1: { N1: 65, N2: 60, E: 55, NE: 75, W1: 45, W2: 50, S1: 25, S2: 30, C: 45 },
-        S2: { N1: 70, N2: 65, E: 60, NE: 80, W1: 50, W2: 55, S1: 30, S2: 25, C: 50 },
-        C:  { N1: 40, N2: 35, E: 45, NE: 65, W1: 35, W2: 40, S1: 45, S2: 50, C: 25 }
-      });
-
-      if (options.method === 'POST' || options.method === 'PUT') {
-        return {
-          id: 'rc-' + Date.now(),
-          name: bodyData.name || 'New Rate Card',
-          type: bodyData.type || 'COURIER',
-          courier_id: bodyData.courier_id || 'courier-1',
-          client_id: bodyData.client_id || null,
-          min_weight_kg: parseFloat(bodyData.min_weight_kg || '0.5'),
-          docket_charge: parseFloat(bodyData.docket_charge || '50'),
-          min_booking_amount: parseFloat(bodyData.min_booking_amount || '100'),
-          volumetric_divisor: parseFloat(bodyData.volumetric_divisor || '5000'),
-          fsc_percentage: parseFloat(bodyData.fsc_percentage || '10'),
-          idc_percentage: parseFloat(bodyData.idc_percentage || '2'),
-          oda_charge: parseFloat(bodyData.oda_charge || '150'),
-          green_tax_rate: parseFloat(bodyData.green_tax_rate || '15'),
-          rates_matrix: bodyData.rates_matrix || fullMockMatrix
-        };
-      }
-
-      return [
-        {
-          id: 'rate-1',
-          name: 'Standard Client Express Rate',
-          type: 'CLIENT',
-          min_weight_kg: 0.5,
-          docket_charge: 50,
-          min_booking_amount: 100,
-          volumetric_divisor: 5000,
-          fov_percentage: 0.2,
-          fov_minimum: 20,
-          fsc_percentage: 10,
-          idc_percentage: 2,
-          oda_charge: 150,
-          green_tax_rate: 15,
-          rates_matrix: fullMockMatrix
-        },
-        {
-          id: 'rate-2',
-          name: 'Delhivery Surface Rate Card 2024',
-          type: 'COURIER',
-          courier_id: 'courier-1',
-          min_weight_kg: 0.5,
-          docket_charge: 40,
-          min_booking_amount: 80,
-          volumetric_divisor: 5000,
-          fov_percentage: 0.2,
-          fov_minimum: 20,
-          fsc_percentage: 8,
-          idc_percentage: 2,
-          oda_charge: 120,
-          green_tax_rate: 15,
-          rates_matrix: fullMockMatrix
-        }
-      ];
     }
 
     if (endpoint.includes('/zones')) {
@@ -639,237 +757,8 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           client: { company_name: 'Apex Logistics' },
           courier: { courier_name: 'Delhivery Express' },
           updated_at: new Date().toISOString()
-        },
-        {
-          id: 'ndr-2',
-          awb_number: 'BLUED99102451',
-          internal_status: 'EXCEPTION',
-          courier_status: 'Undelivered: Incorrect Phone Number',
-          remarks: 'Phone number unreachable / switched off during call before delivery.',
-          delivery_attempt: 2,
-          receiver_name: 'Priya Verma',
-          receiver_phone: '+91 9123456789',
-          receiver_address: 'Flat 4B, MG Road',
-          city: 'Bengaluru',
-          state: 'Karnataka',
-          pincode: '560001',
-          client: { company_name: 'LogiFlow Merchant' },
-          courier: { courier_name: 'Blue Dart' },
-          updated_at: new Date(Date.now() - 3600000).toISOString()
         }
       ];
-    }
-
-    if (endpoint.includes('/invoices')) {
-      let bodyData: any = {};
-      try {
-        if (options.body && typeof options.body === 'string') {
-          bodyData = JSON.parse(options.body);
-        }
-      } catch (e) {}
-
-      const subtotal = 28500;
-      const total_fsc = 2850;
-      const total_idc = 570;
-      const total_oda = 0;
-      const total_green_tax = 180;
-      const off_loading_charges = Number(bodyData.off_loading_charges) || 0;
-      const vehicle_charges = Number(bodyData.vehicle_charges) || 0;
-      const insurance_charges = Number(bodyData.insurance_charges) || 0;
-      const rto_charges = Number(bodyData.rto_charges) || 0;
-
-      const taxable_amount = subtotal + off_loading_charges + vehicle_charges + insurance_charges + rto_charges;
-
-      let cgst_amount = 0;
-      let sgst_amount = 0;
-      let igst_amount = 0;
-
-      if (bodyData.tax_mode === 'INTER_STATE') {
-        igst_amount = Math.round(taxable_amount * 0.18 * 100) / 100;
-      } else {
-        cgst_amount = Math.round(taxable_amount * 0.09 * 100) / 100;
-        sgst_amount = Math.round(taxable_amount * 0.09 * 100) / 100;
-      }
-
-      const rawTotal = taxable_amount + cgst_amount + sgst_amount + igst_amount;
-      const total_amount = Math.round(rawTotal);
-      const round_off = Math.round((total_amount - rawTotal) * 100) / 100;
-
-      return {
-        id: 'inv-' + Date.now(),
-        invoice_number: 'INV-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000),
-        invoice_date: new Date().toISOString(),
-        due_date: new Date(Date.now() + 15 * 86400000).toISOString(),
-        shipment_count: 12,
-        subtotal,
-        total_fsc,
-        total_idc,
-        total_oda,
-        total_green_tax,
-        off_loading_charges,
-        vehicle_charges,
-        insurance_charges,
-        rto_charges,
-        taxable_amount,
-        cgst_amount,
-        sgst_amount,
-        igst_amount,
-        round_off,
-        total_amount,
-        status: 'SENT',
-        shipments: [
-          {
-            id: 'demo-1',
-            awb_number: 'DELH88291034',
-            booking_date: new Date().toISOString(),
-            origin: 'Delhi',
-            city: 'Mumbai',
-            state: 'Maharashtra',
-            client_reference_no: 'REF-1002',
-            number_of_pieces: 1,
-            actual_weight: 2.5,
-            volumetric_weight: 1.8,
-            green_tax_amount: 15,
-            oda_amount: 0,
-            client_charge: 285
-          },
-          {
-            id: 'demo-2',
-            awb_number: 'BLUED99102451',
-            booking_date: new Date().toISOString(),
-            origin: 'Bengaluru',
-            city: 'Bengaluru',
-            state: 'Karnataka',
-            client_reference_no: 'REF-1003',
-            number_of_pieces: 1,
-            actual_weight: 1.0,
-            volumetric_weight: 0.8,
-            green_tax_amount: 15,
-            oda_amount: 0,
-            client_charge: 195
-          }
-        ]
-      };
-    }
-
-    if (endpoint.includes('/imports/preview')) {
-      return {
-        fileId: 'demo-import-' + Date.now() + '.json',
-        headers: [
-          'AWB_NUMBER', 'STATUS', 'RECEIVER_NAME', 'CITY', 'STATE', 
-          'PINCODE', 'ACTUAL_WEIGHT', 'CLIENT_REF'
-        ],
-        mapping: {
-          awb_number: 'AWB_NUMBER',
-          internal_status: 'STATUS',
-          receiver_name: 'RECEIVER_NAME',
-          city: 'CITY',
-          state: 'STATE',
-          pincode: 'PINCODE',
-          actual_weight: 'ACTUAL_WEIGHT',
-          client_reference_no: 'CLIENT_REF'
-        },
-        sampleData: [
-          {
-            AWB_NUMBER: 'DELH88291034',
-            STATUS: 'Delivered',
-            RECEIVER_NAME: 'Rahul Sharma',
-            CITY: 'Mumbai',
-            STATE: 'Maharashtra',
-            PINCODE: '400069',
-            ACTUAL_WEIGHT: '2.5',
-            CLIENT_REF: 'REF-1002'
-          },
-          {
-            AWB_NUMBER: 'BLUED99102451',
-            STATUS: 'Out for Delivery',
-            RECEIVER_NAME: 'Priya Verma',
-            CITY: 'Bengaluru',
-            STATE: 'Karnataka',
-            PINCODE: '560001',
-            ACTUAL_WEIGHT: '1.0',
-            CLIENT_REF: 'REF-1003'
-          }
-        ]
-      };
-    }
-
-    if (endpoint.includes('/imports/process')) {
-      return {
-        message: 'Import complete',
-        imported: 10,
-        failed: 0,
-        total: 10
-      };
-    }
-
-    if (endpoint.includes('/deliver')) {
-      let bodyData: any = {};
-      try {
-        if (options.body && typeof options.body === 'string') {
-          bodyData = JSON.parse(options.body);
-        }
-      } catch (e) {}
-
-      return {
-        id: 'delivered-' + Date.now(),
-        internal_status: 'DELIVERED',
-        courier_status: 'Delivered',
-        podSignature: bodyData.podSignature || null,
-        podImageUrl: bodyData.podImageUrl || null,
-        receiver_name: bodyData.receivedBy || 'Recipient',
-        deliveredAt: new Date().toISOString()
-      };
-    }
-
-    if (endpoint.includes('/public/track')) {
-      const parts = endpoint.split('/');
-      const rawParam = parts[parts.length - 1] || 'DELH88291034';
-      const searchedAwb = decodeURIComponent(rawParam).trim().toUpperCase();
-
-      const isBlue = searchedAwb.includes('BLUE') || searchedAwb.startsWith('BLU');
-
-      return {
-        id: 'track-demo-' + searchedAwb,
-        awb_number: searchedAwb || 'DELH88291034',
-        status: isBlue ? 'IN_TRANSIT' : 'DELIVERED',
-        courier_name: isBlue ? 'Blue Dart' : 'Delhivery Express',
-        origin_city: 'Delhi',
-        origin_state: 'Delhi',
-        destination_city: isBlue ? 'Bengaluru' : 'Mumbai',
-        destination_state: isBlue ? 'Karnataka' : 'Maharashtra',
-        receiver_name: isBlue ? 'Priya Verma' : 'Rahul Sharma',
-        booking_date: new Date(Date.now() - 3 * 86400000).toISOString(),
-        expected_delivery: new Date(Date.now() + 1 * 86400000).toISOString(),
-        delivered_at: isBlue ? null : new Date().toISOString(),
-        podSignature: isBlue ? null : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="80"><path d="M 10 50 Q 50 10 90 50 T 170 50" fill="none" stroke="%231e293b" stroke-width="3"/></svg>',
-        history: [
-          {
-            timestamp: new Date(Date.now() - 3 * 86400000).toISOString(),
-            status: 'BOOKED',
-            location: 'Delhi Regional Warehouse',
-            details: 'Shipment manifest registered and package picked up.'
-          },
-          {
-            timestamp: new Date(Date.now() - 2 * 86400000).toISOString(),
-            status: 'IN_TRANSIT',
-            location: 'National Sorting Hub (North Zone)',
-            details: 'Package departed sorting hub towards destination hub.'
-          },
-          {
-            timestamp: new Date(Date.now() - 1 * 86400000).toISOString(),
-            status: 'IN_TRANSIT',
-            location: isBlue ? 'Bengaluru Gateway Hub' : 'Mumbai Central Delivery Station',
-            details: 'Arrived at local destination delivery facility.'
-          },
-          {
-            timestamp: new Date().toISOString(),
-            status: isBlue ? 'OUT_FOR_DELIVERY' : 'DELIVERED',
-            location: isBlue ? 'Bengaluru Out for Delivery' : 'Mumbai Recipient Premises',
-            details: isBlue ? 'Package handed over to courier delivery agent.' : 'Package successfully delivered and signed by recipient.'
-          }
-        ]
-      };
     }
 
     return null;

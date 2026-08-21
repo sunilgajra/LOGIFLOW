@@ -48,29 +48,41 @@ export const createRateCard = async (req: AuthenticatedRequest, res: Response) =
 export const updateRateCard = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id || '');
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const existing = await prisma.rateCard.findFirst({
+      where: { id, company_id: companyId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Rate card not found' });
+    }
+
     const data = req.body;
     const rateCard = await prisma.rateCard.update({
-      where: { id, company_id: req.user?.company_id },
+      where: { id },
       data: {
-        name: data.name,
-        client_id: data.client_id ? data.client_id : null,
-        courier_id: data.courier_id ? data.courier_id : null,
-        min_weight_kg: data.min_weight_kg,
-        docket_charge: data.docket_charge,
-        min_booking_amount: data.min_booking_amount,
-        volumetric_divisor: data.volumetric_divisor,
-        fov_percentage: data.fov_percentage,
-        fov_minimum: data.fov_minimum,
-        fsc_percentage: data.fsc_percentage,
-        idc_percentage: data.idc_percentage,
-        oda_charge: data.oda_charge,
-        green_tax_rate: data.green_tax_rate,
+        name: data.name || existing.name,
+        type: data.type || existing.type,
+        client_id: data.client_id !== undefined ? (data.client_id || null) : existing.client_id,
+        courier_id: data.courier_id !== undefined ? (data.courier_id || null) : existing.courier_id,
+        min_weight_kg: data.min_weight_kg !== undefined ? parseFloat(data.min_weight_kg) : existing.min_weight_kg,
+        docket_charge: data.docket_charge !== undefined ? parseFloat(data.docket_charge) : existing.docket_charge,
+        min_booking_amount: data.min_booking_amount !== undefined ? parseFloat(data.min_booking_amount) : existing.min_booking_amount,
+        volumetric_divisor: data.volumetric_divisor !== undefined ? parseFloat(data.volumetric_divisor) : existing.volumetric_divisor,
+        fov_percentage: data.fov_percentage !== undefined ? parseFloat(data.fov_percentage) : existing.fov_percentage,
+        fov_minimum: data.fov_minimum !== undefined ? parseFloat(data.fov_minimum) : existing.fov_minimum,
+        fsc_percentage: data.fsc_percentage !== undefined ? parseFloat(data.fsc_percentage) : existing.fsc_percentage,
+        idc_percentage: data.idc_percentage !== undefined ? parseFloat(data.idc_percentage) : existing.idc_percentage,
+        oda_charge: data.oda_charge !== undefined ? parseFloat(data.oda_charge) : existing.oda_charge,
+        green_tax_rate: data.green_tax_rate !== undefined ? parseFloat(data.green_tax_rate) : existing.green_tax_rate,
         rates_matrix: typeof data.rates_matrix === 'string' ? data.rates_matrix : JSON.stringify(data.rates_matrix || {})
       }
     });
     res.json(rateCard);
   } catch (error: any) {
-    console.error(error);
+    console.error('Failed to update rate card:', error);
     res.status(500).json({ error: 'Failed to update rate card', details: error.message });
   }
 };
@@ -78,8 +90,19 @@ export const updateRateCard = async (req: AuthenticatedRequest, res: Response) =
 export const deleteRateCard = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id || '');
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const existing = await prisma.rateCard.findFirst({
+      where: { id, company_id: companyId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Rate card not found' });
+    }
+
     await prisma.rateCard.delete({
-      where: { id, company_id: req.user?.company_id }
+      where: { id }
     });
     res.json({ success: true });
   } catch (error: any) {
