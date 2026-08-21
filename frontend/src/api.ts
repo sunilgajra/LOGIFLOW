@@ -566,7 +566,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           volumetric_weight: parseFloat(bodyData.volumetric_weight) || 1.0,
           chargeable_weight: parseFloat(bodyData.chargeable_weight) || 1.0,
           client_charge: parseFloat(bodyData.client_charge) || 250,
-          internal_status: 'BOOKED',
+          internal_status: clientFilter ? 'PENDING_APPROVAL' : (bodyData.internal_status || 'BOOKED'),
           client_id: bodyData.client_id || null,
           courier_id: bodyData.courier_id || null,
           client: { company_name: selectedClient.company_name },

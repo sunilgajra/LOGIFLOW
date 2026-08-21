@@ -173,7 +173,7 @@ export const bookShipment = async (req: AuthenticatedRequest, res: Response) => 
         volumetric_weight: volumetric_weight,
         chargeable_weight: chargeable_weight,
         declared_value: parseFloat(payload.declared_value) || 0,
-        internal_status: 'BOOKED',
+        internal_status: req.user?.role === 'CLIENT' ? 'PENDING_APPROVAL' : (payload.internal_status || 'BOOKED'),
         label_url: labelUrl,
 
         appointment_date: payload.appointment_date ? new Date(payload.appointment_date) : null,

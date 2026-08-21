@@ -184,6 +184,18 @@ const Shipments = () => {
     fetchShipments(1, search);
   };
 
+  const handleApproveShipment = async (shipmentId: string) => {
+    try {
+      await fetchApi(`/shipments/${shipmentId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ internal_status: 'BOOKED' })
+      });
+      fetchShipments(page, search);
+    } catch (e) {
+      alert('Failed to approve shipment');
+    }
+  };
+
   const columns = useMemo<ColumnDef<any>[]>(
     () => [
       {
@@ -263,14 +275,32 @@ const Shipments = () => {
         accessorKey: 'internal_status',
         cell: (info: any) => {
           const status = info.getValue() as string;
-          let color = 'bg-slate-100 text-slate-800';
-          if (status === 'DELIVERED') color = 'bg-emerald-100 text-emerald-800';
-          else if (status === 'IN_TRANSIT' || status === 'OUT_FOR_DELIVERY') color = 'bg-blue-100 text-blue-800';
-          else if (status === 'RTO' || status === 'EXCEPTION') color = 'bg-rose-100 text-rose-800';
+          let color = 'bg-slate-100 text-slate-800 border-slate-300';
+          let label = status;
+
+          if (status === 'PENDING_APPROVAL') {
+            color = 'bg-amber-50 text-amber-800 border-amber-300 font-medium';
+            label = 'Pending Admin Approval';
+          } else if (status === 'BOOKED' || status === 'CONFIRMED') {
+            color = 'bg-blue-50 text-blue-800 border-blue-300 font-medium';
+            label = 'Order Confirmed & Booked';
+          } else if (status === 'OUT_FOR_PICKUP') {
+            color = 'bg-purple-50 text-purple-800 border-purple-300 font-medium';
+            label = 'Out For Pickup';
+          } else if (status === 'IN_TRANSIT' || status === 'OUT_FOR_DELIVERY') {
+            color = 'bg-indigo-50 text-indigo-800 border-indigo-300 font-medium';
+            label = 'In Transit';
+          } else if (status === 'DELIVERED') {
+            color = 'bg-emerald-50 text-emerald-800 border-emerald-300 font-medium';
+            label = 'Delivered';
+          } else if (status === 'RTO' || status === 'EXCEPTION') {
+            color = 'bg-rose-50 text-rose-800 border-rose-300 font-medium';
+            label = 'RTO / Exception';
+          }
           
           return (
-            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${color}`}>
-              {status}
+            <span className={`px-2.5 py-1 inline-flex text-xs leading-5 rounded-full border ${color}`}>
+              {label}
             </span>
           );
         }
@@ -280,8 +310,18 @@ const Shipments = () => {
         id: 'actions',
         cell: (info: any) => {
           const row = info.row.original;
+          const isPending = row.internal_status === 'PENDING_APPROVAL';
+
           return (
-            <div className="flex space-x-2">
+            <div className="flex items-center space-x-2">
+              {user?.role !== 'CLIENT' && isPending && (
+                <button 
+                  onClick={() => handleApproveShipment(row.id)}
+                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2.5 py-1 rounded shadow-sm transition-colors flex items-center"
+                >
+                  Confirm Order
+                </button>
+              )}
               {user?.role !== 'CLIENT' && (
                 <button 
                   onClick={() => openEditModal(row)}
@@ -314,7 +354,7 @@ const Shipments = () => {
       if (user?.role === 'CLIENT' && col.header === 'Sender (Client)') return false;
       return true;
     }),
-    [user?.role]
+    [user?.role, couriers]
   );
 
   const table = useReactTable({
@@ -322,6 +362,26 @@ const Shipments = () => {
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
+
+  const [activeStatusTab, setActiveStatusTab] = useState<string>(filterStatus || '');
+
+  const handleTabChange = (status: string) => {
+    setActiveStatusTab(status);
+    setPage(1);
+    let url = `/shipments?page=1&limit=10`;
+    if (search) url += `&search=${search}`;
+    if (filterClientId) url += `&clientId=${filterClientId}`;
+    if (status) url += `&status=${status}`;
+    
+    setLoading(true);
+    fetchApi(url)
+      .then(res => {
+        setData(res.data);
+        setTotalPages(res.pagination.totalPages);
+        setLoading(false);
+      })
+      .catch(console.error);
+  };
 
   return (
     <div className="space-y-6">
@@ -347,8 +407,40 @@ const Shipments = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+        {/* Status Filter Tabs */}
+        <div className="flex overflow-x-auto border-b border-slate-200 bg-slate-50 px-4 pt-3 gap-2">
+          {[
+            { id: '', label: 'All Orders' },
+            { id: 'PENDING_APPROVAL', label: 'Pending Admin Approval', badge: data.filter((s: any) => s.internal_status === 'PENDING_APPROVAL').length },
+            { id: 'BOOKED', label: 'Confirmed / Booked' },
+            { id: 'IN_TRANSIT', label: 'In Transit' },
+            { id: 'DELIVERED', label: 'Delivered' },
+            { id: 'RTO', label: 'RTO / Exception' },
+          ].map((tab) => {
+            const isActive = activeStatusTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`px-4 py-2.5 text-xs font-semibold rounded-t-lg border-b-2 whitespace-nowrap flex items-center gap-2 transition-colors ${
+                  isActive
+                    ? 'border-indigo-600 text-indigo-600 bg-white shadow-xs'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                {tab.label}
+                {tab.badge !== undefined && tab.badge > 0 && (
+                  <span className="px-1.5 py-0.5 text-[10px] bg-amber-500 text-white rounded-full font-bold">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 bg-slate-50">
+        <div className="p-4 border-b border-slate-200 bg-white">
           <form onSubmit={handleSearch} className="relative max-w-sm">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-slate-400" />
