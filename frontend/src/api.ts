@@ -672,6 +672,12 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       const list = getDemoClients();
       const clientIndex = list.findIndex((c: any) => c.id === clientId);
 
+      if (options.method === 'DELETE') {
+        const updatedList = list.filter((c: any) => c.id !== clientId && c.client_id !== clientId);
+        saveDemoClients(updatedList);
+        return { success: true, message: 'Client deleted successfully' };
+      }
+
       if (options.method === 'PUT' && clientIndex !== -1) {
         list[clientIndex] = { ...list[clientIndex], ...bodyData };
         saveDemoClients(list);
@@ -740,7 +746,13 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       } catch (e) {}
 
       const list = getDemoCouriers();
-      const idx = list.findIndex((c: any) => c.id === courierId);
+      const idx = list.findIndex((c: any) => c.id === courierId || c.courier_id === courierId);
+
+      if (options.method === 'DELETE') {
+        const updatedList = list.filter((c: any) => c.id !== courierId && c.courier_id !== courierId);
+        saveDemoCouriers(updatedList);
+        return { success: true, message: 'Courier partner deleted successfully' };
+      }
 
       if (options.method === 'PUT' && idx !== -1) {
         list[idx] = { ...list[idx], ...bodyData };

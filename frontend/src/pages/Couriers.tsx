@@ -426,6 +426,25 @@ export default function Couriers() {
       .catch(console.error);
   };
 
+  const handleDeleteCourier = async (courier: any) => {
+    if (!window.confirm(`Are you sure you want to delete delivery partner "${courier.courier_name}"? This action cannot be undone.`)) {
+      return;
+    }
+    // Optimistic UI state update
+    setCouriers(prev => prev.filter(c => c.id !== courier.id && c.courier_id !== courier.courier_id));
+    if (selectedCourier?.id === courier.id) {
+      setSelectedCourier(null);
+    }
+
+    try {
+      await fetchApi(`/couriers/${courier.id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete delivery partner');
+      fetchCouriers();
+    }
+  };
+
   useEffect(() => {
     fetchCouriers();
     fetchApi('/zones').then((z: any[]) => {
@@ -1088,16 +1107,26 @@ export default function Couriers() {
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
                     <button 
+                      type="button"
                       onClick={() => setManagingCredsCourier(courier)} 
                       className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-bold transition-colors inline-flex items-center"
                     >
                       <Key className="w-3.5 h-3.5 mr-1" /> API Keys
                     </button>
                     <button 
+                      type="button"
                       onClick={() => handleSelectCourier(courier)} 
                       className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-xs font-bold transition-colors inline-flex items-center"
                     >
                       View <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => handleDeleteCourier(courier)} 
+                      className="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-900/30 rounded-lg text-xs font-bold transition-colors inline-flex items-center"
+                      title="Delete Delivery Partner"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
                     </button>
                   </td>
                 </tr>

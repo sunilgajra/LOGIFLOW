@@ -35,6 +35,32 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
   }
 };
 
+export const deleteClient = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id || '');
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
+
+    await prisma.rateCard.deleteMany({ where: { client_id: id, company_id: companyId } });
+    await prisma.warehouse.deleteMany({ where: { client_id: id, company_id: companyId } });
+
+    const deleted = await prisma.client.deleteMany({
+      where: { 
+        id, 
+        company_id: companyId 
+      }
+    });
+
+    if (deleted.count === 0) {
+      return res.status(404).json({ error: 'Client not found or unauthorized' });
+    }
+
+    res.json({ success: true, message: 'Client deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to delete client', details: error.message });
+  }
+};
+
 export const updateClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id || '');

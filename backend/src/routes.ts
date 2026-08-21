@@ -4,8 +4,8 @@ import multer from 'multer';
 import jwt from 'jsonwebtoken';
 import { prisma } from './prisma';
 
-import { getClients, createClient, updateClient, getClientById, uploadClientAgreement, createClientLogin } from './controllers/client.controller';
-import { getCouriers, createCourier, updateCourier } from './controllers/courier.controller';
+import { getClients, createClient, updateClient, deleteClient, getClientById, uploadClientAgreement, createClientLogin } from './controllers/client.controller';
+import { getCouriers, createCourier, updateCourier, deleteCourier } from './controllers/courier.controller';
 import { getShipments, bookShipment, updateShipment } from './controllers/shipment.controller';
 import { getAnalytics, getMonthlyReport } from './controllers/analytics.controller';
 import { getUsers, createUser, updateUser, deleteUser } from './controllers/user.controller';
@@ -75,6 +75,7 @@ router.get('/clients', requireAuth, getClients);
 router.post('/clients', requireAuth, createClient);
 router.get('/clients/:id', requireAuth, getClientById);
 router.put('/clients/:id', requireAuth, updateClient);
+router.delete('/clients/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), deleteClient);
 router.post('/clients/:id/agreement', requireAuth, uploadClientAgreement);
 router.post('/clients/:id/create-login', requireAuth, createClientLogin);
 
@@ -100,6 +101,7 @@ router.post('/zones', requireAuth, saveZoneMapping);
 router.get('/couriers', requireAuth, getCouriers);
 router.post('/couriers', requireAuth, createCourier);
 router.put('/couriers/:id', requireAuth, updateCourier);
+router.delete('/couriers/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), deleteCourier);
 
 // --- Shipments API ---
 router.get('/shipments', requireAuth, getShipments);

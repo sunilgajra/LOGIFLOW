@@ -90,3 +90,28 @@ export const updateCourier = async (req: AuthenticatedRequest, res: Response) =>
     res.status(500).json({ error: 'Failed to update courier', details: error.message });
   }
 };
+
+export const deleteCourier = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id || '');
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
+
+    await prisma.rateCard.deleteMany({
+      where: { courier_id: id, company_id: companyId }
+    });
+
+    const deleted = await prisma.courierPartner.deleteMany({
+      where: { id, company_id: companyId }
+    });
+
+    if (deleted.count === 0) {
+      return res.status(404).json({ error: 'Courier partner not found or unauthorized' });
+    }
+
+    res.json({ success: true, message: 'Courier partner deleted successfully' });
+  } catch (error: any) {
+    console.error('Failed to delete courier:', error);
+    res.status(500).json({ error: 'Failed to delete courier partner', details: error.message });
+  }
+};
