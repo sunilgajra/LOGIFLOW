@@ -23,11 +23,11 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, postman) or if origin is in allowed list
-    if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
+    // Allow requests with no origin (mobile apps, curl) or if origin is Vercel / GitHub Pages / Localhost
+    if (!origin || origin.includes('vercel.app') || allowedOrigins.some(o => origin.startsWith(o))) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow all in demo, can restrict in production env
+      callback(null, true);
     }
   },
   credentials: true,
