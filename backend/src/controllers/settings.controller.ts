@@ -22,8 +22,8 @@ export const updateCompanySettings = async (req: AuthenticatedRequest, res: Resp
   try {
     const data = req.body;
     
-    // Ensure we only update allowed fields
-    const { name, address, gst_number, pan_number, invoice_prefix, branding_logo } = data;
+    // Ensure we update all company branding, tax, and bank fields
+    const { name, address, gst_number, pan_number, invoice_prefix, branding_logo, bank_name, account_name, account_number, ifsc_code, support_email, support_phone } = data;
 
     const company = await prisma.company.update({
       where: { id: req.user?.company_id },
@@ -33,7 +33,13 @@ export const updateCompanySettings = async (req: AuthenticatedRequest, res: Resp
         gst_number,
         pan_number,
         invoice_prefix,
-        branding_logo
+        branding_logo,
+        bank_name,
+        account_name,
+        account_number,
+        ifsc_code,
+        support_email,
+        support_phone
       }
     });
 

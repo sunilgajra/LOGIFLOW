@@ -239,6 +239,32 @@ const saveDemoInvoices = (invoices: any[]) => {
   localStorage.setItem('demo_invoices', JSON.stringify(invoices));
 };
 
+const INITIAL_DEMO_COMPANY = {
+  name: 'LogiFlow Logistics Pvt Ltd',
+  address: '408, 4th Floor, The Ambience Park, Sector 19A, Navi Mumbai, MH 400705',
+  gst_number: '27CCFPB3558P1Z7',
+  pan_number: 'CCFPB3558P',
+  invoice_prefix: 'INV-',
+  branding_logo: '',
+  bank_name: 'HDFC Bank Ltd',
+  account_name: 'LogiFlow Logistics Private Limited',
+  account_number: '50200088910245',
+  ifsc_code: 'HDFC0000128',
+  support_email: 'support@logiflow.in',
+  support_phone: '+91 22 6192 8800'
+};
+
+const getDemoCompanySettings = () => {
+  const stored = localStorage.getItem('demo_company_settings');
+  if (stored) {
+    try { return { ...INITIAL_DEMO_COMPANY, ...JSON.parse(stored) }; } catch (e) {}
+  }
+  return INITIAL_DEMO_COMPANY;
+};
+const saveDemoCompanySettings = (settings: any) => {
+  localStorage.setItem('demo_company_settings', JSON.stringify(settings));
+};
+
 // --- Main API Fetch Function with automatic offline demo persistence ---
 export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   let token = localStorage.getItem('token');
@@ -400,12 +426,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
 
       return {
         client,
-        company: {
-          name: 'LogiFlow Logistics Pvt Ltd',
-          address: '408, 4th Floor, The Ambience Park, Sector 19A, Navi Mumbai 400705',
-          gst_number: '27CCFPB3558P1Z7',
-          pan_number: 'CCFPB3558P'
-        },
+        company: getDemoCompanySettings(),
         stats: {
           totalShipments: shipments.length,
           delivered: shipments.filter((s: any) => s.internal_status === 'DELIVERED').length,
@@ -593,27 +614,16 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           }
         } catch (e) {}
 
+        const updated = { ...getDemoCompanySettings(), ...bodyData };
+        saveDemoCompanySettings(updated);
         return {
           success: true,
           message: 'Company settings updated successfully',
-          ...bodyData
+          ...updated
         };
       }
 
-      return {
-        name: 'LogiFlow Logistics Pvt Ltd',
-        address: '408, 4th Floor, The Ambience Park, Sector 19A, Navi Mumbai, MH 400705',
-        gst_number: '27CCFPB3558P1Z7',
-        pan_number: 'CCFPB3558P',
-        invoice_prefix: 'INV-',
-        branding_logo: '',
-        bank_name: 'HDFC Bank Ltd',
-        account_name: 'LogiFlow Logistics Private Limited',
-        account_number: '50200088910245',
-        ifsc_code: 'HDFC0000128',
-        support_email: 'support@logiflow.in',
-        support_phone: '+91 22 6192 8800'
-      };
+      return getDemoCompanySettings();
     }
 
     if (endpoint.includes('/users')) {

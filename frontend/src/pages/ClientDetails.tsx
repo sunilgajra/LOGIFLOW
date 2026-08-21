@@ -512,8 +512,12 @@ export default function ClientDetails() {
               {/* Title Banner */}
               <div className="bg-slate-900 text-white p-3.5 flex justify-between items-center border-b-2 border-slate-800">
                 <div>
-                  {company?.branding_logo ? (
-                    <img src={company.branding_logo} alt="Company Logo" className="max-h-10 object-contain mb-1" />
+                  {(company?.branding_logo || selectedInvoice.company?.branding_logo) ? (
+                    <img 
+                      src={company?.branding_logo || selectedInvoice.company?.branding_logo} 
+                      alt="Company Logo" 
+                      className="max-h-12 max-w-[180px] object-contain mb-2 bg-white p-1 rounded-md border border-slate-700" 
+                    />
                   ) : null}
                   <h2 className="text-base font-black tracking-wide uppercase">{company?.name || 'LOGIFLOW LOGISTICS PRIVATE LIMITED'}</h2>
                   <p className="text-[10px] text-slate-300">{company?.address || '408, 4th Floor, Ambience Park, Sector 19A, Vashi, Navi Mumbai, MH 400705'}</p>
