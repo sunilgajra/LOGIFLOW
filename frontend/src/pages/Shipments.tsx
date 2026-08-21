@@ -58,6 +58,12 @@ const Shipments = () => {
     package_type: 'PARCEL',
     service_type: 'EXPRESS',
     remarks: '',
+    require_appointment: 'NO',
+    appointment_date: format(new Date(), 'yyyy-MM-dd'),
+    appointment_slot: '10:00 AM - 01:00 PM',
+    dock_number: '',
+    appointment_token: '',
+    appointment_notes: '',
   };
   const [bookingForm, setBookingForm] = useState<any>(emptyBookingForm);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
@@ -644,6 +650,81 @@ const Shipments = () => {
                           className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500" />
                       </div>
                     </div>
+                  </div>
+
+                  {/* Consignee Warehouse Dock Appointment */}
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-bold text-purple-900 uppercase tracking-wide flex items-center">
+                        📅 Consignee Warehouse Dock Appointment
+                      </h4>
+                      <select
+                        value={bookingForm.require_appointment}
+                        onChange={e => setBookingForm({...bookingForm, require_appointment: e.target.value})}
+                        className="px-2.5 py-1 text-xs font-bold rounded-lg border border-purple-300 bg-white text-purple-900"
+                      >
+                        <option value="NO">No Appointment Required</option>
+                        <option value="YES">Schedule Dock Appointment</option>
+                      </select>
+                    </div>
+
+                    {bookingForm.require_appointment === 'YES' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-purple-200 text-xs">
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Appointment Date</label>
+                          <input
+                            type="date"
+                            required
+                            value={bookingForm.appointment_date}
+                            onChange={e => setBookingForm({...bookingForm, appointment_date: e.target.value})}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white font-medium"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Time Slot Window</label>
+                          <select
+                            value={bookingForm.appointment_slot}
+                            onChange={e => setBookingForm({...bookingForm, appointment_slot: e.target.value})}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white font-bold"
+                          >
+                            <option value="08:00 AM - 10:00 AM">08:00 AM - 10:00 AM (Morning Dock)</option>
+                            <option value="10:00 AM - 01:00 PM">10:00 AM - 01:00 PM (Midday Dock)</option>
+                            <option value="02:00 PM - 05:00 PM">02:00 PM - 05:00 PM (Afternoon Dock)</option>
+                            <option value="06:00 PM - 09:00 PM">06:00 PM - 09:00 PM (Evening Dock)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Dock / Bay # (Optional)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Dock 04 / Gate 2"
+                            value={bookingForm.dock_number}
+                            onChange={e => setBookingForm({...bookingForm, dock_number: e.target.value})}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-bold text-slate-700 mb-1">Pass / Token # (Optional)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. APT-992014"
+                            value={bookingForm.appointment_token}
+                            onChange={e => setBookingForm({...bookingForm, appointment_token: e.target.value})}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white font-mono"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block font-bold text-slate-700 mb-1">Unloading Instructions</label>
+                          <input
+                            type="text"
+                            placeholder="e.g., Palletized, Hydraulic Liftgate, Forklift driver required."
+                            value={bookingForm.appointment_notes}
+                            onChange={e => setBookingForm({...bookingForm, appointment_notes: e.target.value})}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                 </div>
