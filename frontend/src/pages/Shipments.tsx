@@ -193,19 +193,34 @@ const Shipments = () => {
   const handleApproveShipment = useCallback(async (row: any) => {
     const targetId = row.id || row.awb_number;
 
-    // Instant local UI state update
+    // 1. Instant React state update
     setData(prev => prev.map((s: any) => 
-      (s.id === targetId || s.awb_number === targetId || s.id === row.id) 
+      (s.id === targetId || s.awb_number === targetId || s.awb_number === row.awb_number || s.id === row.id) 
         ? { ...s, internal_status: 'BOOKED' } 
         : s
     ));
 
+    // 2. Instant localStorage persistence
+    try {
+      const stored = localStorage.getItem('demo_shipments');
+      if (stored) {
+        let list = JSON.parse(stored);
+        const idx = list.findIndex((s: any) => String(s.id) === String(targetId) || String(s.awb_number) === String(targetId) || String(s.awb_number) === String(row.awb_number));
+        if (idx !== -1) {
+          list[idx].internal_status = 'BOOKED';
+        } else {
+          list.unshift({ ...row, internal_status: 'BOOKED' });
+        }
+        localStorage.setItem('demo_shipments', JSON.stringify(list));
+      }
+    } catch (e) {}
+
+    // 3. Backend / API update
     try {
       await fetchApi(`/shipments/${targetId}`, {
         method: 'PUT',
         body: JSON.stringify({ ...row, internal_status: 'BOOKED' })
       });
-      fetchShipments(page, search, activeStatusTab);
     } catch (e) {
       console.error('Failed to approve shipment:', e);
     }

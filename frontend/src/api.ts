@@ -528,7 +528,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     const clientFilter = getCurrentUserClientFilter();
     
     // --- 1. SHIPMENTS API FALLBACK ---
-    if (endpoint === '/shipments' || endpoint.startsWith('/shipments?')) {
+    if (endpoint === '/shipments' || endpoint.startsWith('/shipments?') || endpoint.startsWith('/shipments/')) {
       if (options.method === 'POST') {
         let bodyData: any = {};
         try {
@@ -537,7 +537,6 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           }
         } catch (e) {}
 
-        const list = getDemoShipments();
         const clientList = getDemoClients();
         const courierList = getDemoCouriers();
 
@@ -575,7 +574,8 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           courier: { courier_name: selectedCourier.courier_name }
         };
 
-        const updatedList = [newShipment, ...list];
+        const currentDemoList = getDemoShipments();
+        const updatedList = [newShipment, ...currentDemoList];
         saveDemoShipments(updatedList);
         return { message: 'Shipment booked successfully', shipment: newShipment };
       }
@@ -595,9 +595,11 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
 
         if (idx !== -1) {
           list[idx] = { ...list[idx], ...bodyData };
-          saveDemoShipments(list);
-          return { message: 'Shipment updated successfully', shipment: list[idx] };
+        } else {
+          list.unshift({ id: shipmentId, awb_number: shipmentId, internal_status: 'BOOKED', ...bodyData });
         }
+        saveDemoShipments(list);
+        return { message: 'Shipment updated successfully', shipment: bodyData };
       }
 
       let list = getDemoShipments();

@@ -221,7 +221,13 @@ export const updateShipment = async (req: AuthenticatedRequest, res: Response) =
 
     // Verify shipment belongs to this company
     const existing = await prisma.shipment.findFirst({
-      where: { id: String(id), company_id: String(companyId) }
+      where: {
+        company_id: String(companyId),
+        OR: [
+          { id: String(id) },
+          { awb_number: String(id) }
+        ]
+      }
     });
     if (!existing) return res.status(404).json({ error: 'Shipment not found' });
 
@@ -266,7 +272,7 @@ export const updateShipment = async (req: AuthenticatedRequest, res: Response) =
     }
 
     const updated = await prisma.shipment.update({
-      where: { id: String(id) },
+      where: { id: existing.id },
       data: {
         awb_number: newAwb,
         label_url: newLabelUrl,
