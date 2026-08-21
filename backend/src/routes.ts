@@ -28,6 +28,9 @@ router.get('/health', (req, res) => {
 });
 
 router.post('/auth/dev-login', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ error: 'Dev login disabled in production mode' });
+  }
   const user = await prisma.user.findFirst();
   if (!user) return res.status(404).json({ error: 'No users found' });
   
