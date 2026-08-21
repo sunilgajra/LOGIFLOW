@@ -68,12 +68,12 @@ const Shipments = () => {
   const [bookingForm, setBookingForm] = useState<any>(emptyBookingForm);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
 
-  const fetchShipments = (pageIndex: number, searchQuery: string = '') => {
+  const fetchShipments = (pageIndex: number, searchQuery: string = '', statusTab: string = activeStatusTab) => {
     setLoading(true);
     let url = `/shipments?page=${pageIndex}&limit=10`;
     if (searchQuery) url += `&search=${searchQuery}`;
     if (filterClientId) url += `&clientId=${filterClientId}`;
-    if (filterStatus) url += `&status=${filterStatus}`;
+    if (statusTab) url += `&status=${statusTab}`;
     
     fetchApi(url)
       .then(res => {
@@ -85,7 +85,7 @@ const Shipments = () => {
   };
 
   useEffect(() => {
-    fetchShipments(page, search);
+    fetchShipments(page, search, activeStatusTab);
     fetchApi('/clients').then(res => setClients(Array.isArray(res) ? res : [])).catch(console.error);
     fetchApi('/couriers').then(res => setCouriers(Array.isArray(res) ? res : [])).catch(console.error);
   }, [page, filterClientId, filterStatus]);
@@ -104,7 +104,7 @@ const Shipments = () => {
         body: JSON.stringify(payload)
       });
       setShowBookModal(false);
-      fetchShipments(1, search);
+      fetchShipments(1, search, activeStatusTab);
       setBookingForm(emptyBookingForm);
     } catch (err) {
       console.error(err);
