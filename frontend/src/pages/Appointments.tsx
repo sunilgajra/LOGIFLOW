@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchApi } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, Clock, Truck, Building2, Search, Filter, Plus, CheckCircle2, AlertTriangle, FileText, Printer, X, MapPin, Key, UserCheck, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, Truck, Building2, Search, Filter, Plus, CheckCircle2, AlertTriangle, FileText, Printer, X, MapPin, Key, UserCheck, ChevronRight, Zap, MoreVertical, Package, Info } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function Appointments() {
@@ -9,13 +9,21 @@ export default function Appointments() {
   const [shipments, setShipments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [activeTab, setActiveTab] = useState<'PENDING' | 'AT_RISK' | 'BOOKED'>('PENDING');
   
+  const [consigneeFilter, setConsigneeFilter] = useState('');
+  const [cityFilter, setCityFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
   const [selectedAppointment, setSelectedAppointment] = useState<any | null>(null);
   const [editingShipment, setEditingShipment] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showBanner, setShowBanner] = useState(true);
 
   const [formData, setFormData] = useState({
+    po_number: '',
+    po_expiry_date: '',
+    promised_delivery_date: '',
     appointment_date: format(new Date(), 'yyyy-MM-dd'),
     appointment_slot: '10:00 AM - 01:00 PM',
     dock_number: 'Dock 04',
@@ -29,7 +37,15 @@ export default function Appointments() {
     fetchApi('/shipments')
       .then(res => {
         const list = res.data || (Array.isArray(res) ? res : []);
-        setShipments(list);
+        // Seed mock PO numbers for realistic Delhivery B2B view if missing
+        const mapped = list.map((s: any, idx: number) => ({
+          ...s,
+          po_number: s.po_number || (idx % 2 === 0 ? `PO-FLIPKART-${900500 + idx}` : `ORD-${378140 + idx}d9-bfed`),
+          po_expiry_date: s.po_expiry_date || new Date(Date.now() + (idx + 2) * 86400000).toISOString(),
+          promised_delivery_date: s.promised_delivery_date || new Date(Date.now() + (idx + 1) * 86400000).toISOString(),
+          appointment_status: s.appointment_status || (idx % 3 === 0 ? 'CONFIRMED' : idx % 4 === 0 ? 'MISSED' : 'NOT_REQUIRED')
+        }));
+        setShipments(mapped);
         setLoading(false);
       })
       .catch(err => {
@@ -45,6 +61,9 @@ export default function Appointments() {
   const handleOpenScheduleModal = (shipment: any) => {
     setEditingShipment(shipment);
     setFormData({
+      po_number: shipment.po_number || `PO-${Math.floor(100000 + Math.random() * 900000)}`,
+      po_expiry_date: shipment.po_expiry_date ? format(new Date(shipment.po_expiry_date), 'yyyy-MM-dd') : format(new Date(Date.now() + 3 * 86400000), 'yyyy-MM-dd'),
+      promised_delivery_date: shipment.promised_delivery_date ? format(new Date(shipment.promised_delivery_date), 'yyyy-MM-dd') : format(new Date(Date.now() + 2 * 86400000), 'yyyy-MM-dd'),
       appointment_date: shipment.appointment_date ? format(new Date(shipment.appointment_date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
       appointment_slot: shipment.appointment_slot || '10:00 AM - 01:00 PM',
       dock_number: shipment.dock_number || 'Dock 01',
@@ -66,7 +85,7 @@ export default function Appointments() {
       if (res && res.error) {
         alert(res.error);
       } else {
-        alert('Appointment scheduled successfully!');
+        alert('Appointment slot booked successfully!');
         setEditingShipment(null);
         fetchAppointments();
       }
@@ -77,202 +96,263 @@ export default function Appointments() {
     }
   };
 
-  // Filter list
-  const appointmentShipments = shipments.filter(s => {
-    const hasAppointment = s.appointment_date || (s.appointment_status && s.appointment_status !== 'NOT_REQUIRED');
-    if (!hasAppointment && statusFilter === 'ALL') return true; // Show all by default for scheduling
-    if (statusFilter !== 'ALL' && s.appointment_status !== statusFilter) return false;
-    
+  // Filter list by tab & search criteria
+  const filteredShipments = shipments.filter(s => {
+    // Filter Tab
+    const isBooked = s.appointment_status === 'CONFIRMED' || s.appointment_status === 'SCHEDULED' || s.appointment_status === 'COMPLETED';
+    const isAtRisk = s.appointment_status === 'MISSED' || s.internal_status === 'EXCEPTION' || s.internal_status === 'NDR';
+    const isPending = !isBooked && !isAtRisk;
+
+    if (activeTab === 'BOOKED' && !isBooked) return false;
+    if (activeTab === 'AT_RISK' && !isAtRisk) return false;
+    if (activeTab === 'PENDING' && isBooked) return false;
+
+    // Filters
+    if (consigneeFilter && !s.receiver_name?.toLowerCase().includes(consigneeFilter.toLowerCase())) return false;
+    if (cityFilter && !s.city?.toLowerCase().includes(cityFilter.toLowerCase())) return false;
+    if (statusFilter && s.internal_status !== statusFilter) return false;
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matchAwb = s.awb_number?.toLowerCase().includes(q);
       const matchClient = s.client?.company_name?.toLowerCase().includes(q);
       const matchReceiver = s.receiver_name?.toLowerCase().includes(q);
-      const matchToken = s.appointment_token?.toLowerCase().includes(q);
-      return matchAwb || matchClient || matchReceiver || matchToken;
+      const matchPo = s.po_number?.toLowerCase().includes(q);
+      return matchAwb || matchClient || matchReceiver || matchPo;
     }
     return true;
   });
 
-  const scheduledCount = shipments.filter(s => s.appointment_status === 'SCHEDULED').length;
-  const confirmedCount = shipments.filter(s => s.appointment_status === 'CONFIRMED').length;
-  const completedCount = shipments.filter(s => s.appointment_status === 'COMPLETED').length;
-  const missedCount = shipments.filter(s => s.appointment_status === 'MISSED' || s.appointment_status === 'RESCHEDULED').length;
+  const pendingCount = shipments.filter(s => s.appointment_status !== 'CONFIRMED' && s.appointment_status !== 'SCHEDULED' && s.appointment_status !== 'COMPLETED' && s.appointment_status !== 'MISSED').length;
+  const atRiskCount = shipments.filter(s => s.appointment_status === 'MISSED' || s.internal_status === 'EXCEPTION' || s.internal_status === 'NDR').length;
+  const bookedCount = shipments.filter(s => s.appointment_status === 'CONFIRMED' || s.appointment_status === 'SCHEDULED' || s.appointment_status === 'COMPLETED').length;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-5 pb-12 font-sans">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Header Title */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center">
-            <Calendar className="w-7 h-7 mr-2.5 text-blue-600 dark:text-blue-400" /> Dock & Delivery Appointments
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center">
+            Manage Appointments
           </h1>
-          <p className="text-xs text-slate-500 mt-1">Manage B2B warehouse slot bookings, dock passes, and delivery appointment schedules.</p>
+          <p className="text-xs text-slate-500 mt-0.5">B2B Quick-Commerce & Warehouse Dock Scheduling Portal</p>
         </div>
       </div>
 
-      {/* KPI Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-          <div className="flex justify-between items-center text-blue-600 mb-2">
-            <Clock className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">Slot Scheduled</span>
-          </div>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">{scheduledCount}</p>
-          <p className="text-[10px] font-bold text-slate-400 mt-1">Pending Gate Entry</p>
-        </div>
+      {/* Delhivery Style Status Tabs */}
+      <div className="flex items-center space-x-6 border-b border-slate-200 dark:border-slate-800 text-xs font-bold">
+        <button
+          onClick={() => setActiveTab('PENDING')}
+          className={`pb-3 flex items-center space-x-2 transition-all relative ${
+            activeTab === 'PENDING' 
+              ? 'text-rose-600 dark:text-rose-400 font-black border-b-2 border-rose-600' 
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+          }`}
+        >
+          <span>Pending</span>
+          <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300 text-[10px] font-extrabold">
+            {pendingCount}
+          </span>
+        </button>
 
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-          <div className="flex justify-between items-center text-emerald-600 mb-2">
-            <CheckCircle2 className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full">Dock Confirmed</span>
-          </div>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">{confirmedCount}</p>
-          <p className="text-[10px] font-bold text-slate-400 mt-1">Bay Assigned</p>
-        </div>
+        <button
+          onClick={() => setActiveTab('AT_RISK')}
+          className={`pb-3 flex items-center space-x-2 transition-all relative ${
+            activeTab === 'AT_RISK' 
+              ? 'text-amber-600 dark:text-amber-400 font-black border-b-2 border-amber-600' 
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+          }`}
+        >
+          <span>At risk</span>
+          <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 text-[10px] font-extrabold">
+            {atRiskCount}
+          </span>
+        </button>
 
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-          <div className="flex justify-between items-center text-indigo-600 mb-2">
-            <UserCheck className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full">Unloaded</span>
-          </div>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">{completedCount}</p>
-          <p className="text-[10px] font-bold text-slate-400 mt-1">Completed Appointments</p>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-          <div className="flex justify-between items-center text-amber-600 mb-2">
-            <AlertTriangle className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full">Missed / Resched</span>
-          </div>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">{missedCount}</p>
-          <p className="text-[10px] font-bold text-slate-400 mt-1">Slot Action Required</p>
-        </div>
+        <button
+          onClick={() => setActiveTab('BOOKED')}
+          className={`pb-3 flex items-center space-x-2 transition-all relative ${
+            activeTab === 'BOOKED' 
+              ? 'text-blue-600 dark:text-blue-400 font-black border-b-2 border-blue-600' 
+              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+          }`}
+        >
+          <span>Booked</span>
+          <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 text-[10px] font-extrabold">
+            {bookedCount}
+          </span>
+        </button>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs flex flex-col md:flex-row gap-4 justify-between items-center">
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+      {/* Filter Toolbar (Search LR, Consignee, City, Status, PDD) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <input 
             type="text" 
-            placeholder="Search AWB, Token, Client, Receiver..."
+            placeholder="Search LR number"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
           />
         </div>
 
-        <div className="flex items-center space-x-3 w-full md:w-auto overflow-x-auto">
-          <Filter className="w-4 h-4 text-slate-400 shrink-0" />
-          {['ALL', 'SCHEDULED', 'CONFIRMED', 'COMPLETED', 'MISSED'].map(st => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                statusFilter === st
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-              }`}
-            >
-              {st}
-            </button>
-          ))}
+        <div>
+          <select 
+            value={consigneeFilter}
+            onChange={e => setConsigneeFilter(e.target.value)}
+            className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium"
+          >
+            <option value="">Consignee ▾</option>
+            <option value="Flipkart">Flipkart India Pvt Ltd</option>
+            <option value="Amazon">Amazon Fulfillment</option>
+            <option value="Canteen">Canteen Stores Dept (CSD)</option>
+            <option value="Blinkit">Blinkit Commerce</option>
+            <option value="Zepto">Zepto Quick Commerce</option>
+          </select>
+        </div>
+
+        <div>
+          <select 
+            value={cityFilter}
+            onChange={e => setCityFilter(e.target.value)}
+            className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium"
+          >
+            <option value="">City ▾</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Bangalore">Bengaluru</option>
+            <option value="Gurgaon">Gurgaon</option>
+            <option value="Howrah">Howrah</option>
+            <option value="Chennai">Chennai</option>
+          </select>
+        </div>
+
+        <div>
+          <select 
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium"
+          >
+            <option value="">Shipment status ▾</option>
+            <option value="IN_TRANSIT">In-transit</option>
+            <option value="DELIVERED">At delivery center</option>
+            <option value="BOOKED">Booked</option>
+          </select>
+        </div>
+
+        <div>
+          <input 
+            type="text" 
+            readOnly
+            placeholder="PDD date range ▾"
+            className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-500 cursor-pointer font-medium"
+            onClick={() => alert('Filtering by Promised Delivery Date (PDD) range')}
+          />
         </div>
       </div>
 
-      {/* Appointment Manifest Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs overflow-hidden">
+      {/* Green Channel Notice Banner */}
+      {showBanner && (
+        <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-3.5 flex justify-between items-start text-xs text-emerald-900 dark:text-emerald-200">
+          <div className="flex items-start space-x-2.5">
+            <Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">
+                <strong>LogiFlow Green Channel</strong> enabled for leading quick-commerce & enterprise consignees like <strong>Blinkit</strong>, <strong>Zepto</strong>, <strong>Swiggy</strong>, <strong>Flipkart</strong>, and <strong>Amazon</strong>.
+              </p>
+              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                We coordinate directly with these consignees to book appointment slots; all we need from you is the Purchase Order (PO) details.
+              </p>
+            </div>
+          </div>
+          <button onClick={() => setShowBanner(false)} className="text-emerald-500 hover:text-emerald-800 dark:hover:text-white p-0.5">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Main Delhivery-Style Appointment Table */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
-                <th className="px-5 py-3.5">AWB & Merchant</th>
-                <th className="px-5 py-3.5">Destination & City</th>
-                <th className="px-5 py-3.5">Appointment Date & Slot</th>
-                <th className="px-5 py-3.5">Dock & Pass Token</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+                <th className="px-5 py-3 text-slate-600 dark:text-slate-400">LR Details</th>
+                <th className="px-5 py-3 text-slate-600 dark:text-slate-400">Consignee Details</th>
+                <th className="px-5 py-3 text-slate-600 dark:text-slate-400">PO Expiry Date / PO Details</th>
+                <th className="px-5 py-3 text-slate-600 dark:text-slate-400">Shipment Status</th>
+                <th className="px-5 py-3 text-right text-slate-600 dark:text-slate-400">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-400">Loading appointment records...</td>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-400">Loading appointment records...</td>
                 </tr>
-              ) : appointmentShipments.length === 0 ? (
+              ) : filteredShipments.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-400">No shipments matching appointment filter.</td>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-400">No shipments found for this tab.</td>
                 </tr>
               ) : (
-                appointmentShipments.map((s: any) => {
-                  const hasApp = s.appointment_date || s.appointment_status !== 'NOT_REQUIRED';
+                filteredShipments.map((s: any) => {
+                  const pddDateStr = s.promised_delivery_date ? format(new Date(s.promised_delivery_date), 'dd MMM') : '22 Aug';
+                  const isBooked = s.appointment_status === 'CONFIRMED' || s.appointment_status === 'SCHEDULED' || s.appointment_status === 'COMPLETED';
+
                   return (
-                    <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
-                      <td className="px-5 py-4">
-                        <p className="font-mono font-bold text-blue-600 dark:text-blue-400">{s.awb_number}</p>
-                        <p className="text-[11px] font-medium text-slate-700 dark:text-slate-300">{s.client?.company_name || 'Direct Client'}</p>
+                    <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/30">
+                      
+                      {/* LR Details */}
+                      <td className="px-5 py-4 align-top">
+                        <p className="font-bold text-blue-600 dark:text-blue-400 text-xs hover:underline cursor-pointer">{s.awb_number}</p>
+                        <p className="text-[11px] text-slate-500 font-medium">{s.number_of_pieces || 1} {s.number_of_pieces > 1 ? 'Boxes' : 'Box'}</p>
                       </td>
-                      <td className="px-5 py-4">
-                        <p className="font-bold text-slate-900 dark:text-white">{s.receiver_name || s.city}</p>
-                        <p className="text-[10px] text-slate-400 flex items-center">
-                          <MapPin className="w-3 h-3 mr-0.5 text-slate-400" /> {s.city || 'Mumbai'}, {s.state || 'MH'}
+
+                      {/* Consignee Details */}
+                      <td className="px-5 py-4 align-top">
+                        <p className="font-bold text-slate-900 dark:text-white uppercase">{s.receiver_name || 'Flipkart India Private Limited'}</p>
+                        <p className="text-[11px] text-slate-500">{s.city || 'Mumbai'}, {s.pincode || '400010'}</p>
+                      </td>
+
+                      {/* PO Details */}
+                      <td className="px-5 py-4 align-top">
+                        <p className="text-slate-500 font-medium text-[11px]">
+                          {s.po_expiry_date ? format(new Date(s.po_expiry_date), 'dd MMM yyyy') : 'Unavailable'}
+                        </p>
+                        <p className="text-[10px] font-mono text-slate-600 dark:text-slate-400 mt-0.5 truncate max-w-[180px]">
+                          {s.po_number || 'ORD-378149d9-bfed-43f4'}
                         </p>
                       </td>
-                      <td className="px-5 py-4">
-                        {s.appointment_date ? (
-                          <div>
-                            <p className="font-bold text-slate-900 dark:text-white flex items-center">
-                              <Calendar className="w-3.5 h-3.5 mr-1 text-blue-500" />
-                              {format(new Date(s.appointment_date), 'dd MMM yyyy')}
-                            </p>
-                            <p className="text-[10px] font-mono text-slate-500 flex items-center mt-0.5">
-                              <Clock className="w-3 h-3 mr-1 text-slate-400" />
-                              {s.appointment_slot || '10:00 AM - 01:00 PM'}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-slate-400 italic">No slot scheduled</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4">
-                        {hasApp ? (
-                          <div>
-                            <p className="font-bold text-slate-900 dark:text-white">{s.dock_number || 'Dock Assigned On Gate'}</p>
-                            <p className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold">{s.appointment_token || 'APT-PND'}</p>
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-slate-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className={`px-2.5 py-0.5 inline-flex text-[10px] font-extrabold rounded-full ${
-                          s.appointment_status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' :
-                          s.appointment_status === 'COMPLETED' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300' :
-                          s.appointment_status === 'MISSED' ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' :
-                          s.appointment_status === 'SCHEDULED' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' :
-                          'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+
+                      {/* Shipment Status & PDD */}
+                      <td className="px-5 py-4 align-top">
+                        <span className={`px-2.5 py-0.5 inline-block text-[10px] font-bold rounded-full mb-1 ${
+                          s.internal_status === 'DELIVERED' ? 'bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300' :
+                          'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
                         }`}>
-                          {s.appointment_status || 'NOT_REQUIRED'}
+                          {s.internal_status === 'DELIVERED' ? 'At delivery center' : 'In-transit'}
                         </span>
+                        <p className="text-[10px] font-semibold text-slate-500">Delivery by {pddDateStr}</p>
                       </td>
-                      <td className="px-5 py-4 text-right space-x-2">
-                        {hasApp && (
+
+                      {/* Actions */}
+                      <td className="px-5 py-4 text-right align-top">
+                        <div className="flex items-center justify-end space-x-2">
                           <button
-                            onClick={() => setSelectedAppointment(s)}
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold"
+                            onClick={() => handleOpenScheduleModal(s)}
+                            className="text-xs font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline flex items-center"
                           >
-                            Dock Pass
+                            {isBooked ? 'View appointment >' : 'Book appointment >'}
                           </button>
-                        )}
-                        <button
-                          onClick={() => handleOpenScheduleModal(s)}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-2xs"
-                        >
-                          {hasApp ? 'Edit Slot' : 'Schedule Slot'}
-                        </button>
+                          <button 
+                            onClick={() => setSelectedAppointment(s)}
+                            className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
+
                     </tr>
                   );
                 })
@@ -280,16 +360,25 @@ export default function Appointments() {
             </tbody>
           </table>
         </div>
+
+        {/* Footer Pagination Bar matching Delhivery */}
+        <div className="p-3 bg-slate-50 dark:bg-slate-900/40 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs text-slate-500">
+          <span>Showing 1-{filteredShipments.length} of {filteredShipments.length}</span>
+          <div className="flex items-center space-x-3">
+            <span className="px-2.5 py-1 bg-blue-600 text-white font-bold rounded">1</span>
+            <span className="text-slate-400">Rows per page 20 ▾</span>
+          </div>
+        </div>
       </div>
 
-      {/* SCHEDULE / EDIT APPOINTMENT MODAL */}
+      {/* BOOK APPOINTMENT MODAL */}
       {editingShipment && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
               <div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white">Schedule Warehouse Dock Slot</h3>
-                <p className="text-xs text-slate-500 font-mono">AWB: {editingShipment.awb_number}</p>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">Book Consignee Appointment Slot</h3>
+                <p className="text-xs text-slate-500 font-mono">LR Number: {editingShipment.awb_number}</p>
               </div>
               <button onClick={() => setEditingShipment(null)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-400">
                 <X className="w-5 h-5" />
@@ -297,19 +386,47 @@ export default function Appointments() {
             </div>
 
             <form onSubmit={handleSaveAppointment} className="space-y-4 text-xs">
+              
+              {/* PO Details Section */}
+              <div className="bg-blue-50 dark:bg-blue-950/40 p-3.5 rounded-xl border border-blue-200 dark:border-blue-800/50 space-y-3">
+                <h4 className="font-bold text-blue-900 dark:text-blue-300 text-xs uppercase tracking-wide">Purchase Order (PO) Information</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">PO / Order Reference #</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.po_number}
+                      onChange={e => setFormData({ ...formData, po_number: e.target.value })}
+                      placeholder="e.g. FAGWN08454470"
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl font-mono dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">PO Expiry Date</label>
+                    <input
+                      type="date"
+                      value={formData.po_expiry_date}
+                      onChange={e => setFormData({ ...formData, po_expiry_date: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Slot & PDD Schedule */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Appointment Date</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Promised Delivery Date (PDD)</label>
                   <input
                     type="date"
-                    required
-                    value={formData.appointment_date}
-                    onChange={e => setFormData({ ...formData, appointment_date: e.target.value })}
+                    value={formData.promised_delivery_date}
+                    onChange={e => setFormData({ ...formData, promised_delivery_date: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl font-medium dark:bg-slate-700 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Time Slot Window</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Appointment Slot Window</label>
                   <select
                     value={formData.appointment_slot}
                     onChange={e => setFormData({ ...formData, appointment_slot: e.target.value })}
@@ -335,7 +452,7 @@ export default function Appointments() {
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Appointment Pass Token</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Gate Pass Token</label>
                   <input
                     type="text"
                     value={formData.appointment_token}
@@ -353,24 +470,11 @@ export default function Appointments() {
                   onChange={e => setFormData({ ...formData, appointment_status: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl font-bold dark:bg-slate-700 dark:text-white"
                 >
-                  <option value="SCHEDULED">SCHEDULED (Awaiting Arrival)</option>
+                  <option value="SCHEDULED">SCHEDULED (Pending Unloading)</option>
                   <option value="CONFIRMED">CONFIRMED (Dock Reserved)</option>
-                  <option value="COMPLETED">COMPLETED (Unloaded & Received)</option>
-                  <option value="MISSED">MISSED (Truck Delay / Late Entry)</option>
-                  <option value="RESCHEDULED">RESCHEDULED</option>
-                  <option value="NOT_REQUIRED">NOT REQUIRED</option>
+                  <option value="COMPLETED">COMPLETED (Delivered & Received)</option>
+                  <option value="MISSED">MISSED / AT RISK (Late Entry)</option>
                 </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Special Unloading Notes</label>
-                <textarea
-                  rows={2}
-                  value={formData.appointment_notes}
-                  onChange={e => setFormData({ ...formData, appointment_notes: e.target.value })}
-                  placeholder="e.g., Palletized delivery, Hydraulic liftgate required, Gate Pass check required."
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl dark:bg-slate-700 dark:text-white"
-                />
               </div>
 
               <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100 dark:border-slate-700">
@@ -386,7 +490,7 @@ export default function Appointments() {
                   disabled={saving}
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md"
                 >
-                  {saving ? 'Saving Slot...' : 'Save Appointment Slot'}
+                  {saving ? 'Confirming Slot...' : 'Confirm Appointment Slot'}
                 </button>
               </div>
             </form>
@@ -394,7 +498,7 @@ export default function Appointments() {
         </div>
       )}
 
-      {/* PRINTABLE DOCK ENTRY PASS MODAL */}
+      {/* DOCK PASS MODAL */}
       {selectedAppointment && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/85 backdrop-blur-sm p-4 flex flex-col items-center justify-start print:p-0 print:bg-white print:static">
           
@@ -431,18 +535,16 @@ export default function Appointments() {
 
               <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
                 <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">AWB NUMBER</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">LR NUMBER</p>
                   <p className="font-mono text-sm font-black text-blue-700">{selectedAppointment.awb_number}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">PO / ORDER NUMBER</p>
+                  <p className="font-mono text-sm font-black text-slate-900">{selectedAppointment.po_number || 'PO-FLIPKART-900588'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">ASSIGNED DOCK / BAY</p>
                   <p className="font-mono text-sm font-black text-slate-900">{selectedAppointment.dock_number || 'Dock 01'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">APPOINTMENT DATE</p>
-                  <p className="font-bold text-slate-900">
-                    {selectedAppointment.appointment_date ? format(new Date(selectedAppointment.appointment_date), 'dd MMMM yyyy') : format(new Date(), 'dd MMMM yyyy')}
-                  </p>
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">TIME SLOT WINDOW</p>
@@ -454,26 +556,11 @@ export default function Appointments() {
                 <div className="grid grid-cols-2 gap-2 text-[11px]">
                   <p><strong>Merchant Client:</strong> {selectedAppointment.client?.company_name || 'Apex Logistics'}</p>
                   <p><strong>Consignee Destination:</strong> {selectedAppointment.receiver_name || selectedAppointment.city}</p>
+                  <p><strong>Total Boxes:</strong> {selectedAppointment.number_of_pieces || 1} Boxes</p>
                   <p><strong>Total Weight:</strong> {selectedAppointment.actual_weight || 1} kg</p>
-                  <p><strong>Total Pieces:</strong> {selectedAppointment.number_of_pieces || 1} Boxes</p>
                 </div>
-                {selectedAppointment.appointment_notes && (
-                  <div className="bg-amber-50 p-2 rounded border border-amber-200 text-[10px] text-amber-900 font-semibold">
-                    Unloading Instructions: {selectedAppointment.appointment_notes}
-                  </div>
-                )}
               </div>
 
-              <div className="border-t-2 border-dashed border-slate-400 pt-4 flex justify-between items-center text-[10px] text-slate-500">
-                <div>
-                  <p className="font-bold">Security Gate Officer Stamp & Sign</p>
-                  <div className="h-10 border-b border-slate-300 w-48 mt-1"></div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold">Warehouse In-Charge Approval</p>
-                  <div className="h-10 border-b border-slate-300 w-48 mt-1"></div>
-                </div>
-              </div>
             </div>
           </div>
         </div>

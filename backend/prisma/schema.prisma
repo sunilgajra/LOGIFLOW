@@ -160,12 +160,15 @@ model Shipment {
   client  Client?         @relation(fields: [client_id], references: [id])
   courier CourierPartner? @relation(fields: [courier_id], references: [id])
 
-  appointment_date   DateTime?
-  appointment_slot   String?
-  appointment_token  String?
-  dock_number        String?
-  appointment_status String?   @default("NOT_REQUIRED") // NOT_REQUIRED, SCHEDULED, CONFIRMED, COMPLETED, MISSED, RESCHEDULED
-  appointment_notes  String?
+  appointment_date       DateTime?
+  appointment_slot       String?
+  appointment_token      String?
+  dock_number            String?
+  appointment_status     String?   @default("NOT_REQUIRED") // NOT_REQUIRED, SCHEDULED, CONFIRMED, COMPLETED, MISSED, RESCHEDULED
+  appointment_notes      String?
+  po_number              String?
+  po_expiry_date         DateTime?
+  promised_delivery_date DateTime?
 
   invoice_id     String?
   invoice        ClientInvoice?          @relation(fields: [invoice_id], references: [id])

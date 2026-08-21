@@ -182,6 +182,9 @@ export const bookShipment = async (req: AuthenticatedRequest, res: Response) => 
         dock_number: payload.dock_number || null,
         appointment_status: payload.appointment_status || (payload.appointment_date ? 'SCHEDULED' : 'NOT_REQUIRED'),
         appointment_notes: payload.appointment_notes || null,
+        po_number: payload.po_number || null,
+        po_expiry_date: payload.po_expiry_date ? new Date(payload.po_expiry_date) : null,
+        promised_delivery_date: payload.promised_delivery_date ? new Date(payload.promised_delivery_date) : null,
         
         // Add assigned rates
         client_charge: clientChargeAmount,
@@ -293,6 +296,9 @@ export const updateShipment = async (req: AuthenticatedRequest, res: Response) =
         dock_number: payload.dock_number !== undefined ? payload.dock_number : undefined,
         appointment_status: payload.appointment_status !== undefined ? payload.appointment_status : undefined,
         appointment_notes: payload.appointment_notes !== undefined ? payload.appointment_notes : undefined,
+        po_number: payload.po_number !== undefined ? payload.po_number : undefined,
+        po_expiry_date: payload.po_expiry_date !== undefined ? (payload.po_expiry_date ? new Date(payload.po_expiry_date) : null) : undefined,
+        promised_delivery_date: payload.promised_delivery_date !== undefined ? (payload.promised_delivery_date ? new Date(payload.promised_delivery_date) : null) : undefined,
       },
       include: { client: true, courier: true }
     });
