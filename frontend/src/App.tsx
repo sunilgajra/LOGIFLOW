@@ -15,6 +15,8 @@ import Settings from './pages/Settings';
 import Rates from './pages/Rates';
 import Zones from './pages/Zones';
 import NDRManagement from './pages/NDRManagement';
+import Users from './pages/Users';
+import Reports from './pages/Reports';
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="shipments" element={<Shipments />} />
           <Route path="ndr" element={<NDRManagement />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="users" element={<Users />} />
           <Route path="import" element={<ImportEngine />} />
           <Route path="clients" element={<Clients />} />
           <Route path="clients/:id" element={<ClientDetails />} />
@@ -45,3 +49,4 @@ function App() {
 }
 
 export default App;
+

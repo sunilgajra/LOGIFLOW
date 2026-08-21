@@ -3,9 +3,11 @@ import { Package, Truck, CheckCircle, AlertTriangle, IndianRupee, Clock, ArrowUp
 import { fetchApi } from '../api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,12 +35,22 @@ export default function Dashboard() {
     );
   }
 
+  const isClientRole = user?.role === 'CLIENT';
+
   const kpis = [
-    { name: 'Total Shipments', value: data.totalShipments || 128, sub: '+12% from last week', icon: Package, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/30', border: 'border-blue-200 dark:border-blue-800' },
-    { name: 'In Transit', value: data.inTransit || 34, sub: 'Active on route', icon: Truck, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/30', border: 'border-amber-200 dark:border-amber-800' },
-    { name: 'Delivered', value: data.delivered || 89, sub: 'Successfully signed', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/30', border: 'border-emerald-200 dark:border-emerald-800' },
-    { name: 'Delivery SLA Rate', value: `${data.slaRate || 98.4}%`, sub: 'Target > 95%', icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/30', border: 'border-purple-200 dark:border-purple-800' },
-    { name: 'Total Freight Revenue', value: `₹${(data.totalRevenue || 248500).toLocaleString('en-IN')}`, sub: 'Billed to clients', icon: IndianRupee, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/30', border: 'border-indigo-200 dark:border-indigo-800' },
+    { name: 'Total Shipments', value: data.totalShipments || 0, sub: 'All dispatches', icon: Package, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/30', border: 'border-blue-200 dark:border-blue-800' },
+    { name: 'In Transit', value: data.inTransit || 0, sub: 'Active on route', icon: Truck, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/30', border: 'border-amber-200 dark:border-amber-800' },
+    { name: 'Delivered', value: data.delivered || 0, sub: 'Successfully signed', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/30', border: 'border-emerald-200 dark:border-emerald-800' },
+    { name: 'Delivery SLA Rate', value: `${data.slaRate || 98.4}%`, sub: 'On-time delivery', icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/30', border: 'border-purple-200 dark:border-purple-800' },
+    { 
+      name: isClientRole ? 'Total Billed Freight' : 'Total Freight Revenue', 
+      value: `₹${(data.totalRevenue || 0).toLocaleString('en-IN')}`, 
+      sub: isClientRole ? 'Account summary' : 'Billed to clients', 
+      icon: IndianRupee, 
+      color: 'text-indigo-600', 
+      bg: 'bg-indigo-50 dark:bg-indigo-900/30', 
+      border: 'border-indigo-200 dark:border-indigo-800' 
+    },
   ];
 
   const courierBreakdown = data.courierBreakdown || [

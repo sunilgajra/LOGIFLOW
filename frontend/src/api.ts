@@ -95,6 +95,112 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       };
     }
 
+    if (endpoint.includes('/users')) {
+      if (options.method === 'POST') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        return {
+          message: 'User created successfully',
+          user: {
+            id: 'usr-' + Date.now(),
+            email: bodyData.email || 'newuser@logiflow.com',
+            first_name: bodyData.first_name || 'Team',
+            last_name: bodyData.last_name || 'Member',
+            role: bodyData.role || 'OPERATIONS',
+            client_id: bodyData.client_id || null,
+            created_at: new Date().toISOString()
+          }
+        };
+      }
+
+      return [
+        {
+          id: 'usr-1',
+          email: 'admin@logiflow.com',
+          first_name: 'Super',
+          last_name: 'Admin',
+          role: 'SUPER_ADMIN',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'usr-2',
+          email: 'ops@logiflow.com',
+          first_name: 'Operations',
+          last_name: 'Manager',
+          role: 'OPERATIONS',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'usr-3',
+          email: 'rahul@apex.com',
+          first_name: 'Rahul',
+          last_name: 'Sharma',
+          role: 'CLIENT',
+          client_id: 'client-1',
+          client: { company_name: 'Apex Logistics', client_id: 'CLI-001' },
+          created_at: new Date().toISOString()
+        }
+      ];
+    }
+
+    if (endpoint.includes('/analytics/monthly-report')) {
+      return {
+        period: {
+          month: 8,
+          year: 2026,
+          monthName: 'August',
+          startDate: new Date(2026, 7, 1).toISOString(),
+          endDate: new Date(2026, 7, 31).toISOString()
+        },
+        metrics: {
+          totalShipments: 128,
+          delivered: 89,
+          inTransit: 34,
+          exceptions: 3,
+          rto: 2,
+          slaRate: '98.4%',
+          totalFreightCharges: 248500,
+          totalCourierCost: 168980,
+          totalProfit: 79520,
+          totalActualWeight: 142.5,
+          totalChargeableWeight: 168.0
+        },
+        statusBreakdown: [
+          { status: 'DELIVERED', count: 89 },
+          { status: 'IN_TRANSIT', count: 34 },
+          { status: 'EXCEPTION', count: 3 },
+          { status: 'RTO', count: 2 }
+        ],
+        topDestinations: [
+          { city: 'Mumbai', count: 42 },
+          { city: 'Bengaluru', count: 28 },
+          { city: 'Delhi', count: 24 },
+          { city: 'Ahmedabad', count: 18 },
+          { city: 'Pune', count: 16 }
+        ],
+        shipments: [
+          {
+            id: 'demo-1',
+            awb_number: 'DELH88291034',
+            booking_date: new Date().toISOString(),
+            receiver_name: 'Rahul Sharma',
+            city: 'Mumbai',
+            state: 'MH',
+            internal_status: 'IN_TRANSIT',
+            actual_weight: 2.5,
+            client_charge: 285,
+            client: { company_name: 'Apex Logistics' },
+            courier: { courier_name: 'Delhivery Express' }
+          }
+        ]
+      };
+    }
+
     if (endpoint.includes('/analytics')) {
       return {
         totalShipments: 128,

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Truck, UploadCloud, Settings, Bell, Search, 
-  LogOut, FileText, MapPin, ShieldAlert, Menu, X 
+  LogOut, FileText, MapPin, ShieldAlert, Menu, X, BarChart3, UserCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -22,15 +22,17 @@ const DashboardLayout = () => {
   };
 
   const allNavigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT'] },
-    { name: 'Shipments', href: '/dashboard/shipments', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT'] },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
+    { name: 'Shipments', href: '/dashboard/shipments', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
+    { name: 'Monthly Reports', href: '/dashboard/reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS'] },
     { name: 'NDR Action Desk', href: '/dashboard/ndr', icon: ShieldAlert, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS'] },
     { name: 'Billing / Invoices', href: `/dashboard/clients/${user?.client_id}`, icon: FileText, roles: ['CLIENT'] },
     { name: 'Delivery Mode (E-POD)', href: '/dashboard/delivery', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS'] },
-    { name: 'Import Delivery Sheets', href: '/dashboard/import', icon: UploadCloud, roles: ['SUPER_ADMIN', 'ADMIN'] },
-    { name: 'Clients', href: '/dashboard/clients', icon: Users, roles: ['SUPER_ADMIN', 'ADMIN'] },
+    { name: 'Import Delivery Sheets', href: '/dashboard/import', icon: UploadCloud, roles: ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS'] },
+    { name: 'Clients', href: '/dashboard/clients', icon: Users, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTS'] },
+    { name: 'Team Users', href: '/dashboard/users', icon: UserCheck, roles: ['SUPER_ADMIN', 'ADMIN'] },
     { name: 'Couriers', href: '/dashboard/couriers', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN'] },
-    { name: 'Rate Cards', href: '/dashboard/rates', icon: FileText, roles: ['SUPER_ADMIN', 'ADMIN'] },
+    { name: 'Rate Cards', href: '/dashboard/rates', icon: FileText, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTS'] },
     { name: 'Zone Mapping', href: '/dashboard/zones', icon: MapPin, roles: ['SUPER_ADMIN', 'ADMIN'] },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings, roles: ['SUPER_ADMIN'] },
   ];

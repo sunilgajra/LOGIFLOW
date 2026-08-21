@@ -7,7 +7,8 @@ import { prisma } from './prisma';
 import { getClients, createClient, updateClient, getClientById, uploadClientAgreement, createClientLogin } from './controllers/client.controller';
 import { getCouriers, createCourier, updateCourier } from './controllers/courier.controller';
 import { getShipments, bookShipment, updateShipment } from './controllers/shipment.controller';
-import { getAnalytics } from './controllers/analytics.controller';
+import { getAnalytics, getMonthlyReport } from './controllers/analytics.controller';
+import { getUsers, createUser, updateUser, deleteUser } from './controllers/user.controller';
 import { getPublicTracking, syncShipmentTracking, syncAllActiveShipments } from './controllers/tracking.controller';
 import { previewImport, processImport } from './controllers/import.controller';
 import { generateInvoice, getInvoicesByClient, getInvoiceById } from './controllers/invoice.controller';
@@ -45,12 +46,19 @@ router.post('/webhooks/courier', handleCourierWebhook);
 router.post('/webhooks/delhivery', handleCourierWebhook);
 router.post('/webhooks/bluedart', handleCourierWebhook);
 
+// --- User & Team Management API ---
+router.get('/users', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), getUsers);
+router.post('/users', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), createUser);
+router.put('/users/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), updateUser);
+router.delete('/users/:id', requireAuth, requireRole(['SUPER_ADMIN']), deleteUser);
+
 // --- Tracking Sync API ---
 router.post('/tracking/sync/:awb', requireAuth, syncShipmentTracking);
 router.post('/tracking/sync-all', requireAuth, syncAllActiveShipments);
 
-// --- Analytics API ---
+// --- Analytics & Reports API ---
 router.get('/analytics', requireAuth, getAnalytics);
+router.get('/analytics/monthly-report', requireAuth, getMonthlyReport);
 
 // --- NDR Management API ---
 router.get('/ndr', requireAuth, getNDRShipments);
@@ -98,4 +106,5 @@ router.post('/imports/preview', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN'
 router.post('/imports/process', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'OPERATIONS']), processImport);
 
 export default router;
+
 
