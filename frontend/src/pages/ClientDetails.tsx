@@ -154,6 +154,19 @@ export default function ClientDetails() {
 
   const { client, company, stats, recentShipments, invoices } = data;
 
+  const handleViewInvoice = async (inv: any) => {
+    if (inv.shipments && inv.shipments.length > 0) {
+      setSelectedInvoice(inv);
+    } else {
+      try {
+        const fullInv = await fetchApi(`/invoices/${inv.id}`);
+        setSelectedInvoice(fullInv && !fullInv.error ? fullInv : inv);
+      } catch (e) {
+        setSelectedInvoice(inv);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       
@@ -450,7 +463,7 @@ export default function ClientDetails() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button 
-                        onClick={() => setSelectedInvoice(inv)}
+                        onClick={() => handleViewInvoice(inv)}
                         className="text-blue-600 hover:text-blue-800 font-bold bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-lg"
                       >
                         View Standard A4 PDF

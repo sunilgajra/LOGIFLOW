@@ -200,6 +200,44 @@ const getDemoShipments = () => {
 const saveDemoShipments = (shipments: any[]) => {
   localStorage.setItem('demo_shipments', JSON.stringify(shipments));
 };
+const INITIAL_DEMO_INVOICES = [
+  {
+    id: 'inv-1',
+    client_id: 'client-1',
+    invoice_number: 'INV-20260818-0001',
+    invoice_date: new Date().toISOString(),
+    due_date: new Date(Date.now() + 15 * 86400000).toISOString(),
+    shipment_count: 2,
+    subtotal: 480,
+    total_fsc: 48,
+    total_idc: 9.6,
+    total_oda: 0,
+    total_green_tax: 30,
+    off_loading_charges: 0,
+    vehicle_charges: 0,
+    insurance_charges: 0,
+    rto_charges: 0,
+    taxable_amount: 557.6,
+    cgst_amount: 50.18,
+    sgst_amount: 50.18,
+    igst_amount: 0,
+    round_off: 0.04,
+    total_amount: 658,
+    status: 'SENT',
+    shipments: INITIAL_DEMO_SHIPMENTS
+  }
+];
+
+const getDemoInvoices = () => {
+  const stored = localStorage.getItem('demo_invoices');
+  if (stored) {
+    try { return JSON.parse(stored); } catch (e) {}
+  }
+  return INITIAL_DEMO_INVOICES;
+};
+const saveDemoInvoices = (invoices: any[]) => {
+  localStorage.setItem('demo_invoices', JSON.stringify(invoices));
+};
 
 // --- Main API Fetch Function with automatic offline demo persistence ---
 export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
@@ -358,6 +396,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
 
       const client = clientIndex !== -1 ? list[clientIndex] : list[0];
       const shipments = getDemoShipments().filter((s: any) => s.client_id === client.id || s.client?.company_name === client.company_name);
+      const invoices = getDemoInvoices().filter((inv: any) => inv.client_id === client.id || inv.client_id === 'client-1');
 
       return {
         client,
@@ -374,7 +413,7 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           totalBilling: shipments.reduce((sum: number, s: any) => sum + (s.client_charge || 0), 0)
         },
         recentShipments: shipments,
-        invoices: [],
+        invoices: invoices.length > 0 ? invoices : getDemoInvoices(),
         rateCards: getDemoRates().filter((r: any) => r.client_id === client.id)
       };
     }
@@ -759,6 +798,85 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           updated_at: new Date().toISOString()
         }
       ];
+    }
+
+    if (endpoint.includes('/invoices')) {
+      let bodyData: any = {};
+      try {
+        if (options.body && typeof options.body === 'string') {
+          bodyData = JSON.parse(options.body);
+        }
+      } catch (e) {}
+
+      if (endpoint.includes('/generate')) {
+        const shipments = getDemoShipments();
+        const subtotal = shipments.reduce((sum: number, s: any) => sum + (s.client_charge || 0), 0) || 480;
+        const total_fsc = Math.round(subtotal * 0.10);
+        const total_idc = Math.round(subtotal * 0.02);
+        const total_oda = 0;
+        const total_green_tax = 30;
+        const off_loading_charges = Number(bodyData.off_loading_charges) || 0;
+        const vehicle_charges = Number(bodyData.vehicle_charges) || 0;
+        const insurance_charges = Number(bodyData.insurance_charges) || 0;
+        const rto_charges = Number(bodyData.rto_charges) || 0;
+
+        const taxable_amount = subtotal + off_loading_charges + vehicle_charges + insurance_charges + rto_charges;
+
+        let cgst_amount = 0;
+        let sgst_amount = 0;
+        let igst_amount = 0;
+
+        if (bodyData.tax_mode === 'INTER_STATE') {
+          igst_amount = Math.round(taxable_amount * 0.18 * 100) / 100;
+        } else {
+          cgst_amount = Math.round(taxable_amount * 0.09 * 100) / 100;
+          sgst_amount = Math.round(taxable_amount * 0.09 * 100) / 100;
+        }
+
+        const rawTotal = taxable_amount + cgst_amount + sgst_amount + igst_amount;
+        const total_amount = Math.round(rawTotal);
+        const round_off = Math.round((total_amount - rawTotal) * 100) / 100;
+
+        const newInvoice = {
+          id: 'inv-' + Date.now(),
+          client_id: bodyData.clientId || 'client-1',
+          invoice_number: 'INV-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000),
+          invoice_date: new Date().toISOString(),
+          due_date: new Date(Date.now() + 15 * 86400000).toISOString(),
+          shipment_count: shipments.length,
+          subtotal,
+          total_fsc,
+          total_idc,
+          total_oda,
+          total_green_tax,
+          off_loading_charges,
+          vehicle_charges,
+          insurance_charges,
+          rto_charges,
+          taxable_amount,
+          cgst_amount,
+          sgst_amount,
+          igst_amount,
+          round_off,
+          total_amount,
+          status: 'SENT',
+          shipments: shipments
+        };
+
+        const list = getDemoInvoices();
+        saveDemoInvoices([newInvoice, ...list]);
+        return newInvoice;
+      }
+
+      if (endpoint.match(/\/invoices\/[^\/]+/)) {
+        const parts = endpoint.split('/');
+        const invId = parts[parts.length - 1];
+        const list = getDemoInvoices();
+        const found = list.find((i: any) => i.id === invId || i.invoice_number === invId);
+        return found || list[0];
+      }
+
+      return getDemoInvoices();
     }
 
     return null;

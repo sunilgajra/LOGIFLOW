@@ -93,10 +93,15 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
       if (s.client_charge && s.invoice_id === null) totalBilling += s.client_charge;
     });
 
-    // Fetch Invoices
+    // Fetch Invoices with connected shipments
     const invoices = await prisma.clientInvoice.findMany({
       where: { client_id: id, company_id: req.user?.company_id },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
+      include: {
+        shipments: true,
+        client: true,
+        company: true
+      }
     });
 
     // Fetch Rate Cards
