@@ -94,9 +94,14 @@ const Shipments = () => {
     e.preventDefault();
     setBookingSubmitting(true);
     try {
+      const payload = {
+        ...bookingForm,
+        client_id: user?.role === 'CLIENT' ? (user?.client_id || 'client-1') : bookingForm.client_id
+      };
+
       await fetchApi('/shipments', {
         method: 'POST',
-        body: JSON.stringify(bookingForm)
+        body: JSON.stringify(payload)
       });
       setShowBookModal(false);
       fetchShipments(1, search);

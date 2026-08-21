@@ -544,6 +544,8 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
         const selectedClient = clientList.find((c: any) => c.id === bodyData.client_id) || { company_name: 'Apex Logistics' };
         const selectedCourier = courierList.find((c: any) => c.id === bodyData.courier_id) || { courier_name: 'Delhivery Express' };
 
+        const assignedClientId = (bodyData.client_id && bodyData.client_id.trim() !== '') ? bodyData.client_id : (clientFilter || 'client-1');
+
         const newShipment = {
           id: 'shipment-' + Date.now(),
           awb_number: bodyData.awb_number || `AWB${Math.floor(Date.now() / 1000)}${Math.floor(Math.random() * 100)}`,
@@ -567,9 +569,9 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
           chargeable_weight: parseFloat(bodyData.chargeable_weight) || 1.0,
           client_charge: parseFloat(bodyData.client_charge) || 250,
           internal_status: clientFilter ? 'PENDING_APPROVAL' : (bodyData.internal_status || 'BOOKED'),
-          client_id: bodyData.client_id || null,
+          client_id: assignedClientId,
           courier_id: bodyData.courier_id || null,
-          client: { company_name: selectedClient.company_name },
+          client: { company_name: selectedClient.company_name, id: assignedClientId },
           courier: { courier_name: selectedCourier.courier_name }
         };
 
