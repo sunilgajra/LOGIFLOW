@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { fetchApi } from '../api';
 import { 
   useReactTable, 
@@ -25,6 +25,7 @@ const Shipments = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
+  const [activeStatusTab, setActiveStatusTab] = useState<string>(filterStatus || '');
   
   const [selectedPod, setSelectedPod] = useState<any | null>(null);
   const [selectedLabel, setSelectedLabel] = useState<any | null>(null);
@@ -189,7 +190,7 @@ const Shipments = () => {
     fetchShipments(1, search);
   };
 
-  const handleApproveShipment = async (row: any) => {
+  const handleApproveShipment = useCallback(async (row: any) => {
     const targetId = row.id || row.awb_number;
 
     // Instant local UI state update
@@ -202,13 +203,13 @@ const Shipments = () => {
     try {
       await fetchApi(`/shipments/${targetId}`, {
         method: 'PUT',
-        body: JSON.stringify({ internal_status: 'BOOKED' })
+        body: JSON.stringify({ ...row, internal_status: 'BOOKED' })
       });
       fetchShipments(page, search, activeStatusTab);
     } catch (e) {
-      console.error(e);
+      console.error('Failed to approve shipment:', e);
     }
-  };
+  }, [page, search, activeStatusTab]);
 
   const columns = useMemo<ColumnDef<any>[]>(
     () => [
@@ -217,6 +218,7 @@ const Shipments = () => {
         accessorKey: 'awb_number',
         cell: (info: any) => (
           <button 
+            type="button"
             onClick={() => setTrackingAwb(info.getValue() as string)}
             className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
           >
@@ -330,14 +332,20 @@ const Shipments = () => {
             <div className="flex items-center space-x-2">
               {user?.role !== 'CLIENT' && isPending && (
                 <button 
-                  onClick={() => handleApproveShipment(row)}
-                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2.5 py-1 rounded shadow-sm transition-colors flex items-center"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleApproveShipment(row);
+                  }}
+                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-2.5 py-1 rounded shadow-sm transition-colors flex items-center cursor-pointer"
                 >
                   Confirm Order
                 </button>
               )}
               {user?.role !== 'CLIENT' && (
                 <button 
+                  type="button"
                   onClick={() => openEditModal(row)}
                   className="text-xs text-indigo-600 hover:text-indigo-800 font-medium bg-indigo-50 px-2 py-1 rounded border border-indigo-200 flex items-center"
                 >
@@ -346,6 +354,7 @@ const Shipments = () => {
                 </button>
               )}
               <button 
+                type="button"
                 onClick={() => setSelectedLabel(row)}
                 className="text-xs text-slate-600 hover:text-slate-800 font-medium bg-slate-100 px-2 py-1 rounded border border-slate-200 flex items-center"
               >
@@ -354,6 +363,7 @@ const Shipments = () => {
               </button>
               {row.internal_status === 'DELIVERED' && (row.podImageUrl || row.podSignature) && (
                 <button 
+                  type="button"
                   onClick={() => setSelectedPod(row)}
                   className="text-xs text-blue-600 hover:text-blue-800 font-medium bg-blue-50 px-2 py-1 rounded border border-blue-200"
                 >
@@ -368,7 +378,7 @@ const Shipments = () => {
       if (user?.role === 'CLIENT' && col.header === 'Sender (Client)') return false;
       return true;
     }),
-    [user?.role, couriers]
+    [user?.role, couriers, handleApproveShipment]
   );
 
   const table = useReactTable({
@@ -376,8 +386,6 @@ const Shipments = () => {
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
-
-  const [activeStatusTab, setActiveStatusTab] = useState<string>(filterStatus || '');
 
   const handleTabChange = (status: string) => {
     setActiveStatusTab(status);
