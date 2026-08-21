@@ -18,6 +18,7 @@ import NDRManagement from './pages/NDRManagement';
 import Users from './pages/Users';
 import Reports from './pages/Reports';
 import Appointments from './pages/Appointments';
+import Warehouses from './pages/Warehouses';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="shipments" element={<Shipments />} />
           <Route path="appointments" element={<Appointments />} />
+          <Route path="warehouses" element={<Warehouses />} />
           <Route path="ndr" element={<NDRManagement />} />
           <Route path="reports" element={<Reports />} />
           <Route path="users" element={<Users />} />

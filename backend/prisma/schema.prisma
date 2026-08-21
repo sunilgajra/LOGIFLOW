@@ -30,6 +30,7 @@ model Company {
   audit_logs       AuditLog[]
   settings         Setting[]
   zoneMappings     ZoneMapping[]
+  warehouses       Warehouse[]
 }
 
 model User {
@@ -344,4 +345,28 @@ model Setting {
   company Company @relation(fields: [company_id], references: [id])
 
   @@unique([company_id, key])
+}
+
+model Warehouse {
+  id                    String   @id @default(uuid())
+  company_id            String
+  facility_name         String
+  contact_person       String?
+  contact_phone         String
+  email                 String?
+  address_line          String
+  pincode               String
+  city                  String
+  state                 String
+  default_pickup_slot   String?  @default("10:00 AM - 01:00 PM")
+  working_days          String?  @default("Monday,Tuesday,Wednesday,Thursday,Friday,Saturday")
+  return_same_as_pickup Boolean  @default(true)
+  return_address        String?
+  status                String   @default("ACTIVE")
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
+
+  @@index([company_id])
 }

@@ -18,6 +18,7 @@ import { login } from './controllers/auth.controller';
 import { handleCourierWebhook } from './controllers/webhook.controller';
 import { getNDRShipments, processNDRAction } from './controllers/ndr.controller';
 import { deliverShipment } from './controllers/delivery.controller';
+import { getWarehouses, createWarehouse, updateWarehouse } from './controllers/warehouse.controller';
 
 const upload = multer({ dest: 'uploads/' });
 const router = Router();
@@ -104,9 +105,10 @@ router.post('/shipments', requireAuth, bookShipment);
 router.put('/shipments/:id', requireAuth, updateShipment);
 router.post('/shipments/:awb/deliver', requireAuth, deliverShipment);
 
-// --- Delivery Sheet Imports API ---
-router.post('/imports/preview', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'OPERATIONS']), upload.single('file'), previewImport);
-router.post('/imports/process', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'OPERATIONS']), processImport);
+// --- Manage Warehouses & Pickup Locations API ---
+router.get('/warehouses', requireAuth, getWarehouses);
+router.post('/warehouses', requireAuth, createWarehouse);
+router.put('/warehouses/:id', requireAuth, updateWarehouse);
 
 export default router;
 

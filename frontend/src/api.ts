@@ -265,6 +265,80 @@ const saveDemoCompanySettings = (settings: any) => {
   localStorage.setItem('demo_company_settings', JSON.stringify(settings));
 };
 
+const INITIAL_DEMO_WAREHOUSES = [
+  {
+    id: 'wh-1',
+    facility_name: '276001 - PROSTARM INFO',
+    contact_person: 'Rahul Sharma',
+    contact_phone: '9876543210',
+    email: 'warehouse@prostarm.com',
+    address_line: 'Plot 12, Industrial Area, Azamgarh',
+    pincode: '276001',
+    city: 'Azamgarh',
+    state: 'Uttar Pradesh',
+    default_pickup_slot: '10:00 AM - 01:00 PM',
+    working_days: 'Monday,Tuesday,Wednesday,Thursday,Friday,Saturday',
+    status: 'ACTIVE',
+    created_at: new Date(Date.now() - 20 * 86400000).toISOString()
+  },
+  {
+    id: 'wh-2',
+    facility_name: 'VERTIVE ENERGY PVT LTD',
+    contact_person: 'Amit Kumar',
+    contact_phone: '9123456789',
+    email: 'ops@vertive.com',
+    address_line: 'Sector 19A, Vashi, Navi Mumbai',
+    pincode: '400705',
+    city: 'Navi mumbai',
+    state: 'Maharashtra',
+    default_pickup_slot: '10:00 AM - 01:00 PM',
+    working_days: 'Monday,Tuesday,Wednesday,Thursday,Friday,Saturday',
+    status: 'ACTIVE',
+    created_at: new Date(Date.now() - 50 * 86400000).toISOString()
+  },
+  {
+    id: 'wh-3',
+    facility_name: 'G S OVERSEAS',
+    contact_person: 'Sandeep Verma',
+    contact_phone: '9811002233',
+    email: 'delhi@gsoverseas.com',
+    address_line: 'Okhla Phase 3, Industrial Area',
+    pincode: '110020',
+    city: 'Delhi',
+    state: 'Delhi',
+    default_pickup_slot: '02:00 PM - 05:00 PM',
+    working_days: 'Monday,Tuesday,Wednesday,Thursday,Friday,Saturday',
+    status: 'ACTIVE',
+    created_at: new Date(Date.now() - 100 * 86400000).toISOString()
+  },
+  {
+    id: 'wh-4',
+    facility_name: 'Reliance Retail Warehouse',
+    contact_person: 'Priya Patel',
+    contact_phone: '9988776655',
+    email: 'hub@relianceretail.com',
+    address_line: 'GIDC Highway Hub, Nadiad',
+    pincode: '387001',
+    city: 'Nadiad',
+    state: 'Gujarat',
+    default_pickup_slot: '10:00 AM - 01:00 PM',
+    working_days: 'Monday,Tuesday,Wednesday,Thursday,Friday,Saturday',
+    status: 'ACTIVE',
+    created_at: new Date(Date.now() - 120 * 86400000).toISOString()
+  }
+];
+
+const getDemoWarehouses = () => {
+  const stored = localStorage.getItem('demo_warehouses');
+  if (stored) {
+    try { return JSON.parse(stored); } catch (e) {}
+  }
+  return INITIAL_DEMO_WAREHOUSES;
+};
+const saveDemoWarehouses = (list: any[]) => {
+  localStorage.setItem('demo_warehouses', JSON.stringify(list));
+};
+
 // --- Main API Fetch Function with automatic offline demo persistence ---
 export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   let token = localStorage.getItem('token');
@@ -887,6 +961,59 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       }
 
       return getDemoInvoices();
+    }
+
+    if (endpoint.includes('/warehouses')) {
+      if (options.method === 'POST') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        const list = getDemoWarehouses();
+        const newWh = {
+          id: 'wh-' + Date.now(),
+          facility_name: bodyData.facility_name || 'New Pickup Location',
+          contact_person: bodyData.contact_person || '',
+          contact_phone: bodyData.contact_phone || '',
+          email: bodyData.email || '',
+          address_line: bodyData.address_line || '',
+          pincode: bodyData.pincode || '',
+          city: bodyData.city || 'Mumbai',
+          state: bodyData.state || 'Maharashtra',
+          default_pickup_slot: bodyData.default_pickup_slot || '10:00 AM - 01:00 PM',
+          working_days: Array.isArray(bodyData.working_days) ? bodyData.working_days.join(',') : bodyData.working_days,
+          status: 'ACTIVE',
+          created_at: new Date().toISOString()
+        };
+        const updated = [newWh, ...list];
+        saveDemoWarehouses(updated);
+        return newWh;
+      }
+
+      if (options.method === 'PUT') {
+        let bodyData: any = {};
+        try {
+          if (options.body && typeof options.body === 'string') {
+            bodyData = JSON.parse(options.body);
+          }
+        } catch (e) {}
+
+        const parts = endpoint.split('/');
+        const whId = parts[parts.length - 1];
+        const list = getDemoWarehouses();
+        const idx = list.findIndex((w: any) => w.id === whId);
+
+        if (idx !== -1) {
+          list[idx] = { ...list[idx], ...bodyData };
+          saveDemoWarehouses(list);
+          return list[idx];
+        }
+      }
+
+      return getDemoWarehouses();
     }
 
     return null;
