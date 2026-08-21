@@ -32,9 +32,7 @@
     "pdf-parse": "^2.4.5",
     "pg": "^8.23.0",
     "uuid": "^14.0.1",
-    "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
+    "xlsx": "^0.18.5",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
