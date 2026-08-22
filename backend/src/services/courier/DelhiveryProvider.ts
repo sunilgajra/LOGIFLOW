@@ -173,7 +173,7 @@ export class DelhiveryProvider implements ICourierProvider {
       if (!response.ok) {
         const errorText = await response.text();
         if (reservedWb?.id) {
-          await WaybillInventoryService.invalidateWaybill(reservedWb.id);
+          await WaybillInventoryService.markBookingFailed(reservedWb.id, errorText);
         }
         return { success: false, error: `Delhivery API returned HTTP ${response.status}: ${errorText}` };
       }
@@ -197,7 +197,7 @@ export class DelhiveryProvider implements ICourierProvider {
       }
 
       if (reservedWb?.id) {
-        await WaybillInventoryService.invalidateWaybill(reservedWb.id);
+        await WaybillInventoryService.markBookingFailed(reservedWb.id);
       }
 
       return {
@@ -208,7 +208,7 @@ export class DelhiveryProvider implements ICourierProvider {
 
     } catch (err: any) {
       if (reservedWb?.id) {
-        await WaybillInventoryService.invalidateWaybill(reservedWb.id);
+        await WaybillInventoryService.markBookingFailed(reservedWb.id);
       }
       return this.mockProvider.bookShipment(request);
     }

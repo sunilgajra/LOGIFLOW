@@ -106,7 +106,6 @@ export class WaybillInventoryService {
 
       // Fallback generator for simulation / mock mode or if response was empty in sandbox
       if (fetchedWaybills.length === 0) {
-        const nowMs = Date.now();
         for (let i = 0; i < count; i++) {
           const randomNum = Math.floor(100000000 + Math.random() * 900000000);
           fetchedWaybills.push(`DELH${randomNum}`);
@@ -154,32 +153,34 @@ export class WaybillInventoryService {
 
   /**
    * Atomically reserves the next available waybill for a company and courier.
-   * Concurrency safe: Uses Prisma transaction lock to ensure no two workers get the same AWB.
+   * Concurrency safe: Uses PostgreSQL raw SQL UPDATE subquery with FOR UPDATE SKIP LOCKED
+   * to guarantee row-level exclusive lock. Concurrent workers skip locked rows automatically.
    */
   static async reserveNextWaybill(companyId: string, courierId: string): Promise<any | null> {
     try {
-      const reservedWaybill = await prisma.$transaction(async (tx) => {
-        const available = await tx.courierWaybill.findFirst({
-          where: {
-            company_id: companyId,
-            courier_id: courierId,
-            status: 'AVAILABLE'
-          },
-          orderBy: { fetched_at: 'asc' }
-        });
+      const rows = await prisma.$queryRaw<any[]>`
+        UPDATE "CourierWaybill"
+        SET "status" = 'RESERVED',
+            "reserved_at" = NOW(),
+            "updated_at" = NOW()
+        WHERE "id" = (
+          SELECT "id"
+          FROM "CourierWaybill"
+          WHERE "company_id" = ${companyId}
+            AND "courier_id" = ${courierId}
+            AND "status" = 'AVAILABLE'
+          ORDER BY "fetched_at" ASC
+          LIMIT 1
+          FOR UPDATE SKIP LOCKED
+        )
+        RETURNING *;
+      `;
 
-        if (!available) return null;
+      if (!rows || rows.length === 0) {
+        return null; // AWB_INVENTORY_EXHAUSTED
+      }
 
-        return await tx.courierWaybill.update({
-          where: { id: available.id },
-          data: {
-            status: 'RESERVED',
-            reserved_at: new Date()
-          }
-        });
-      });
-
-      return reservedWaybill;
+      return rows[0];
     } catch (e) {
       console.error('[WaybillInventoryService] Reservation error:', e);
       return null;
@@ -205,19 +206,20 @@ export class WaybillInventoryService {
   }
 
   /**
-   * Marks a reserved waybill as INVALID if booking fails to prevent dangerous AWB duplication.
+   * Marks a reserved waybill as FAILED_PENDING_REVIEW if booking fails.
+   * Does NOT permanently invalidate or recycle immediately without review.
    */
-  static async invalidateWaybill(waybillId: string): Promise<void> {
+  static async markBookingFailed(waybillId: string, reason?: string): Promise<void> {
     try {
       await prisma.courierWaybill.update({
         where: { id: waybillId },
         data: {
-          status: 'INVALID',
+          status: 'FAILED_PENDING_REVIEW',
           invalidated_at: new Date()
         }
       });
     } catch (e) {
-      console.error('[WaybillInventoryService] Invalidate waybill error:', e);
+      console.error('[WaybillInventoryService] Mark booking failed error:', e);
     }
   }
 
@@ -231,7 +233,7 @@ export class WaybillInventoryService {
     const availableCount = await prisma.courierWaybill.count({ where: { ...whereClause, status: 'AVAILABLE' } });
     const reservedCount = await prisma.courierWaybill.count({ where: { ...whereClause, status: 'RESERVED' } });
     const usedCount = await prisma.courierWaybill.count({ where: { ...whereClause, status: 'USED' } });
-    const invalidCount = await prisma.courierWaybill.count({ where: { ...whereClause, status: 'INVALID' } });
+    const invalidCount = await prisma.courierWaybill.count({ where: { ...whereClause, status: { in: ['INVALID', 'FAILED_PENDING_REVIEW'] } } });
     const totalCount = await prisma.courierWaybill.count({ where: { ...whereClause } });
 
     const lastLog = await prisma.apiLog.findFirst({

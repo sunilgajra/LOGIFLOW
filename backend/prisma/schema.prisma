@@ -536,8 +536,8 @@ model CourierWaybill {
   company_id         String
   courier_account_id String?
   courier_id         String
-  waybill            String    @unique
-  status             String    @default("AVAILABLE") // AVAILABLE, RESERVED, USED, INVALID, EXPIRED
+  waybill            String
+  status             String    @default("AVAILABLE") // AVAILABLE, RESERVED, USED, FAILED_PENDING_REVIEW, INVALID, EXPIRED
   shipment_id        String?
   fetched_at         DateTime  @default(now())
   reserved_at        DateTime?
@@ -550,7 +550,7 @@ model CourierWaybill {
   company Company        @relation(fields: [company_id], references: [id])
   courier CourierPartner @relation(fields: [courier_id], references: [id])
 
-  @@unique([company_id, waybill])
+  @@unique([company_id, courier_id, waybill])
   @@index([company_id, courier_id, status])
   @@index([waybill])
 }
