@@ -98,26 +98,42 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
   };
 
   const handleTestConnection = async () => {
+    if (!creds.api_key) {
+      setTestResult({ success: false, message: 'Authentication Failed: API Key / Token is required.' });
+      return;
+    }
+
     setTesting(true);
     setTestResult(null);
-    const startTime = Date.now();
 
-    setTimeout(() => {
-      const latency = Date.now() - startTime + Math.floor(Math.random() * 40 + 20);
-      if (creds.api_key) {
+    try {
+      const res = await fetchApi('/couriers/test-connection', {
+        method: 'POST',
+        body: JSON.stringify({
+          courier_name: courier.courier_name,
+          api_credentials: creds
+        })
+      });
+
+      if (res.success) {
         setTestResult({
           success: true,
-          message: `Delhivery API Token Validated (HTTP 200 OK). Gateway Connected.`,
-          latency
+          message: res.message || 'Authentication Success (200 OK) - Gateway Connected.',
+          latency: res.latency || 45
         });
       } else {
         setTestResult({
           success: false,
-          message: `Authentication Failed: API Key / Token is required.`
+          message: res.message || 'Connection Error: Unable to authenticate with Gateway.'
         });
       }
-      setTesting(false);
-    }, 800);
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        message: err.message || 'Authentication Failed (HTTP 401 / 500 Network Error).'
+      });
+    }
+    setTesting(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {

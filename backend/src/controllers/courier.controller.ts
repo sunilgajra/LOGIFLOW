@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthenticatedRequest } from '../auth.middleware';
+import { CourierFactory } from '../services/courier/CourierFactory';
 
 export const getCouriers = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -113,5 +114,39 @@ export const deleteCourier = async (req: AuthenticatedRequest, res: Response) =>
   } catch (error: any) {
     console.error('Failed to delete courier:', error);
     res.status(500).json({ error: 'Failed to delete courier partner', details: error.message });
+  }
+};
+
+export const testCourierConnection = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { courier_name, api_credentials } = req.body;
+    const credsJson = typeof api_credentials === 'string' ? api_credentials : JSON.stringify(api_credentials || {});
+
+    const startTime = Date.now();
+    const provider = CourierFactory.getProvider(courier_name || 'DELHIVERY', credsJson);
+    
+    // Call harmless non-destructive serviceability check to validate token handshake
+    const testRes = await provider.checkServiceability('400001', '110001', 0.5);
+    const latency = Date.now() - startTime;
+
+    if (testRes.error && testRes.error.includes('HTTP 401')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication Failed: Invalid API Key or Access Token (HTTP 401 Unauthorized)',
+        latency
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Authentication Success (200 OK) - Live ${courier_name || 'Courier'} Gateway Connected.`,
+      latency,
+      details: testRes
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: `Connection Error: ${error.message}`
+    });
   }
 };

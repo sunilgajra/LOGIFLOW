@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from './prisma';
 
 import { getClients, createClient, updateClient, deleteClient, getClientById, uploadClientAgreement, createClientLogin } from './controllers/client.controller';
-import { getCouriers, createCourier, updateCourier, deleteCourier } from './controllers/courier.controller';
+import { getCouriers, createCourier, updateCourier, deleteCourier, testCourierConnection } from './controllers/courier.controller';
 import { getShipments, bookShipment, updateShipment } from './controllers/shipment.controller';
 import { getAnalytics, getMonthlyReport } from './controllers/analytics.controller';
 import { getUsers, createUser, updateUser, deleteUser } from './controllers/user.controller';
@@ -107,6 +107,7 @@ router.post('/zones', requireAuth, saveZoneMapping);
 // --- Couriers API ---
 router.get('/couriers', requireAuth, getCouriers);
 router.post('/couriers', requireAuth, createCourier);
+router.post('/couriers/test-connection', requireAuth, testCourierConnection);
 router.put('/couriers/:id', requireAuth, updateCourier);
 router.delete('/couriers/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), deleteCourier);
 
