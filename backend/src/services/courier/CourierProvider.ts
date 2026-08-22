@@ -122,4 +122,5 @@ export interface ICourierProvider {
   requestPickup?(pickupData: PickupRequestData): Promise<PickupResponse>;
   processNDRAction?(ndrData: NDRActionData): Promise<NDRResponse>;
   cancelShipment?(awbNumber: string): Promise<CancelResponse>;
+  generateLabel?(waybill: string, pdfSize?: 'A4' | '4R', pdf?: boolean): Promise<{ labelUrl: string; rawData?: any }>;
 }

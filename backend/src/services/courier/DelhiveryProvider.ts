@@ -41,15 +41,18 @@ export class DelhiveryProvider implements ICourierProvider {
   private mockProvider: MockCourierProvider;
   private baseUrl: string;
 
-  constructor(credentialsJson: string | null) {
-    this.mockProvider = new MockCourierProvider('DELHIVERY', credentialsJson);
+  constructor(credentialsData: any) {
+    const credsStr = typeof credentialsData === 'string' ? credentialsData : JSON.stringify(credentialsData || {});
+    this.mockProvider = new MockCourierProvider('DELHIVERY', credsStr);
 
-    if (credentialsJson) {
+    if (typeof credentialsData === 'string') {
       try {
-        this.credentials = JSON.parse(credentialsJson);
+        this.credentials = JSON.parse(credentialsData);
       } catch (err) {
         console.warn('[DelhiveryProvider] Failed to parse API credentials JSON:', err);
       }
+    } else if (credentialsData && typeof credentialsData === 'object') {
+      this.credentials = credentialsData;
     }
 
     const isStaging = this.credentials.mode === 'staging' || this.credentials.environment === 'staging';
@@ -188,10 +191,13 @@ export class DelhiveryProvider implements ICourierProvider {
           await WaybillInventoryService.confirmWaybillUsage(reservedWb.id, request.shipmentId);
         }
 
+        const isStaging = this.credentials.mode === 'staging';
+        const labelUrl = DelhiveryProvider.getLabelUrl(awb, isStaging, '4R', true);
+
         return {
           success: true,
           awbNumber: awb,
-          labelUrl: `${this.baseUrl}/api/v1/packages/label/?waybill=${awb}`,
+          labelUrl,
           rawResponse: resData,
         };
       }
@@ -371,5 +377,40 @@ export class DelhiveryProvider implements ICourierProvider {
     if (statusUpper.includes('NDR') || statusUpper.includes('UNDELIVERED')) return 'NDR';
 
     return 'BOOKED';
+  }
+
+  /**
+   * Official documented Delhivery B2C Generate Shipping Label URL:
+   * GET /api/p/packing_slip?wbns=<waybill>&pdf=true&pdf_size=<size>
+   */
+  public static getLabelUrl(waybill: string, isStaging: boolean = false, pdfSize: 'A4' | '4R' = '4R', pdf: boolean = true): string {
+    const baseUrl = isStaging ? 'https://staging-express.delhivery.com' : 'https://track.delhivery.com';
+    if (!pdf) {
+      return `${baseUrl}/api/p/packing_slip?wbns=${encodeURIComponent(waybill)}&pdf=false`;
+    }
+    return `${baseUrl}/api/p/packing_slip?wbns=${encodeURIComponent(waybill)}&pdf=true&pdf_size=${pdfSize}`;
+  }
+
+  async generateLabel(waybill: string, pdfSize: 'A4' | '4R' = '4R', pdf: boolean = true): Promise<{ labelUrl: string; rawData?: any }> {
+    const isStaging = this.credentials.mode === 'staging';
+    const labelUrl = DelhiveryProvider.getLabelUrl(waybill, isStaging, pdfSize, pdf);
+
+    if (pdf) {
+      return { labelUrl };
+    }
+
+    try {
+      const response = await fetch(labelUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Token ${this.apiKey}`,
+          'Accept': 'application/json'
+        }
+      });
+      const rawData = response.ok ? await response.json() : null;
+      return { labelUrl, rawData };
+    } catch (e) {
+      return { labelUrl, rawData: null };
+    }
   }
 }

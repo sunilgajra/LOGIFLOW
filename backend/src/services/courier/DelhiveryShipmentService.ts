@@ -280,7 +280,7 @@ export class DelhiveryShipmentService {
 
       // 9. Process Successful Booking
       if (isSuccess) {
-        const labelUrl = `${baseUrl}/api/v1/packages/label/?waybill=${returnedAwb}`;
+        const labelUrl = `${baseUrl}/api/p/packing_slip?wbns=${returnedAwb}&pdf=true&pdf_size=4R`;
 
         await prisma.shipment.update({
           where: { id: input.shipmentId },
