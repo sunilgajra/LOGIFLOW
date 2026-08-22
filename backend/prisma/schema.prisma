@@ -38,6 +38,11 @@ model Company {
   courier_waybills CourierWaybill[]
   tracking_events  TrackingEvent[]
   ndr_records      NdrRecord[]
+  client_rate_cards     ClientRateCard[]
+  courier_rate_cards    CourierRateCard[]
+  pincode_zone_mappings PincodeZoneMapping[]
+  courier_invoices      CourierInvoice[]
+  commercial_audit_logs CommercialAuditLog[]
 }
 
 model User {
@@ -87,6 +92,7 @@ model Client {
   warehouses       Warehouse[]
   pickup_requests  PickupRequest[]
   support_tickets  SupportTicket[]
+  client_rate_cards ClientRateCard[]
 }
 
 model CourierPartner {
@@ -115,6 +121,8 @@ model CourierPartner {
   accounts        CourierAccount[]
   courier_waybills CourierWaybill[]
   pickup_requests  PickupRequest[]
+  courier_rate_cards CourierRateCard[]
+  courier_invoices   CourierInvoice[]
 }
 
 model Shipment {
@@ -188,6 +196,11 @@ model Shipment {
   courier_gst_amount   Float?   @default(0)
   courier_total_cost   Float?   @default(0)
 
+  // --- Package Dimensions & Volumetric Metrics ---
+  length_cm            Float?
+  width_cm             Float?
+  height_cm            Float?
+
   // --- Detailed Courier Cost Breakdown & Commercial Charges ---
   forward_courier_cost Float?   @default(0)
   ndr_charge           Float?   @default(0)
@@ -195,9 +208,20 @@ model Shipment {
   return_shipping_cost Float?   @default(0)
   other_courier_cost   Float?   @default(0)
 
-  // --- Financial Profit Metrics ---
-  gross_margin         Float?   @default(0)
-  margin_percentage    Float?   @default(0)
+  // --- Expected vs Actual Invoice Reconciliation & True Profit Metrics ---
+  expected_courier_cost Float?  @default(0)
+  actual_courier_cost   Float?  @default(0)
+  cost_variance         Float?  @default(0)
+  variance_reason       String? // WEIGHT_DIFFERENCE, ZONE_DIFFERENCE, FUEL_SURCHARGE, COD_DIFFERENCE, NDR, RTO, REMOTE_AREA, OTHER, UNMATCHED
+  estimated_profit      Float?  @default(0)
+  actual_profit         Float?  @default(0)
+  gross_margin          Float?  @default(0)
+  margin_percentage     Float?  @default(0)
+
+  // --- Frozen Rate Card Versioning Snapshot ---
+  client_rate_card_id   String?
+  courier_rate_card_id  String?
+  rate_card_version     String?
 
   created_at   DateTime  @default(now())
   updated_at   DateTime  @updatedAt
@@ -205,7 +229,9 @@ model Shipment {
   podSignature String?
   deliveredAt  DateTime?
   label_url    String? // URL to the shipping label PDF from Courier
-  ndr_records  NdrRecord[]
+  ndr_records            NdrRecord[]
+  commercial_audit_logs  CommercialAuditLog[]
+  courier_invoice_lines  CourierInvoiceLine[]
 
   // --- Delhivery & Courier Gateway Booking Lifecycle & Idempotency ---
   delhivery_awb           String?
@@ -655,4 +681,198 @@ model NdrRecord {
   @@index([shipment_id])
   @@index([awb])
   @@index([ndr_status])
+}
+
+model ClientRateCard {
+  id                 String           @id @default(uuid())
+  company_id         String
+  client_id          String
+  name               String
+  version            String           @default("1.0")
+  effective_from     DateTime
+  effective_to       DateTime?
+  active             Boolean          @default(true)
+  volumetric_divisor Float            @default(5000)
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @updatedAt
+
+  company Company          @relation(fields: [company_id], references: [id])
+  client  Client           @relation(fields: [client_id], references: [id])
+  rules   ClientRateRule[]
+
+  @@index([company_id])
+  @@index([client_id])
+}
+
+model ClientRateRule {
+  id                    String         @id @default(uuid())
+  rate_card_id          String
+  company_id            String
+  zone                  String         // Zone A, Zone B, Zone C, Zone D, Zone E, Special
+  service_type          String         @default("SURFACE") // SURFACE, EXPRESS
+  min_weight_g          Float          @default(0)
+  max_weight_g          Float          @default(500)
+  base_rate             Float          @default(0)
+  additional_weight_g   Float          @default(500)
+  additional_rate       Float          @default(0)
+  cod_percentage        Float          @default(0)
+  cod_min_fee           Float          @default(0)
+  fuel_surcharge_pct    Float          @default(0)
+  handling_fee          Float          @default(0)
+  remote_area_fee       Float          @default(0)
+  other_surcharge       Float          @default(0)
+  gst_rate_pct          Float          @default(18)
+  created_at            DateTime       @default(now())
+  updated_at            DateTime       @updatedAt
+
+  rate_card ClientRateCard @relation(fields: [rate_card_id], references: [id], onDelete: Cascade)
+
+  @@index([rate_card_id])
+  @@index([company_id])
+}
+
+model CourierRateCard {
+  id                 String            @id @default(uuid())
+  company_id         String
+  courier_id         String            // DELHIVERY, BLUEDART
+  courier_account_id String?
+  name               String
+  version            String            @default("1.0")
+  effective_from     DateTime
+  effective_to       DateTime?
+  active             Boolean           @default(true)
+  volumetric_divisor Float             @default(5000)
+  created_at         DateTime          @default(now())
+  updated_at         DateTime          @updatedAt
+
+  company Company           @relation(fields: [company_id], references: [id])
+  courier CourierPartner    @relation(fields: [courier_id], references: [id])
+  rules   CourierRateRule[]
+
+  @@index([company_id])
+  @@index([courier_id])
+}
+
+model CourierRateRule {
+  id                     String          @id @default(uuid())
+  rate_card_id           String
+  company_id             String
+  zone                   String
+  service_type           String          @default("SURFACE")
+  min_weight_g           Float           @default(0)
+  max_weight_g           Float           @default(500)
+  base_cost              Float           @default(0)
+  additional_weight_g    Float           @default(500)
+  additional_cost        Float           @default(0)
+  cod_fee                Float           @default(0)
+  fuel_surcharge_pct     Float           @default(0)
+  rto_charge             Float           @default(0)
+  ndr_charge             Float           @default(0)
+  return_shipping_charge Float           @default(0)
+  remote_area_charge     Float           @default(0)
+  other_charge           Float           @default(0)
+  gst_rate_pct           Float           @default(18)
+  created_at             DateTime        @default(now())
+  updated_at             DateTime        @updatedAt
+
+  rate_card CourierRateCard @relation(fields: [rate_card_id], references: [id], onDelete: Cascade)
+
+  @@index([rate_card_id])
+  @@index([company_id])
+}
+
+model PincodeZoneMapping {
+  id         String   @id @default(uuid())
+  company_id String
+  pincode    String
+  zone       String   // Zone A, Zone B, Zone C, etc.
+  courier_id String?
+  client_id  String?
+  city       String?
+  state      String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
+
+  @@unique([company_id, pincode, courier_id, client_id])
+  @@index([company_id])
+  @@index([pincode])
+}
+
+model CourierInvoice {
+  id                 String               @id @default(uuid())
+  company_id         String
+  courier_id         String
+  courier_account_id String?
+  invoice_number     String
+  invoice_date       DateTime
+  total_amount       Float                @default(0)
+  status             String               @default("UNRECONCILED") // UNRECONCILED, PARTIALLY_RECONCILED, RECONCILED, DISPUTED
+  created_at         DateTime             @default(now())
+  updated_at         DateTime             @updatedAt
+
+  company Company              @relation(fields: [company_id], references: [id])
+  courier CourierPartner       @relation(fields: [courier_id], references: [id])
+  lines   CourierInvoiceLine[]
+
+  @@unique([company_id, courier_id, invoice_number])
+  @@index([company_id])
+  @@index([invoice_number])
+}
+
+model CourierInvoiceLine {
+  id                 String         @id @default(uuid())
+  invoice_id         String
+  company_id         String
+  awb_number         String
+  shipment_id        String?
+  charged_weight     Float          @default(0)
+  zone               String?
+  base_freight       Float          @default(0)
+  fuel_surcharge     Float          @default(0)
+  cod_fee            Float          @default(0)
+  ndr_fee            Float          @default(0)
+  rto_fee            Float          @default(0)
+  return_charge      Float          @default(0)
+  other_charge       Float          @default(0)
+  gst_amount         Float          @default(0)
+  total_amount       Float          @default(0)
+  expected_cost      Float          @default(0)
+  cost_variance      Float          @default(0)
+  variance_reason    String         @default("UNMATCHED") // WEIGHT_DIFFERENCE, ZONE_DIFFERENCE, FUEL_SURCHARGE, COD_DIFFERENCE, NDR, RTO, REMOTE_AREA, OTHER, UNMATCHED, MATCHED
+  created_at         DateTime       @default(now())
+  updated_at         DateTime       @updatedAt
+
+  invoice  CourierInvoice @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  shipment Shipment?       @relation(fields: [shipment_id], references: [id])
+
+  @@unique([invoice_id, awb_number])
+  @@index([invoice_id])
+  @@index([company_id])
+  @@index([awb_number])
+  @@index([shipment_id])
+}
+
+model CommercialAuditLog {
+  id               String    @id @default(uuid())
+  company_id       String
+  shipment_id      String?
+  awb_number       String?
+  calculation_type String    // CLIENT_ESTIMATE, COURIER_ESTIMATE, INVOICE_RECONCILIATION
+  rate_card_id     String?
+  rate_card_name   String?
+  rate_card_version String?
+  chargeable_weight Float?
+  zone             String?
+  breakdown_json   String?   // JSON string of rate breakdown
+  correlation_id   String?
+  created_at       DateTime  @default(now())
+
+  company  Company   @relation(fields: [company_id], references: [id])
+  shipment Shipment? @relation(fields: [shipment_id], references: [id])
+
+  @@index([company_id])
+  @@index([shipment_id])
+  @@index([awb_number])
 }
