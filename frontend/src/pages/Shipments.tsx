@@ -305,17 +305,31 @@ const Shipments = () => {
         }
       },
       {
-        header: 'Receiver',
-        accessorKey: 'receiver_name',
+        header: 'PICKUP & DELIVERY ADDRESS',
+        accessorKey: 'receiver_address',
         cell: (info: any) => {
           const row = info.row.original;
+          const originLocation = row.sender_name || row.client?.company_name || 'Prostam';
+          const originCityPin = `${row.origin || row.city || 'Pune'} - ${row.sender_address ? (row.sender_address.match(/\d{6}/)?.[0] || '411060') : '411060'}`;
+          
+          const deliveryLocation = row.receiver_name || 'Canteen Stores Department';
+          const deliveryCityPin = `${row.city || 'Bikaner'} - ${row.pincode || '334001'}`;
+
           return (
-            <div>
-              <p className="text-sm font-medium text-slate-900">{row.receiver_name}</p>
-              <p className="text-xs text-slate-500">{row.receiver_phone || ''}</p>
-              <p className="text-xs text-slate-400 truncate max-w-[200px] mt-0.5">
-                {row.receiver_address ? `${row.receiver_address}, ${row.city}` : row.city}
-              </p>
+            <div className="flex items-start space-x-2.5 py-0.5 text-xs">
+              <div className="flex flex-col items-center mt-1">
+                <div className="w-2 h-2 rounded-full bg-slate-900 dark:bg-white shrink-0" />
+                <div className="w-0.5 h-6 border-l-2 border-dotted border-slate-400 dark:border-slate-500 my-0.5" />
+                <div className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
+              </div>
+              <div className="space-y-1 min-w-0">
+                <div className="font-bold text-slate-900 dark:text-white truncate max-w-[240px]">
+                  {originLocation} <span className="text-slate-400 font-medium">({originCityPin})</span>
+                </div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[240px]">
+                  {deliveryLocation} <span className="text-slate-400 font-medium">({deliveryCityPin})</span>
+                </div>
+              </div>
             </div>
           );
         }

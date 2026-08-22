@@ -258,8 +258,13 @@ export default function PickupRequests() {
 
                     {/* Pickup Location */}
                     <td className="px-5 py-4 align-top">
-                      <p className="font-bold text-slate-900 dark:text-white uppercase">{p.facility_name}</p>
-                      <p className="text-[10px] text-slate-400 truncate max-w-[240px] mt-0.5">{p.warehouse?.address_line || 'Warehouse Facility Address'}</p>
+                      <div className="flex items-start space-x-2 text-xs">
+                        <div className="w-2 h-2 rounded-full bg-slate-900 dark:bg-white shrink-0 mt-1" />
+                        <div>
+                          <p className="font-bold text-slate-900 dark:text-white uppercase">{p.facility_name}</p>
+                          <p className="text-[10px] text-slate-400 font-medium truncate max-w-[240px] mt-0.5">{p.warehouse?.address_line || 'Warehouse Facility Address'}</p>
+                        </div>
+                      </div>
                     </td>
 
                     {/* Status */}
