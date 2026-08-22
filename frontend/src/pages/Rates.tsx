@@ -225,15 +225,15 @@ export default function Rates() {
         <div className="flex space-x-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
           <button 
             onClick={() => setActiveTab('cards')}
-            className={`flex items-center px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'cards' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
+            className={`flex items-center px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${activeTab === 'cards' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
           >
             <CreditCard className="w-4 h-4 mr-1.5" /> Rate Cards
           </button>
           <button 
             onClick={() => setActiveTab('calculator')}
-            className={`flex items-center px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'calculator' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
+            className={`flex items-center px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${activeTab === 'calculator' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
           >
-            <Calculator className="w-4 h-4 mr-1.5" /> Live Rate Calculator
+            <Calculator className="w-4 h-4 mr-1.5" /> Internal Profit Matrix
           </button>
         </div>
       </div>
