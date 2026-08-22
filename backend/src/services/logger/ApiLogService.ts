@@ -17,13 +17,20 @@ export interface LogApiInput {
 export class ApiLogService {
   static async log(input: LogApiInput): Promise<void> {
     try {
+      let validCompanyId = input.companyId;
+      if (!validCompanyId || validCompanyId === 'unknown' || validCompanyId === 'multi-tenant' || validCompanyId === 'system') {
+        const comp = await prisma.company.findFirst();
+        if (!comp) return;
+        validCompanyId = comp.id;
+      }
+
       // Sanitize request and response metadata to mask secrets/tokens
       const sanitizedReq = input.requestMeta ? this.sanitize(input.requestMeta) : null;
       const sanitizedRes = input.responseMeta ? this.sanitize(input.responseMeta) : null;
 
       await prisma.apiLog.create({
         data: {
-          company_id: input.companyId,
+          company_id: validCompanyId,
           courier_id: input.courierId || null,
           shipment_id: input.shipmentId || null,
           operation: input.operation,

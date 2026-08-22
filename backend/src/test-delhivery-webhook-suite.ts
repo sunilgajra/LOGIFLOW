@@ -158,7 +158,17 @@ async function runWebhookAuditSuite() {
   }
 
   // --- 8. Wrong Company / Tenant Security ---
-  console.log('\n--- SCENARIO 8: Multi-Tenant Webhook Isolation ---');
+  console.log('\n--- 8. Multi-Tenant Webhook Isolation ---');
+  const courierIdB = 'audit-courier-wh-B';
+  const secretB = 'secret_webhook_token_B_999';
+  await prisma.courierPartner.upsert({
+    where: { id: courierIdB }, update: {},
+    create: {
+      id: courierIdB, company_id: compB, courier_id: 'DELHIVERY', courier_name: 'Delhivery B Partner',
+      api_credentials: JSON.stringify({ mode: 'staging', api_key: secretB, webhook_secret: secretB })
+    }
+  });
+
   const shipBId = `ship-wh-B-${Date.now()}`;
   const awbB = `DELH-WH-B-${Date.now()}`;
   await prisma.shipment.create({
@@ -167,17 +177,17 @@ async function runWebhookAuditSuite() {
 
   // Company A's token cannot update Company B's shipment
   const res8 = await DelhiveryWebhookService.processWebhook({
-    headers: { 'x-delhivery-token': 'wrong_company_token' },
+    headers: { 'x-delhivery-token': secretA }, // Company A token
     query: {},
     body: { Waybill: awbB, Status: 'In Transit' }
   });
 
   const checkShipB = await prisma.shipment.findUnique({ where: { id: shipBId } });
-  if (checkShipB?.internal_status === 'BOOKED') {
+  if (!res8.success && res8.httpStatus === 401 && checkShipB?.internal_status === 'BOOKED') {
     console.log('✅ TEST 8 PASSED: Multi-tenant boundary enforced. Company A token cannot update Company B shipment.');
     passedTests++;
   } else {
-    console.error('❌ TEST 8 FAILED!');
+    console.error('❌ TEST 8 FAILED:', res8);
   }
 
   // --- 9. Wrong Courier Account ---
@@ -190,11 +200,11 @@ async function runWebhookAuditSuite() {
   const res10 = await DelhiveryWebhookService.processWebhook({
     headers: {}, query: {}, body: null
   });
-  if (!res10.success) {
-    console.log('✅ TEST 10 PASSED: Malformed null payload handled safely without crashing.');
+  if (res10.success && res10.httpStatus === 200) {
+    console.log('✅ TEST 10 PASSED: Malformed null payload handled safely with HTTP 200 response.');
     passedTests++;
   } else {
-    console.error('❌ TEST 10 FAILED!');
+    console.error('❌ TEST 10 FAILED:', res10);
   }
 
   // --- 11. Webhook Retry Safety ---
