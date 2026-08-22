@@ -59,15 +59,15 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-3 gap-4 pt-1">
             
-            {/* Awaiting Pickup */}
+            {/* Awaiting Pickup (Manifested Orders) */}
             <div className="space-y-3">
               <div>
                 <p className="text-3xl font-black text-slate-900 dark:text-white">{awaitingPickupCount}</p>
                 <p className="text-xs font-semibold text-slate-500 mt-1 leading-tight">Awaiting Pickup</p>
               </div>
               <button 
-                onClick={() => navigate('/dashboard/pickups')}
-                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center"
+                onClick={() => navigate('/dashboard/shipments?status=MANIFESTED')}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center cursor-pointer"
               >
                 View
               </button>

@@ -132,14 +132,19 @@ export default function PickupRequests() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center">
-            <Truck className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" /> Pickup Requests
+            <Truck className="w-6 h-6 mr-2 text-blue-600 dark:text-blue-400" /> Domestic Pickup Requests
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">Create and manage all your domestic pickup requests here.</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Schedule vehicle pickup slots for your warehouses. Looking for manifested packages awaiting pickup?{' '}
+            <button onClick={() => navigate('/dashboard/shipments?status=MANIFESTED')} className="text-blue-600 dark:text-blue-400 font-bold hover:underline">
+              View Awaiting Pickup Orders →
+            </button>
+          </p>
         </div>
 
         <button
           onClick={() => setShowDrawer(true)}
-          className="bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow-md transition-all flex items-center"
+          className="bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow-md transition-all flex items-center cursor-pointer"
         >
           Create pickup request +
         </button>
