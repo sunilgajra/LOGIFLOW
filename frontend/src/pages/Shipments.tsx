@@ -501,7 +501,8 @@ const Shipments = () => {
         <div className="flex overflow-x-auto border-b border-slate-200 bg-slate-50 px-4 pt-3 gap-2">
           {[
             { id: '', label: 'All Orders' },
-            { id: 'PENDING_APPROVAL', label: 'Pending Admin Approval', badge: data.filter((s: any) => s.internal_status === 'PENDING_APPROVAL').length },
+            { id: 'MANIFESTED', label: 'Manifested (Awaiting Pickup)', badge: data.filter((s: any) => s.internal_status === 'MANIFESTED' || s.internal_status === 'PENDING_APPROVAL' || s.internal_status === 'BOOKED').length },
+            { id: 'PENDING_APPROVAL', label: 'Pending Admin Approval' },
             { id: 'BOOKED', label: 'Confirmed / Booked' },
             { id: 'IN_TRANSIT', label: 'In Transit' },
             { id: 'DELIVERED', label: 'Delivered' },

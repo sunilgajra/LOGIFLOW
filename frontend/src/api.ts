@@ -610,7 +610,9 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       try {
         const urlObj = new URL('http://dummy.com' + endpoint);
         const statusParam = urlObj.searchParams.get('status');
-        if (statusParam) {
+        if (statusParam === 'MANIFESTED') {
+          list = list.filter((s: any) => s.internal_status === 'MANIFESTED' || s.internal_status === 'PENDING_APPROVAL' || s.internal_status === 'BOOKED');
+        } else if (statusParam) {
           list = list.filter((s: any) => s.internal_status === statusParam);
         }
       } catch (e) {}
