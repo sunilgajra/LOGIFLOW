@@ -155,60 +155,18 @@ export default function Warehouses() {
       {/* Title & Action Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-3">
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Warehouse Facilities & Inventory</h1>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white">Pickup Locations</h1>
           <a href="#learn-more" className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center font-semibold bg-blue-50 dark:bg-blue-900/40 px-2.5 py-1 rounded-full">
-            <HelpCircle className="w-3.5 h-3.5 mr-1" /> Stock & Docks
+            <HelpCircle className="w-3.5 h-3.5 mr-1" /> Learn More
           </a>
         </div>
         
         <button
           onClick={handleOpenAddModal}
-          className="bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow-md transition-all flex items-center cursor-pointer"
+          className="bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow-md transition-all flex items-center"
         >
-          <Plus className="w-4 h-4 mr-1.5" /> Add New Pickup Location
+          Add New Pickup Location
         </button>
-      </div>
-
-      {/* Stock & SKU Capacity KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs space-y-1">
-          <div className="flex justify-between items-center text-xs font-bold text-slate-500">
-            <span>Total Active Facilities</span>
-            <Building2 className="w-4 h-4 text-blue-600" />
-          </div>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">{warehouses.length || 4}</p>
-          <p className="text-[10px] font-bold text-emerald-600">100% Operational</p>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs space-y-1">
-          <div className="flex justify-between items-center text-xs font-bold text-slate-500">
-            <span>Storage Space Allocated</span>
-            <MapPin className="w-4 h-4 text-indigo-600" />
-          </div>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">45,000 sq ft</p>
-          <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden mt-1">
-            <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: '78%' }}></div>
-          </div>
-          <p className="text-[10px] text-slate-400">78% Storage Utilization</p>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs space-y-1">
-          <div className="flex justify-between items-center text-xs font-bold text-slate-500">
-            <span>SKU Live Inventory</span>
-            <Clock className="w-4 h-4 text-purple-600" />
-          </div>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">1,280 SKUs</p>
-          <p className="text-[10px] text-slate-400 font-mono">84,500 Total Stock Units</p>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs space-y-1">
-          <div className="flex justify-between items-center text-xs font-bold text-slate-500">
-            <span>Inbound Dock Bays</span>
-            <Calendar className="w-4 h-4 text-emerald-600" />
-          </div>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">12 Docks</p>
-          <p className="text-[10px] text-emerald-600 font-bold">8 Slots Available Today</p>
-        </div>
       </div>
 
       {/* Search & Filter Bar */}

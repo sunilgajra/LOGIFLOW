@@ -134,41 +134,9 @@ export default function Appointments() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center">
-            Manage Appointments & Dock Slots
+            Manage Appointments
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">B2B Quick-Commerce & Warehouse Dock Scheduling Portal</p>
-        </div>
-      </div>
-
-      {/* Interactive Dock Slot Time Grid Visualizer */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 shadow-2xs space-y-3">
-        <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-2">
-          <h2 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-wider flex items-center">
-            <Building2 className="w-4 h-4 mr-2 text-indigo-600" /> Today's Inbound Dock Slot Allocation
-          </h2>
-          <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2.5 py-0.5 rounded-full">
-            8 Slots Open
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
-          {[
-            { bay: 'Dock Bay 01', slot: '10:00 AM - 01:00 PM', status: 'RESERVED', assigned: 'Flipkart Hub (PO-900501)', color: 'bg-emerald-50 border-emerald-300 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300' },
-            { bay: 'Dock Bay 02', slot: '02:00 PM - 05:00 PM', status: 'AVAILABLE', assigned: 'Open for Unloading', color: 'bg-blue-50 border-blue-300 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300' },
-            { bay: 'Dock Bay 03', slot: '08:00 AM - 10:00 AM', status: 'COMPLETED', assigned: 'Amazon India (APT-33921)', color: 'bg-slate-100 border-slate-300 dark:bg-slate-900 text-slate-600 dark:text-slate-400' },
-            { bay: 'Dock Bay 04', slot: '06:00 PM - 09:00 PM', status: 'AVAILABLE', assigned: 'Open for Express Delivery', color: 'bg-blue-50 border-blue-300 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300' },
-          ].map((dock, idx) => (
-            <div key={idx} className={`p-3.5 rounded-xl border ${dock.color} space-y-1`}>
-              <div className="flex justify-between items-center font-bold text-xs">
-                <span>{dock.bay}</span>
-                <span className="text-[9px] uppercase px-1.5 py-0.5 rounded font-black bg-white/70 dark:bg-slate-800 shadow-2xs">
-                  {dock.status}
-                </span>
-              </div>
-              <p className="text-[11px] font-mono font-semibold">{dock.slot}</p>
-              <p className="text-[10px] opacity-80 truncate">{dock.assigned}</p>
-            </div>
-          ))}
         </div>
       </div>
 
