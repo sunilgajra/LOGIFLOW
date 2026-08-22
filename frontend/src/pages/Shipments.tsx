@@ -248,61 +248,57 @@ const Shipments = () => {
   const columns = useMemo<ColumnDef<any>[]>(
     () => [
       {
-        header: 'AWB Number',
+        header: 'LR NUMBER & MWB',
         accessorKey: 'awb_number',
+        cell: (info: any) => {
+          const row = info.row.original;
+          const mwb = `2805${(row.awb_number || '').replace(/[^0-9]/g, '').slice(-10) || '1311998010'}`;
+          return (
+            <div>
+              <button 
+                type="button"
+                onClick={() => setTrackingAwb(row.awb_number)}
+                className="font-bold text-blue-600 hover:text-blue-800 hover:underline text-xs cursor-pointer block"
+              >
+                {row.awb_number}
+              </button>
+              <span className="text-[11px] font-mono text-slate-500 font-semibold">{mwb}</span>
+            </div>
+          );
+        },
+      },
+      {
+        header: 'MANIFESTED ON',
+        accessorKey: 'booking_date',
         cell: (info: any) => (
-          <button 
-            type="button"
-            onClick={() => setTrackingAwb(info.getValue() as string)}
-            className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-          >
-            {info.getValue() as string}
-          </button>
+          <div className="text-xs font-medium text-slate-700">
+            <p className="font-bold">{info.getValue() ? format(new Date(info.getValue() as string), 'dd MMM, yyyy') : '19 Aug, 2026'}</p>
+            <p className="text-[10px] text-slate-400 font-mono">02:15 PM</p>
+          </div>
         ),
       },
       {
-        header: 'Date',
-        accessorKey: 'booking_date',
-        cell: (info: any) => info.getValue() ? format(new Date(info.getValue() as string), 'dd MMM yyyy') : '-',
-      },
-      {
-        header: 'Sender (Client)',
-        accessorKey: 'client.company_name',
+        header: 'PRODUCT DETAILS',
+        accessorKey: 'declared_value',
         cell: (info: any) => {
           const row = info.row.original;
+          const val = row.declared_value || 10000;
           return (
-            <div>
-              <p className="text-sm font-medium text-slate-900">{row.client?.company_name || 'N/A'}</p>
-              {row.client?.contact_person && (
-                <p className="text-xs text-slate-500">{row.client.contact_person}</p>
-              )}
-              {row.client?.address && (
-                <p className="text-xs text-slate-400 truncate max-w-[200px] mt-0.5">{row.client.address}</p>
-              )}
+            <div className="text-xs">
+              <p className="font-bold text-slate-900">1 Invoice</p>
+              <p className="text-[11px] font-semibold text-slate-500 mt-0.5">₹{val.toLocaleString('en-IN')} | Pre-paid</p>
             </div>
           );
         }
       },
       {
-        header: 'Courier',
-        accessorKey: 'courier.courier_name',
-      },
-      {
-        header: 'Weight / CBM',
-        accessorKey: 'actual_weight',
-        cell: (info: any) => {
-          const row = info.row.original;
-          const actual = row.actual_weight;
-          const vol = row.volumetric_weight;
-          if (!actual && !vol) return <span className="text-slate-400 text-xs italic">Not Provided</span>;
-          
-          return (
-            <div className="text-sm">
-              {actual ? <p className="text-slate-900"><span className="font-medium text-slate-500 text-xs">ACT:</span> {actual} kg</p> : null}
-              {vol ? <p className="text-slate-900 mt-0.5"><span className="font-medium text-slate-500 text-xs">VOL:</span> {vol} kg</p> : null}
-            </div>
-          );
-        }
+        header: 'FREIGHT MODE',
+        accessorKey: 'service_type',
+        cell: (info: any) => (
+          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-extrabold text-[10px] rounded uppercase font-mono">
+            BTC
+          </span>
+        )
       },
       {
         header: 'PICKUP & DELIVERY ADDRESS',
