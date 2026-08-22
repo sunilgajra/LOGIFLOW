@@ -208,6 +208,9 @@ model Shipment {
   booked_at               DateTime?
   correlation_id          String?
 
+  pickup_request_id String?
+  pickup_request    PickupRequest? @relation(fields: [pickup_request_id], references: [id])
+
   company Company         @relation(fields: [company_id], references: [id])
   client  Client?         @relation(fields: [client_id], references: [id])
   courier CourierPartner? @relation(fields: [courier_id], references: [id])
@@ -480,7 +483,9 @@ model PickupRequest {
   client    Client?         @relation(fields: [client_id], references: [id])
   warehouse Warehouse?      @relation(fields: [warehouse_id], references: [id])
   courier   CourierPartner? @relation(fields: [courier_id], references: [id])
+  shipments Shipment[]
 
+  @@unique([company_id, facility_name, pickup_date])
   @@index([company_id])
   @@index([client_id])
   @@index([courier_id])
