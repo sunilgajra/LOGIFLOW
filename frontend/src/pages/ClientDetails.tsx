@@ -199,22 +199,32 @@ export default function ClientDetails() {
       `}</style>
 
       {/* Header */}
-      <div className="flex items-center space-x-4 no-print">
-        <button 
-          onClick={() => navigate('/dashboard/clients')}
-          className="p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl hover:bg-slate-50 text-slate-600 dark:text-slate-300 shadow-2xs transition-all"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center">
-            {client.company_name}
-            <span className="ml-3 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-              {client.status || 'ACTIVE'}
-            </span>
-          </h1>
-          <p className="text-xs text-slate-500 font-mono mt-0.5">Client Account ID: {client.client_id}</p>
+      <div className="flex flex-wrap items-center justify-between gap-4 no-print">
+        <div className="flex items-center space-x-4">
+          <button 
+            onClick={() => navigate('/dashboard/clients')}
+            className="p-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl hover:bg-slate-50 text-slate-600 dark:text-slate-300 shadow-2xs transition-all cursor-pointer"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center">
+              {client.company_name}
+              <span className="ml-3 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                {client.status || 'ACTIVE'}
+              </span>
+            </h1>
+            <p className="text-xs text-slate-500 font-mono mt-0.5">Client Account ID: {client.client_id}</p>
+          </div>
         </div>
+
+        <button 
+          onClick={() => navigate(`/dashboard/shipments?clientId=${client.id}`)}
+          className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center cursor-pointer"
+        >
+          <Printer className="w-4 h-4 mr-2 text-blue-400" />
+          Bulk Print 4x6 Thermal Labels
+        </button>
       </div>
 
       {/* Info Cards */}

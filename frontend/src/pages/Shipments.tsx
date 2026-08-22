@@ -420,25 +420,59 @@ const Shipments = () => {
       .catch(console.error);
   };
 
+  const [selectedBatchLabels, setSelectedBatchLabels] = useState<any[] | null>(null);
+  const [selectedClientFilter, setSelectedClientFilter] = useState<string>(filterClientId || '');
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-slate-900">Shipments</h1>
-        <div className="flex space-x-3">
-          <button onClick={() => setShowBookModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center">
+        <div className="flex flex-wrap items-center gap-2">
+          {clients.length > 0 && user?.role !== 'CLIENT' && (
+            <select
+              value={selectedClientFilter}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedClientFilter(val);
+                fetchShipments(1, search, activeStatusTab);
+              }}
+              className="bg-white border border-slate-300 rounded-md text-xs font-semibold px-3 py-2 text-slate-700 shadow-xs cursor-pointer"
+            >
+              <option value="">-- All Clients --</option>
+              {clients.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.company_name}</option>
+              ))}
+            </select>
+          )}
+
+          <button 
+            onClick={() => {
+              const clientObj = clients.find((c: any) => c.id === selectedClientFilter);
+              const labelsToPrint = selectedClientFilter 
+                ? data.filter((s: any) => s.client_id === selectedClientFilter || s.client?.id === selectedClientFilter || s.client?.company_name === clientObj?.company_name)
+                : data;
+              if (!labelsToPrint || labelsToPrint.length === 0) {
+                alert('No shipments available to print for this selection');
+                return;
+              }
+              setSelectedBatchLabels(labelsToPrint);
+            }}
+            className="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-md text-xs font-bold transition-all flex items-center shadow-xs cursor-pointer"
+          >
+            <Printer className="w-4 h-4 mr-1.5 text-blue-400" />
+            Bulk Print 4x6 Labels {selectedClientFilter ? `(${clients.find((c: any) => c.id === selectedClientFilter)?.company_name || 'Client'})` : `(${data.length})`}
+          </button>
+
+          <button onClick={() => setShowBookModal(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-xs font-bold transition-colors flex items-center cursor-pointer">
             <Plus className="w-4 h-4 mr-2" />
             Book Shipment
           </button>
-          <button className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center">
-            <Filter className="w-4 h-4 mr-2" />
-            Filters
-          </button>
           <button 
             onClick={exportToCsv}
-            className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center"
+            className="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-3 py-2 rounded-md text-xs font-bold transition-colors flex items-center cursor-pointer"
           >
-            <Download className="w-4 h-4 mr-2" />
-            Export
+            <Download className="w-4 h-4 mr-1.5" />
+            Export CSV
           </button>
         </div>
       </div>
@@ -1061,6 +1095,132 @@ const Shipments = () => {
                     Scan Barcode at Dispatch & Sorting Hub
                   </p>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Thermal 4x6 Shipping Label Modal (Per Client / Selection) */}
+      {selectedBatchLabels && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity print:hidden" aria-hidden="true" onClick={() => setSelectedBatchLabels(null)}>
+              <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xs"></div>
+            </div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen print:hidden" aria-hidden="true">&#8203;</span>
+            
+            <div className="relative z-10 inline-block align-bottom bg-white rounded-xl text-left shadow-2xl transform transition-all sm:my-8 sm:align-middle w-full max-w-2xl print:w-full print:shadow-none print:rounded-none">
+              
+              {/* Toolbar */}
+              <div className="bg-slate-900 text-white px-4 py-3 border-b border-slate-800 flex justify-between items-center rounded-t-xl print:hidden">
+                <div className="flex items-center space-x-2">
+                  <Printer className="w-4 h-4 text-blue-400" />
+                  <span className="text-xs font-bold">Bulk 4x6 Thermal Label Print ({selectedBatchLabels.length} Labels)</span>
+                </div>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => window.print()} 
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold flex items-center shadow-xs cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5 mr-1" /> Print All {selectedBatchLabels.length} Thermal Labels
+                  </button>
+                  <button onClick={() => setSelectedBatchLabels(null)} className="text-slate-400 hover:text-white p-1 cursor-pointer">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Printable Batch Labels Container */}
+              <div id="printable-label" className="p-4 bg-slate-100 max-h-[75vh] overflow-y-auto space-y-6 print:p-0 print:bg-white print:max-h-none print:space-y-0">
+                {selectedBatchLabels.map((lbl: any, idx: number) => (
+                  <div 
+                    key={lbl.id || idx} 
+                    className="p-4 bg-white text-black font-sans text-xs w-[4in] min-h-[6in] border border-black mx-auto shadow-sm print:border-none print:p-0 print:shadow-none mb-6 print:mb-0"
+                    style={{ pageBreakAfter: 'always', breakAfter: 'page' }}
+                  >
+                    {/* Header Row */}
+                    <div className="border-b-2 border-black pb-2 mb-2 flex justify-between items-start">
+                      <div>
+                        <h1 className="text-xl font-black tracking-tight leading-none">LogiFlow</h1>
+                        <span className="text-[9px] font-black uppercase text-slate-700 tracking-wider">Express Logistics</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[9px] font-bold block text-slate-600">DATE: {lbl.booking_date ? format(new Date(lbl.booking_date), 'dd/MM/yyyy') : format(new Date(), 'dd/MM/yyyy')}</span>
+                        <span className="text-xs font-black uppercase bg-black text-white px-1.5 py-0.5 rounded inline-block mt-0.5">
+                          {lbl.courier?.courier_name || 'DELHIVERY AIR'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Routing Code Box */}
+                    <div className="border-2 border-black p-1.5 mb-2 bg-black text-white flex justify-between items-center rounded-xs">
+                      <div>
+                        <span className="text-[8px] uppercase tracking-widest text-slate-300 block">Hub Sort Code</span>
+                        <span className="text-lg font-black tracking-widest font-mono">
+                          {lbl.city?.substring(0, 3).toUpperCase() || 'DEL'}/{lbl.state?.substring(0, 2).toUpperCase() || 'N1'}-{lbl.pincode || '400001'}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[9px] font-bold bg-white text-black px-1.5 py-0.5 rounded uppercase">
+                          {lbl.service_type || 'EXPRESS'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Deliver To (Consignee) */}
+                    <div className="border-b-2 border-black pb-2 mb-2">
+                      <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 block mb-0.5">SHIP TO (CONSIGNEE):</span>
+                      <p className="text-sm font-black leading-tight text-black">{lbl.receiver_name}</p>
+                      <p className="text-[11px] font-semibold leading-tight text-slate-800 mt-0.5">{lbl.receiver_address || lbl.address}</p>
+                      <p className="text-xs font-black text-black mt-1 uppercase">
+                        {lbl.city}, {lbl.state} - {lbl.pincode}
+                      </p>
+                      <p className="text-[11px] font-bold text-slate-900 mt-0.5">Ph: {lbl.receiver_phone || lbl.phone || 'N/A'}</p>
+                    </div>
+
+                    {/* Sender Details */}
+                    <div className="border-b-2 border-black pb-2 mb-2">
+                      <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 block mb-0.5">SHIP FROM (SENDER):</span>
+                      <p className="text-xs font-bold text-black">{lbl.client?.company_name || lbl.sender_name || 'LogiFlow Merchant'}</p>
+                      <p className="text-[10px] text-slate-700 leading-tight">{lbl.sender_address || lbl.client?.address || 'Authorized LogiFlow Origin Fulfillment Center'}</p>
+                    </div>
+
+                    {/* Package Details & Payment Grid */}
+                    <div className="border-2 border-black p-1.5 mb-2 grid grid-cols-3 gap-1 text-center bg-slate-50">
+                      <div className="border-r border-black pr-1">
+                        <span className="text-[8px] font-bold uppercase text-slate-500 block">Actual Wt</span>
+                        <span className="text-xs font-black">{lbl.actual_weight || '1.0'} kg</span>
+                      </div>
+                      <div className="border-r border-black px-1">
+                        <span className="text-[8px] font-bold uppercase text-slate-500 block">Pieces</span>
+                        <span className="text-xs font-black">{lbl.number_of_pieces || 1} Pcs</span>
+                      </div>
+                      <div className="pl-1">
+                        <span className="text-[8px] font-bold uppercase text-slate-500 block">Payment</span>
+                        <span className={`text-[10px] font-black px-1 rounded block ${lbl.cod_amount ? 'bg-black text-white' : 'bg-slate-200 text-black'}`}>
+                          {lbl.cod_amount ? `COD: ₹${lbl.cod_amount}` : 'PREPAID'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Code-128 Barcode */}
+                    <div className="text-center pt-1 border-t border-slate-300">
+                      <div className="flex justify-center my-1">
+                        <Barcode 
+                          value={lbl.awb_number || 'DELH88291034'} 
+                          width={1.8} 
+                          height={65} 
+                          fontSize={13} 
+                          margin={0} 
+                        />
+                      </div>
+                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                        Label {idx + 1} of {selectedBatchLabels.length} — Scan Barcode at Hub
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
