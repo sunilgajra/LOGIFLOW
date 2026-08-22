@@ -137,15 +137,50 @@ async function runNdrAuditSuite() {
     console.error('❌ TEST 6 FAILED! Confirmed count:', confirmedCount);
   }
 
-  // --- 7. NDR Action Failure Handling ---
-  console.log('\n--- SCENARIO 7: NDR Action Failure Handling ---');
-  console.log('✅ TEST 7 PASSED: Error response updates ndr_status to ACTION_FAILED.');
-  passedTests++;
+  // --- 7. NDR Action Timeout Safety (ACTION_SUBMISSION_UNKNOWN) ---
+  console.log('\n--- SCENARIO 7: NDR Action Timeout Safety (ACTION_SUBMISSION_UNKNOWN) ---');
+  const ndr7 = await DelhiveryNdrService.recordNdrEvent(compA, {
+    shipmentId: ship1Id, awb: awb1, ndrReason: 'Customer refused delivery', attemptNumber: 3, eventTime: '2026-08-22T16:30:00.000Z', rawStatus: 'Undelivered'
+  });
 
-  // --- 8. Action Retry ---
-  console.log('\n--- SCENARIO 8: Action Retry ---');
-  console.log('✅ TEST 8 PASSED: Retrying action from PENDING/FAILED transitions to CONFIRMED.');
-  passedTests++;
+  // Manually set to ACTION_SUBMISSION_UNKNOWN to simulate timeout scenario
+  await prisma.ndrRecord.update({
+    where: { id: ndr7.id },
+    data: { ndr_status: 'ACTION_SUBMISSION_UNKNOWN', action_status: 'UNKNOWN' }
+  });
+
+  // Reconcile with tracking feed showing "Reattempt Scheduled"
+  const rec7 = await DelhiveryNdrService.reconcileNdrStatus(compA, ndr7.id, 'Reattempt Scheduled');
+  const checkNdr7 = await prisma.ndrRecord.findUnique({ where: { id: ndr7.id } });
+
+  if (rec7.reconciled && rec7.actionStatus === 'CONFIRMED' && checkNdr7?.ndr_status === 'ACTION_CONFIRMED') {
+    console.log('✅ TEST 7 PASSED: Timeout safety verified! ACTION_SUBMISSION_UNKNOWN reconciled to ACTION_CONFIRMED without re-sending duplicate HTTP call.');
+    passedTests++;
+  } else {
+    console.error('❌ TEST 7 FAILED:', rec7);
+  }
+
+  // --- 8. Network Timeout Reconciliation Permitting Safe Retry ---
+  console.log('\n--- SCENARIO 8: Network Timeout Reconciliation Permitting Safe Retry ---');
+  const ndr8 = await DelhiveryNdrService.recordNdrEvent(compA, {
+    shipmentId: ship1Id, awb: awb1, ndrReason: 'Door locked', attemptNumber: 4, eventTime: '2026-08-22T17:00:00.000Z', rawStatus: 'Undelivered'
+  });
+
+  await prisma.ndrRecord.update({
+    where: { id: ndr8.id },
+    data: { ndr_status: 'ACTION_SUBMISSION_UNKNOWN', action_status: 'UNKNOWN' }
+  });
+
+  // Reconcile with tracking feed showing "Undelivered" (action NOT processed)
+  const rec8 = await DelhiveryNdrService.reconcileNdrStatus(compA, ndr8.id, 'Undelivered - Door Locked');
+  const checkNdr8 = await prisma.ndrRecord.findUnique({ where: { id: ndr8.id } });
+
+  if (rec8.reconciled && rec8.actionStatus === 'FAILED' && checkNdr8?.ndr_status === 'ACTION_FAILED') {
+    console.log('✅ TEST 8 PASSED: Verification confirmed action was NOT processed. Status safely set to ACTION_FAILED permitting retry.');
+    passedTests++;
+  } else {
+    console.error('❌ TEST 8 FAILED:', rec8);
+  }
 
   // --- 9. RTO Initiated Status ---
   console.log('\n--- SCENARIO 9: RTO Initiated Status ---');

@@ -132,6 +132,22 @@ export class DelhiveryNdrService {
       };
     }
 
+    // 2b. Timeout Safety & Reconciliation Check: If in ACTION_SUBMISSION_UNKNOWN, reconcile first
+    if (ndr.ndr_status === 'ACTION_SUBMISSION_UNKNOWN') {
+      const rec = await this.reconcileNdrStatus(input.companyId, ndr.id);
+      if (rec.actionStatus === 'CONFIRMED') {
+        return {
+          success: true,
+          ndrRecordId: ndr.id,
+          awb: ndr.awb,
+          action: ndr.selected_action || input.action,
+          actionStatus: 'CONFIRMED',
+          delhiveryResponse: { message: 'Action verified via reconciliation after previous timeout' },
+          correlationId: corrId
+        };
+      }
+    }
+
     // 3. Atomically acquire lock on NDR record (Prisma transaction)
     const lockedNdr = await prisma.$transaction(async (tx) => {
       const current = await tx.ndrRecord.findUnique({ where: { id: ndr.id } });
@@ -254,7 +270,44 @@ export class DelhiveryNdrService {
     } catch (err: any) {
       console.error('[DelhiveryNdrService] API Error:', err.message);
 
-      // Revert status to FAILED
+      const isTimeout = err.name === 'AbortError' || err.message?.includes('timeout') || err.message?.includes('ETIMEDOUT') || err.message?.includes('ECONNRESET');
+
+      if (isTimeout) {
+        // TIMEOUT SAFETY: Set state to ACTION_SUBMISSION_UNKNOWN
+        await prisma.ndrRecord.update({
+          where: { id: ndr.id },
+          data: {
+            ndr_status: 'ACTION_SUBMISSION_UNKNOWN',
+            action_status: 'UNKNOWN',
+            action_remarks: `Timeout during dispatch: ${err.message}`
+          }
+        });
+
+        await ApiLogService.log({
+          companyId: input.companyId,
+          courierId: 'DELHIVERY',
+          shipmentId: ndr.shipment_id,
+          operation: 'NDR',
+          httpStatus: 408,
+          success: false,
+          errorCode: 'NDR_API_TIMEOUT',
+          requestMeta: { endpoint, payload, correlationId: corrId },
+          responseMeta: { error: 'Request timed out. Marked ACTION_SUBMISSION_UNKNOWN for safety.' },
+          correlationId: corrId
+        });
+
+        return {
+          success: false,
+          ndrRecordId: ndr.id,
+          awb: ndr.awb,
+          action: input.action,
+          actionStatus: 'FAILED',
+          error: 'NDR Action timed out. Status set to ACTION_SUBMISSION_UNKNOWN. Run reconciliation before retrying.',
+          correlationId: corrId
+        };
+      }
+
+      // Revert status to FAILED for explicit 4xx/5xx API rejection
       await prisma.ndrRecord.update({
         where: { id: ndr.id },
         data: {
@@ -284,6 +337,55 @@ export class DelhiveryNdrService {
         actionStatus: 'FAILED',
         error: err.message,
         correlationId: corrId
+      };
+    }
+  }
+
+  /**
+   * Reconciles an NDR record in ACTION_SUBMISSION_UNKNOWN state by inspecting tracking scans.
+   */
+  static async reconcileNdrStatus(companyId: string, ndrRecordId: string, trackingScanOverride?: string): Promise<{ reconciled: boolean; actionStatus: string; message: string }> {
+    const ndr = await prisma.ndrRecord.findFirst({
+      where: { id: ndrRecordId, company_id: companyId },
+      include: { shipment: true }
+    });
+
+    if (!ndr) {
+      return { reconciled: false, actionStatus: 'FAILED', message: 'NDR Record not found' };
+    }
+
+    const currentStatus = trackingScanOverride || ndr.shipment?.courier_status || '';
+    const statusUpper = currentStatus.toUpperCase();
+
+    // Verification check: Did Delhivery process the action?
+    const isActionAccepted = statusUpper.includes('REATTEMPT') || statusUpper.includes('RTO') || statusUpper.includes('UPDATED') || statusUpper.includes('SCHEDULED');
+
+    if (isActionAccepted) {
+      await prisma.ndrRecord.update({
+        where: { id: ndr.id },
+        data: {
+          ndr_status: 'ACTION_CONFIRMED',
+          action_status: 'CONFIRMED',
+          action_completed_at: new Date()
+        }
+      });
+      return {
+        reconciled: true,
+        actionStatus: 'CONFIRMED',
+        message: 'Action verified as ACCEPTED by Delhivery tracking feed.'
+      };
+    } else {
+      await prisma.ndrRecord.update({
+        where: { id: ndr.id },
+        data: {
+          ndr_status: 'ACTION_FAILED',
+          action_status: 'FAILED'
+        }
+      });
+      return {
+        reconciled: true,
+        actionStatus: 'FAILED',
+        message: 'Action verified as NOT processed by Delhivery. Safe to retry.'
       };
     }
   }
