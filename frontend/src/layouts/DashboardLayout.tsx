@@ -26,68 +26,102 @@ const DashboardLayout = () => {
     navigate('/');
   };
 
-  const allNavigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
-    { name: 'Rate Calculator', href: '/dashboard/calculator', icon: Calculator, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
-    { name: 'WhatsApp & Email Alerts', href: '/dashboard/notifications', icon: Bell, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS'] },
-    { name: 'Shipments', href: '/dashboard/shipments', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
-    { name: 'Pickup Requests', href: '/dashboard/pickups', icon: Package, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
-    { name: 'Dock Appointments', href: '/dashboard/appointments', icon: Calendar, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
-    { name: 'Support / Tickets', href: '/dashboard/support', icon: MessageSquare, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
-    { name: 'Monthly Reports', href: '/dashboard/reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS'] },
-    { name: 'NDR Action Desk', href: '/dashboard/ndr', icon: ShieldAlert, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT'] },
-    { name: 'Billing / Invoices', href: `/dashboard/clients/${user?.client_id}`, icon: FileText, roles: ['CLIENT'] },
-    { name: 'Delivery Mode (E-POD)', href: '/dashboard/delivery', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS'] },
-    { name: 'Import Delivery Sheets', href: '/dashboard/import', icon: UploadCloud, roles: ['SUPER_ADMIN', 'ADMIN'] },
-    { name: 'Clients', href: '/dashboard/clients', icon: Users, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTS'] },
-    { name: 'Team Users', href: '/dashboard/users', icon: UserCheck, roles: ['SUPER_ADMIN', 'ADMIN'] },
-    { name: 'Couriers', href: '/dashboard/couriers', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN'] },
-    { name: 'Rate Cards', href: '/dashboard/rates', icon: FileText, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTS'] },
-    { name: 'Zone Mapping', href: '/dashboard/zones', icon: MapPin, roles: ['SUPER_ADMIN', 'ADMIN'] },
-    { name: 'Settings', href: '/dashboard/settings', icon: Settings, roles: ['SUPER_ADMIN'] },
+  const navigationGroups = [
+    {
+      title: 'CORE LOGISTICS',
+      items: [
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
+        { name: 'Rate Calculator', href: '/dashboard/calculator', icon: Calculator, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
+      ]
+    },
+    {
+      title: 'OPERATIONS & DISPATCH',
+      items: [
+        { name: 'Shipments', href: '/dashboard/shipments', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
+        { name: 'Pickup Requests', href: '/dashboard/pickups', icon: Package, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
+        { name: 'Dock Appointments', href: '/dashboard/appointments', icon: Calendar, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
+        { name: 'Delivery Mode (E-POD)', href: '/dashboard/delivery', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS'] },
+        { name: 'Import Delivery Sheets', href: '/dashboard/import', icon: UploadCloud, roles: ['SUPER_ADMIN', 'ADMIN'] },
+      ]
+    },
+    {
+      title: 'CUSTOMER & NDR DESK',
+      items: [
+        { name: 'NDR Action Desk', href: '/dashboard/ndr', icon: ShieldAlert, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT'] },
+        { name: 'WhatsApp & Email Alerts', href: '/dashboard/notifications', icon: Bell, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS'] },
+        { name: 'Support / Tickets', href: '/dashboard/support', icon: MessageSquare, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
+      ]
+    },
+    {
+      title: 'MASTERS & CONFIG',
+      items: [
+        { name: 'Clients & Billing', href: '/dashboard/clients', icon: Users, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTS'] },
+        { name: 'Billing / Invoices', href: `/dashboard/clients/${user?.client_id}`, icon: FileText, roles: ['CLIENT'] },
+        { name: 'Team Users', href: '/dashboard/users', icon: UserCheck, roles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Courier Partners', href: '/dashboard/couriers', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Rate Cards', href: '/dashboard/rates', icon: FileText, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTS'] },
+        { name: 'Zone Mapping', href: '/dashboard/zones', icon: MapPin, roles: ['SUPER_ADMIN', 'ADMIN'] },
+        { name: 'Monthly Reports', href: '/dashboard/reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS'] },
+        { name: 'Settings', href: '/dashboard/settings', icon: Settings, roles: ['SUPER_ADMIN'] },
+      ]
+    }
   ];
-
-  const navigation = allNavigation.filter(item => item.roles.includes(user?.role || ''));
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Desktop Permanent Sidebar */}
       <aside className="hidden md:flex md:w-64 bg-slate-900 text-white flex-col flex-shrink-0">
         <div className="h-16 flex items-center px-6 border-b border-slate-800">
-          <Link to="/" className="text-xl font-bold text-blue-400">LogiFlow</Link>
+          <Link to="/" className="text-xl font-black text-blue-400 tracking-tight flex items-center">
+            LogiFlow <span className="ml-2 text-[10px] bg-blue-600/30 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-mono uppercase">ERP</span>
+          </Link>
         </div>
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-          {navigation.map((item) => {
-            const isActive = location.pathname === item.href || (location.pathname.startsWith(item.href) && item.href !== '/dashboard');
+
+        <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto custom-scrollbar">
+          {navigationGroups.map((group) => {
+            const visibleItems = group.items.filter(item => item.roles.includes(user?.role || ''));
+            if (visibleItems.length === 0) return null;
+
             return (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                  isActive 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                {item.name}
-              </Link>
+              <div key={group.title} className="space-y-1">
+                <div className="px-3 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-500 font-mono">
+                  {group.title}
+                </div>
+                {visibleItems.map((item) => {
+                  const isActive = location.pathname === item.href || (location.pathname.startsWith(item.href) && item.href !== '/dashboard');
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className={`flex items-center px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                        isActive 
+                          ? 'bg-blue-600 text-white shadow-xs' 
+                          : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <item.icon className={`mr-2.5 h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                      <span className="truncate">{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>
+
         <div className="p-4 border-t border-slate-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold">
                 {user?.first_name?.charAt(0) || 'U'}
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium">{user?.first_name} {user?.last_name}</p>
-                <p className="text-xs text-slate-400">{user?.role === 'OPERATIONS' ? 'Driver' : user?.role === 'CLIENT' ? 'Client' : 'Admin'}</p>
+              <div className="ml-3 truncate">
+                <p className="text-xs font-bold text-white truncate">{user?.first_name} {user?.last_name}</p>
+                <p className="text-[10px] text-slate-400 font-semibold">{user?.role === 'OPERATIONS' ? 'Driver' : user?.role === 'CLIENT' ? 'Client' : 'Admin'}</p>
               </div>
             </div>
-            <button onClick={handleLogout} className="text-slate-400 hover:text-white" title="Logout">
-              <LogOut className="w-5 h-5" />
+            <button onClick={handleLogout} className="text-slate-400 hover:text-white p-1" title="Logout">
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -98,13 +132,13 @@ const DashboardLayout = () => {
         <div className="fixed inset-0 z-50 md:hidden flex">
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" 
+            className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs transition-opacity" 
             onClick={() => setMobileMenuOpen(false)}
           />
           {/* Drawer Content */}
           <aside className="relative w-72 bg-slate-900 text-white flex flex-col h-full shadow-2xl z-10">
             <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
-              <Link to="/" onClick={() => setMobileMenuOpen(false)} className="text-xl font-bold text-blue-400">LogiFlow</Link>
+              <Link to="/" onClick={() => setMobileMenuOpen(false)} className="text-xl font-black text-blue-400">LogiFlow</Link>
               <button 
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
@@ -112,23 +146,35 @@ const DashboardLayout = () => {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-              {navigation.map((item) => {
-                const isActive = location.pathname === item.href || (location.pathname.startsWith(item.href) && item.href !== '/dashboard');
+            <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+              {navigationGroups.map((group) => {
+                const visibleItems = group.items.filter(item => item.roles.includes(user?.role || ''));
+                if (visibleItems.length === 0) return null;
+
                 return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                      isActive 
-                        ? 'bg-blue-600 text-white' 
-                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                    }`}
-                  >
-                    <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                    {item.name}
-                  </Link>
+                  <div key={group.title} className="space-y-1">
+                    <div className="px-3 pb-1 text-[10px] font-black uppercase tracking-wider text-slate-500 font-mono">
+                      {group.title}
+                    </div>
+                    {visibleItems.map((item) => {
+                      const isActive = location.pathname === item.href || (location.pathname.startsWith(item.href) && item.href !== '/dashboard');
+                      return (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex items-center px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                            isActive 
+                              ? 'bg-blue-600 text-white shadow-xs' 
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                          }`}
+                        >
+                          <item.icon className={`mr-2.5 h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                          <span className="truncate">{item.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 );
               })}
             </nav>
