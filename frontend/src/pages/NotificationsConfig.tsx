@@ -16,14 +16,18 @@ export default function NotificationsConfig() {
     NDR_EXCEPTION: true
   });
 
-  const [selectedTemplate, setSelectedTemplate] = useState<'BOOKED' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'NDR_EXCEPTION'>('OUT_FOR_DELIVERY');
+  const [selectedTemplate, setSelectedTemplate] = useState<'BOOKED' | 'IN_TRANSIT' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'NDR_EXCEPTION'>('OUT_FOR_DELIVERY');
   const [testPhone, setTestPhone] = useState('9876543210');
   const [saved, setSaved] = useState(false);
 
-  const templates = {
+  const templates: Record<string, { title: string; text: string }> = {
     BOOKED: {
       title: 'Order Booked / Confirmed',
       text: '🚚 LogiFlow Order Confirmation\n\nHi {{customer_name}}, your shipment (AWB: {{awb_number}}) has been booked with {{courier_name}}.\n\nTrack Order: {{tracking_url}}'
+    },
+    IN_TRANSIT: {
+      title: 'In Transit / Hub Movement Update',
+      text: '🚚 LogiFlow Hub Update\n\nHi {{customer_name}}, your package (AWB: {{awb_number}}) has left the origin hub and is IN TRANSIT via {{courier_name}}.\n\nTrack Live: {{tracking_url}}'
     },
     OUT_FOR_DELIVERY: {
       title: 'Out for Delivery Alert',
@@ -45,7 +49,8 @@ export default function NotificationsConfig() {
   };
 
   const getTestWhatsAppUrl = () => {
-    const rawText = templates[selectedTemplate].text
+    const currentTpl = templates[selectedTemplate] || templates['OUT_FOR_DELIVERY'];
+    const rawText = currentTpl.text
       .replace('{{customer_name}}', 'Rahul Sharma')
       .replace('{{awb_number}}', 'DELH88291034')
       .replace('{{courier_name}}', 'Delhivery Express')
@@ -192,7 +197,7 @@ export default function NotificationsConfig() {
               <MessageSquare className="w-4 h-4 mr-2 text-emerald-500" /> WhatsApp Live Chat Preview
             </h2>
             <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2.5 py-0.5 rounded-full uppercase">
-              {templates[selectedTemplate].title}
+              {templates[selectedTemplate]?.title || 'Message Preview'}
             </span>
           </div>
 
@@ -200,7 +205,7 @@ export default function NotificationsConfig() {
           <div className="bg-[#e5ddd5] dark:bg-slate-950 p-4 rounded-2xl shadow-inner min-h-[220px] flex flex-col justify-end">
             <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-3.5 rounded-2xl rounded-tl-none max-w-[88%] shadow-md space-y-2 text-xs font-sans">
               <p className="whitespace-pre-line text-xs font-medium leading-relaxed">
-                {templates[selectedTemplate].text
+                {(templates[selectedTemplate]?.text || '')
                   .replace('{{customer_name}}', 'Rahul Sharma')
                   .replace('{{awb_number}}', 'DELH88291034')
                   .replace('{{courier_name}}', 'Delhivery Express')

@@ -13,25 +13,21 @@ const port = process.env.PORT || 5000;
 // Initialize background jobs
 setupTrackingCron();
 
-// Security Headers
-app.use(helmet());
-
-// CORS Configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',') 
-  : ['http://localhost:5173', 'http://localhost:3000', 'https://sunilgajra.github.io'];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl) or if origin is Vercel / GitHub Pages / Localhost
-    if (!origin || origin.includes('vercel.app') || allowedOrigins.some(o => origin.startsWith(o))) {
-      callback(null, true);
-    } else {
-      callback(null, true);
-    }
-  },
-  credentials: true,
+// Security Headers with Cross-Origin Resource Policy allowed
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
+
+// CORS Configuration - Permissive for Vercel, GitHub Pages, and Local environments
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+}));
+
+// Handle Preflight OPTIONS requests for all routes
+app.options('*', cors());
 
 // Rate Limiting for Auth Endpoints to prevent brute-force attacks
 const authLimiter = rateLimit({
