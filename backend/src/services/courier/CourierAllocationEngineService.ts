@@ -43,6 +43,9 @@ export interface CourierCandidateEvaluation {
   rateCardVersion: string;
   isPreferred: boolean;
   scoreDec: Decimal;
+  normCostScoreDec: Decimal;
+  normSlaScoreDec: Decimal;
+  normPrefScoreDec: Decimal;
 }
 
 export interface AllocationEngineResult {
@@ -53,6 +56,7 @@ export interface AllocationEngineResult {
   clientRateCardId: string;
   clientRateCardVersion: string;
   clientChargeDec: Decimal;
+  weightsUsed: { costWeight: Decimal; slaWeight: Decimal; prefWeight: Decimal };
   error?: string;
 }
 
@@ -72,6 +76,29 @@ export class CourierAllocationEngineService {
   }
 
   /**
+   * Validates and normalizes allocation strategy weights so costWeight + slaWeight + prefWeight = 1.00 exactly.
+   */
+  static normalizeWeights(cWeight: any, sWeight: any, pWeight: any): { costWeight: Decimal; slaWeight: Decimal; prefWeight: Decimal } {
+    let cw = Decimal.max(new Decimal(0), this.toDec(cWeight ?? '0.4'));
+    let sw = Decimal.max(new Decimal(0), this.toDec(sWeight ?? '0.4'));
+    let pw = Decimal.max(new Decimal(0), this.toDec(pWeight ?? '0.2'));
+
+    const sum = cw.add(sw).add(pw);
+
+    if (sum.equals(0)) {
+      cw = new Decimal('0.4');
+      sw = new Decimal('0.4');
+      pw = new Decimal('0.2');
+    } else if (!sum.equals(1)) {
+      cw = this.round4Dec(cw.div(sum));
+      sw = this.round4Dec(sw.div(sum));
+      pw = this.round4Dec(new Decimal(1).sub(cw).sub(sw)); // Guarantee sum === 1.00
+    }
+
+    return { costWeight: cw, slaWeight: sw, prefWeight: pw };
+  }
+
+  /**
    * Evaluates all active courier partners for a company and selects the optimal courier based on configured allocation rules.
    */
   static async allocateCourier(input: EvaluateAllocationInput): Promise<AllocationEngineResult> {
@@ -87,14 +114,12 @@ export class CourierAllocationEngineService {
           { client_id: null }
         ]
       },
-      orderBy: { client_id: 'desc' } // Client-specific rule takes precedence over company default
+      orderBy: { client_id: 'desc' }
     });
 
     const strategy: AllocationStrategy = strategyOverride || (ruleConfig?.default_strategy as AllocationStrategy) || 'BALANCED';
     const minMarginThreshold = ruleConfig?.min_margin_percentage ? this.toDec(ruleConfig.min_margin_percentage) : new Decimal(10);
-    const costWeight = ruleConfig?.cost_weight ? this.toDec(ruleConfig.cost_weight) : new Decimal('0.4');
-    const slaWeight = ruleConfig?.sla_weight ? this.toDec(ruleConfig.sla_weight) : new Decimal('0.4');
-    const prefWeight = ruleConfig?.preference_weight ? this.toDec(ruleConfig.preference_weight) : new Decimal('0.2');
+    const weightsUsed = this.normalizeWeights(ruleConfig?.cost_weight, ruleConfig?.sla_weight, ruleConfig?.preference_weight);
 
     // 2. Calculate FIXED Client Selling Rate (Client revenue MUST remain independent from courier selection)
     let clientCalc;
@@ -114,7 +139,6 @@ export class CourierAllocationEngineService {
         bookingDate
       });
     } else {
-      // Default fallback client rate
       const weights = CommercialEngineService.calculateWeights({
         actualKg: input.actualKg, lengthCm: input.lengthCm, widthCm: input.widthCm, heightCm: input.heightCm
       });
@@ -154,6 +178,7 @@ export class CourierAllocationEngineService {
         clientRateCardId: clientCalc.rateCardId,
         clientRateCardVersion: clientCalc.version,
         clientChargeDec: fixedClientChargeDec,
+        weightsUsed,
         error: 'No active courier partners configured for company'
       };
     }
@@ -166,7 +191,7 @@ export class CourierAllocationEngineService {
       let ineligibleReason = '';
       let serviceable = true;
 
-      // Check Courier Weight Limit
+      // Weight Limit Check
       if (courier.max_weight_kg && this.toDec(courier.max_weight_kg).gt(0)) {
         if (clientCalc.chargeableKgDec.gt(this.toDec(courier.max_weight_kg))) {
           eligible = false;
@@ -174,7 +199,7 @@ export class CourierAllocationEngineService {
         }
       }
 
-      // Check COD Support & Max COD Limit
+      // COD Support & Max COD Limit Check
       if (input.paymentMode === 'COD') {
         if (!courier.cod_supported) {
           eligible = false;
@@ -187,7 +212,7 @@ export class CourierAllocationEngineService {
         }
       }
 
-      // Calculate Courier Purchase Cost from CourierRateCard
+      // Calculate Courier Purchase Cost
       let courierCalc;
       try {
         courierCalc = await CommercialEngineService.calculateCourierCost({
@@ -241,11 +266,14 @@ export class CourierAllocationEngineService {
         rateCardId: courierCalc?.rateCardId || 'default-courier-card',
         rateCardVersion: courierCalc?.version || '1.0',
         isPreferred,
-        scoreDec: new Decimal(0)
+        scoreDec: new Decimal(0),
+        normCostScoreDec: new Decimal(0),
+        normSlaScoreDec: new Decimal(0),
+        normPrefScoreDec: new Decimal(0)
       });
     }
 
-    // Filter Eligible Candidates
+    // Filter Eligible Candidates (Ineligible candidates MUST NEVER enter BALANCED scoring or selection)
     const eligibleCandidates = candidates.filter(c => c.eligible);
 
     if (eligibleCandidates.length === 0) {
@@ -256,25 +284,35 @@ export class CourierAllocationEngineService {
         clientRateCardId: clientCalc.rateCardId,
         clientRateCardVersion: clientCalc.version,
         clientChargeDec: fixedClientChargeDec,
-        error: 'No serviceable courier partner satisfies all operational & minimum margin rules'
+        weightsUsed,
+        error: 'No serviceable courier partner satisfies operational and minimum margin rules'
       };
     }
 
-    // 5. Apply Strategy Decision Engine
+    // 5. Apply Strategy & Deterministic Scoring Engine
     let selectedCandidate: CourierCandidateEvaluation;
 
     if (strategy === 'LOWEST_COST') {
-      eligibleCandidates.sort((a, b) => a.courierCostDec.sub(b.courierCostDec).toNumber());
+      eligibleCandidates.sort((a, b) => {
+        if (!a.courierCostDec.equals(b.courierCostDec)) return a.courierCostDec.sub(b.courierCostDec).toNumber();
+        if (a.slaDays !== b.slaDays) return a.slaDays - b.slaDays;
+        return a.courierId.localeCompare(b.courierId);
+      });
       selectedCandidate = eligibleCandidates[0];
       selectedCandidate.scoreDec = new Decimal(100);
     } else if (strategy === 'HIGHEST_MARGIN') {
-      eligibleCandidates.sort((a, b) => b.grossProfitDec.sub(a.grossProfitDec).toNumber());
+      eligibleCandidates.sort((a, b) => {
+        if (!a.grossProfitDec.equals(b.grossProfitDec)) return b.grossProfitDec.sub(a.grossProfitDec).toNumber();
+        if (a.slaDays !== b.slaDays) return a.slaDays - b.slaDays;
+        return a.courierId.localeCompare(b.courierId);
+      });
       selectedCandidate = eligibleCandidates[0];
       selectedCandidate.scoreDec = new Decimal(100);
     } else if (strategy === 'FASTEST_DELIVERY') {
       eligibleCandidates.sort((a, b) => {
         if (a.slaDays !== b.slaDays) return a.slaDays - b.slaDays;
-        return b.grossProfitDec.sub(a.grossProfitDec).toNumber();
+        if (!a.grossProfitDec.equals(b.grossProfitDec)) return b.grossProfitDec.sub(a.grossProfitDec).toNumber();
+        return a.courierId.localeCompare(b.courierId);
       });
       selectedCandidate = eligibleCandidates[0];
       selectedCandidate.scoreDec = new Decimal(100);
@@ -284,35 +322,68 @@ export class CourierAllocationEngineService {
         selectedCandidate = preferred;
         selectedCandidate.scoreDec = new Decimal(100);
       } else {
-        // Fallback to HIGHEST_MARGIN
-        eligibleCandidates.sort((a, b) => b.grossProfitDec.sub(a.grossProfitDec).toNumber());
+        eligibleCandidates.sort((a, b) => {
+          if (!a.grossProfitDec.equals(b.grossProfitDec)) return b.grossProfitDec.sub(a.grossProfitDec).toNumber();
+          if (a.slaDays !== b.slaDays) return a.slaDays - b.slaDays;
+          return a.courierId.localeCompare(b.courierId);
+        });
         selectedCandidate = eligibleCandidates[0];
         selectedCandidate.scoreDec = new Decimal(90);
       }
     } else {
-      // BALANCED Multi-Attribute Scoring Engine
-      // Compute max & min bounds for normalization
+      // BALANCED Deterministic Multi-Attribute Normalization & Scoring Engine
       const minCost = Decimal.min(...eligibleCandidates.map(c => c.courierCostDec));
       const maxCost = Decimal.max(...eligibleCandidates.map(c => c.courierCostDec));
-      const costRange = maxCost.sub(minCost).add(new Decimal('0.001'));
+      const costRange = maxCost.sub(minCost);
 
       const minSla = Math.min(...eligibleCandidates.map(c => c.slaDays));
       const maxSla = Math.max(...eligibleCandidates.map(c => c.slaDays));
-      const slaRange = new Decimal(maxSla - minSla + 0.001);
+      const slaRange = maxSla - minSla;
 
       eligibleCandidates.forEach(c => {
-        const normCostScore = maxCost.sub(c.courierCostDec).div(costRange).mul(100);
-        const normSlaScore = new Decimal(maxSla - c.slaDays).div(slaRange).mul(100);
-        const prefScore = c.isPreferred ? new Decimal(100) : new Decimal(0);
+        // 1. Cost Normalization (Lower cost -> higher score)
+        if (costRange.equals(0)) {
+          c.normCostScoreDec = new Decimal(100);
+        } else {
+          c.normCostScoreDec = this.round4Dec(maxCost.sub(c.courierCostDec).div(costRange).mul(100));
+        }
 
-        const totalScore = normCostScore.mul(costWeight)
-          .add(normSlaScore.mul(slaWeight))
-          .add(prefScore.mul(prefWeight));
+        // 2. SLA Normalization (Lower SLA days -> higher score)
+        if (slaRange === 0) {
+          c.normSlaScoreDec = new Decimal(100);
+        } else {
+          c.normSlaScoreDec = this.round4Dec(new Decimal(maxSla - c.slaDays).div(new Decimal(slaRange)).mul(100));
+        }
 
-        c.scoreDec = this.round2Dec(totalScore);
+        // 3. Preference Normalization
+        c.normPrefScoreDec = c.isPreferred ? new Decimal(100) : new Decimal(0);
+
+        // 4. Weighted Composite Score
+        const totalScore = c.normCostScoreDec.mul(weightsUsed.costWeight)
+          .add(c.normSlaScoreDec.mul(weightsUsed.slaWeight))
+          .add(c.normPrefScoreDec.mul(weightsUsed.prefWeight));
+
+        c.scoreDec = this.round4Dec(totalScore);
       });
 
-      eligibleCandidates.sort((a, b) => b.scoreDec.sub(a.scoreDec).toNumber());
+      // Deterministic Multi-Tier Sorting
+      eligibleCandidates.sort((a, b) => {
+        // Tier 1: Score (Descending)
+        if (!a.scoreDec.equals(b.scoreDec)) {
+          return b.scoreDec.sub(a.scoreDec).toNumber();
+        }
+        // Tier 2: Higher Gross Profit (Descending)
+        if (!a.grossProfitDec.equals(b.grossProfitDec)) {
+          return b.grossProfitDec.sub(a.grossProfitDec).toNumber();
+        }
+        // Tier 3: Faster SLA (Ascending)
+        if (a.slaDays !== b.slaDays) {
+          return a.slaDays - b.slaDays;
+        }
+        // Tier 4: Alphabetical courier ID (Ascending)
+        return a.courierId.localeCompare(b.courierId);
+      });
+
       selectedCandidate = eligibleCandidates[0];
     }
 
@@ -356,7 +427,8 @@ export class CourierAllocationEngineService {
       strategyUsed: strategy,
       clientRateCardId: clientCalc.rateCardId,
       clientRateCardVersion: clientCalc.version,
-      clientChargeDec: fixedClientChargeDec
+      clientChargeDec: fixedClientChargeDec,
+      weightsUsed
     };
   }
 }
