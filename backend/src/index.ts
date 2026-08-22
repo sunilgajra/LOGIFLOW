@@ -43,6 +43,15 @@ app.use('/api/auth/login', authLimiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Health Check & Root Endpoints for Render & Load Balancers
+app.get('/', (req, res) => {
+  res.json({ status: 'HEALTHY', service: 'LogiFlow Courier SaaS API Backend', timestamp: new Date().toISOString() });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'UP', timestamp: new Date().toISOString() });
+});
+
 // Routes
 app.use('/api', apiRoutes);
 
