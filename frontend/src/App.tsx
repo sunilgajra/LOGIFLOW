@@ -23,6 +23,7 @@ import Warehouses from './pages/Warehouses';
 import PickupRequests from './pages/PickupRequests';
 import Support from './pages/Support';
 import RateCalculator from './pages/RateCalculator';
+import NotificationsConfig from './pages/NotificationsConfig';
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="calculator" element={<RateCalculator />} />
+          <Route path="notifications" element={<NotificationsConfig />} />
           <Route path="shipments" element={<Shipments />} />
           <Route path="pickups" element={<PickupRequests />} />
           <Route path="appointments" element={<Appointments />} />

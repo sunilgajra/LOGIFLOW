@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
+import { triggerAutoNotification } from '../services/notification.service';
 
 export const deliverShipment = async (req: Request, res: Response) => {
   try {
@@ -38,6 +39,15 @@ export const deliverShipment = async (req: Request, res: Response) => {
         raw_status: 'Delivered via E-POD',
         timestamp: new Date(),
       },
+    });
+
+    // Trigger WhatsApp & Email Notification
+    triggerAutoNotification({
+      awb_number: updatedShipment.awb_number,
+      receiver_name: updatedShipment.receiver_name || undefined,
+      receiver_phone: updatedShipment.receiver_phone || undefined,
+      internal_status: 'DELIVERED',
+      deliveredAt: new Date()
     });
 
     res.json(updatedShipment);

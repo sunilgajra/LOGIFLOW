@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
+import { triggerAutoNotification } from '../services/notification.service';
 
 /**
  * Get all NDR / Exception shipments for the authenticated user's company.
@@ -115,6 +116,15 @@ export const processNDRAction = async (req: Request, res: Response) => {
         location: 'NDR Management Desk',
         timestamp: new Date()
       }
+    });
+
+    // Trigger WhatsApp & Email Notification
+    triggerAutoNotification({
+      awb_number: updated.awb_number,
+      receiver_name: updated.receiver_name || undefined,
+      receiver_phone: updated.receiver_phone || undefined,
+      internal_status: newInternalStatus,
+      exception_reason: historyRemarks
     });
 
     // Audit log
