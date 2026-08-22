@@ -22,6 +22,7 @@ import Appointments from './pages/Appointments';
 import Warehouses from './pages/Warehouses';
 import PickupRequests from './pages/PickupRequests';
 import Support from './pages/Support';
+import RateCalculator from './pages/RateCalculator';
 
 function App() {
   return (
@@ -30,12 +31,14 @@ function App() {
         {/* Public Landing Page */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/track" element={<TrackingPage />} />
+        <Route path="/calculator" element={<RateCalculator />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         
         {/* Protected ERP Dashboard */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="calculator" element={<RateCalculator />} />
           <Route path="shipments" element={<Shipments />} />
           <Route path="pickups" element={<PickupRequests />} />
           <Route path="appointments" element={<Appointments />} />

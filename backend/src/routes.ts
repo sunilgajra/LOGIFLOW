@@ -21,6 +21,7 @@ import { deliverShipment } from './controllers/delivery.controller';
 import { getWarehouses, createWarehouse, updateWarehouse } from './controllers/warehouse.controller';
 import { getPickupRequests, createPickupRequest, updatePickupRequestStatus } from './controllers/pickup.controller';
 import { getSupportTickets, createSupportTicket, updateTicketStatus } from './controllers/support.controller';
+import { calculateRateQuotes } from './controllers/calculator.controller';
 
 const upload = multer({ dest: 'uploads/' });
 const router = Router();
@@ -51,6 +52,8 @@ router.post('/auth/forgot-password', forgotPassword);
 router.get('/auth/verify-reset-token/:token', verifyResetToken);
 router.post('/auth/reset-password', resetPassword);
 router.get('/public/track/:awb', getPublicTracking);
+router.post('/public/rates/calculate', calculateRateQuotes);
+router.post('/rates/calculator-quotes', requireAuth, calculateRateQuotes);
 router.post('/webhooks/courier', handleCourierWebhook);
 router.post('/webhooks/delhivery', handleCourierWebhook);
 router.post('/webhooks/bluedart', handleCourierWebhook);
