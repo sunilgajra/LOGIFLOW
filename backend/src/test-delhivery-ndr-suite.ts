@@ -229,7 +229,7 @@ async function runNdrAuditSuite() {
 
   // Expected courier_total_cost = 150 (forward) + 100 (rto) + 20 (ndr) = 270
   // Gross margin = 500 (client_total_charge) - 270 = 230
-  if (commRes12.courier_total_cost === 270 && commRes12.gross_margin === 230 && commRes12.client_total_charge === 500) {
+  if (Number(commRes12.courier_total_cost) === 270 && Number(commRes12.gross_margin) === 230 && Number(commRes12.client_total_charge) === 500) {
     console.log('✅ TEST 12 PASSED: Commercial accounting verified! RTO/NDR charges added to courier_total_cost without inflating client_total_charge.');
     passedTests++;
   } else {
