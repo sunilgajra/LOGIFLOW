@@ -37,6 +37,7 @@ model Company {
   courier_accounts CourierAccount[]
   courier_waybills CourierWaybill[]
   tracking_events  TrackingEvent[]
+  ndr_records      NdrRecord[]
 }
 
 model User {
@@ -187,6 +188,13 @@ model Shipment {
   courier_gst_amount   Float?   @default(0)
   courier_total_cost   Float?   @default(0)
 
+  // --- Detailed Courier Cost Breakdown & Commercial Charges ---
+  forward_courier_cost Float?   @default(0)
+  ndr_charge           Float?   @default(0)
+  rto_charge           Float?   @default(0)
+  return_shipping_cost Float?   @default(0)
+  other_courier_cost   Float?   @default(0)
+
   // --- Financial Profit Metrics ---
   gross_margin         Float?   @default(0)
   margin_percentage    Float?   @default(0)
@@ -197,6 +205,7 @@ model Shipment {
   podSignature String?
   deliveredAt  DateTime?
   label_url    String? // URL to the shipping label PDF from Courier
+  ndr_records  NdrRecord[]
 
   // --- Delhivery & Courier Gateway Booking Lifecycle & Idempotency ---
   delhivery_awb           String?
@@ -610,4 +619,40 @@ model CourierWaybill {
   @@unique([company_id, courier_id, waybill])
   @@index([company_id, courier_id, status])
   @@index([waybill])
+}
+
+model NdrRecord {
+  id                        String    @id @default(uuid())
+  company_id                String
+  shipment_id               String
+  courier_id                String?
+  courier_account_id        String?
+  awb                       String
+  ndr_code                  String?
+  ndr_reason                String
+  ndr_status                String    @default("NDR_RECEIVED") // NDR_RECEIVED, ACTION_REQUIRED, ACTION_SUBMITTED, ACTION_CONFIRMED, ACTION_FAILED
+  attempt_number            Int       @default(1)
+  event_time                DateTime
+  selected_action           String?   // REATTEMPT, RTO, UPDATE_ADDRESS, UPDATE_PHONE
+  action_status             String?   @default("PENDING") // PENDING, SUBMITTED, CONFIRMED, FAILED
+  action_requested_at       DateTime?
+  action_completed_at       DateTime?
+  action_remarks            String?
+  new_consignee_phone       String?
+  new_consignee_address     String?
+  scheduled_reattempt_date  DateTime?
+  correlation_id            String?
+  raw_delhivery_status      String?
+  internal_normalized_status String?  @default("NDR")
+  created_at                DateTime  @default(now())
+  updated_at                DateTime  @updatedAt
+
+  company  Company  @relation(fields: [company_id], references: [id])
+  shipment Shipment @relation(fields: [shipment_id], references: [id])
+
+  @@unique([shipment_id, attempt_number, event_time])
+  @@index([company_id])
+  @@index([shipment_id])
+  @@index([awb])
+  @@index([ndr_status])
 }
