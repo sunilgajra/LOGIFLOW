@@ -14,6 +14,7 @@ import {
 } from './CourierProvider';
 import { MockCourierProvider } from './MockCourierProvider';
 import { WaybillInventoryService } from './WaybillInventoryService';
+import { DelhiveryPickupService } from './DelhiveryPickupService';
 
 interface DelhiveryCredentials {
   apiKey?: string;
@@ -279,32 +280,21 @@ export class DelhiveryProvider implements ICourierProvider {
       return this.mockProvider.requestPickup(pickupData);
     }
 
-    try {
-      const payload = {
-        pickup_location: pickupData.facilityName,
-        pickup_date: pickupData.pickupDate,
-        pickup_time: pickupData.pickupSlot || '14:00:00',
-        expected_package_count: pickupData.packageCount,
-      };
+    const res = await DelhiveryPickupService.createPickupRequest({
+      companyId: pickupData.companyId || 'default-company',
+      courierId: 'DELHIVERY',
+      pickupLocation: pickupData.facilityName,
+      pickupDate: pickupData.pickupDate,
+      pickupTime: pickupData.pickupSlot || '14:00:00',
+      expectedPackageCount: pickupData.packageCount || 1
+    });
 
-      const response = await fetch(`${this.baseUrl}/fm/request/new/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Token ${this.apiKey}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const resData: any = await response.json();
-      return {
-        success: response.ok,
-        courierPickupRef: resData.pickup_id || `DELH-PKP-${Date.now()}`,
-        rawResponse: resData,
-      };
-    } catch (e: any) {
-      return this.mockProvider.requestPickup(pickupData);
-    }
+    return {
+      success: res.success,
+      courierPickupRef: res.pickupId || `DELH-PKP-${Date.now()}`,
+      rawResponse: res,
+      error: res.error
+    };
   }
 
   async processNDRAction(ndrData: NDRActionData): Promise<NDRResponse> {

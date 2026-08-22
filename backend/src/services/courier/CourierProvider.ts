@@ -70,6 +70,7 @@ export interface ServiceabilityResponse {
 }
 
 export interface PickupRequestData {
+  companyId?: string;
   pickupId: string;
   facilityName: string;
   address: string;

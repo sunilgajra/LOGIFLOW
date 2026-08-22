@@ -112,6 +112,7 @@ model CourierPartner {
   courier_bills   CourierBill[]
   accounts        CourierAccount[]
   courier_waybills CourierWaybill[]
+  pickup_requests  PickupRequest[]
 }
 
 model Shipment {
@@ -449,29 +450,40 @@ model Warehouse {
 }
 
 model PickupRequest {
-  id              String   @id @default(uuid())
-  company_id      String
-  client_id       String?
-  pickup_id       String   @unique
-  warehouse_id    String?
-  facility_name   String
-  pickup_date     DateTime
-  pickup_slot     String
-  box_count       Int      @default(1)
-  lrn_numbers     String?
-  status          String   @default("Scheduled") // Scheduled, Out for Pickup, Picked, Not Picked, Cancelled
-  escalated       Boolean  @default(false)
-  otp_verified    Boolean  @default(false)
-  executive_phone String?
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  id                     String   @id @default(uuid())
+  company_id             String
+  client_id              String?
+  courier_id             String?
+  courier_account_id     String?
+  pickup_id              String   @unique
+  warehouse_id           String?
+  facility_name          String
+  pickup_location_name   String?
+  pickup_date            DateTime
+  pickup_slot            String
+  pickup_time            String?  @default("14:00:00")
+  box_count              Int      @default(1)
+  expected_package_count Int      @default(1)
+  lrn_numbers            String?
+  pickup_reference       String?
+  status                 String   @default("Scheduled") // Scheduled, Out for Pickup, Picked, Not Picked, Cancelled
+  booking_status         String   @default("NOT_REQUESTED") // NOT_REQUESTED, SCHEDULING_IN_PROGRESS, SCHEDULED, FAILED
+  last_pickup_error      String?
+  correlation_id         String?
+  escalated              Boolean  @default(false)
+  otp_verified           Boolean  @default(false)
+  executive_phone        String?
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
 
-  company   Company    @relation(fields: [company_id], references: [id])
-  client    Client?    @relation(fields: [client_id], references: [id])
-  warehouse Warehouse? @relation(fields: [warehouse_id], references: [id])
+  company   Company         @relation(fields: [company_id], references: [id])
+  client    Client?         @relation(fields: [client_id], references: [id])
+  warehouse Warehouse?      @relation(fields: [warehouse_id], references: [id])
+  courier   CourierPartner? @relation(fields: [courier_id], references: [id])
 
   @@index([company_id])
   @@index([client_id])
+  @@index([courier_id])
   @@index([pickup_id])
 }
 
