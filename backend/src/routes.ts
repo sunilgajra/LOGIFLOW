@@ -14,7 +14,7 @@ import { previewImport, processImport } from './controllers/import.controller';
 import { generateInvoice, getInvoicesByClient, getInvoiceById } from './controllers/invoice.controller';
 import { getCompanySettings, updateCompanySettings } from './controllers/settings.controller';
 import { getRateCards, createRateCard, updateRateCard, deleteRateCard, getZoneMappings, saveZoneMapping, calculateRateEstimate } from './controllers/rate.controller';
-import { login } from './controllers/auth.controller';
+import { login, forgotPassword, verifyResetToken, resetPassword } from './controllers/auth.controller';
 import { handleCourierWebhook } from './controllers/webhook.controller';
 import { getNDRShipments, processNDRAction } from './controllers/ndr.controller';
 import { deliverShipment } from './controllers/delivery.controller';
@@ -47,6 +47,9 @@ router.post('/auth/dev-login', async (req, res) => {
 
 // --- Public APIs ---
 router.post('/auth/login', login);
+router.post('/auth/forgot-password', forgotPassword);
+router.get('/auth/verify-reset-token/:token', verifyResetToken);
+router.post('/auth/reset-password', resetPassword);
 router.get('/public/track/:awb', getPublicTracking);
 router.post('/webhooks/courier', handleCourierWebhook);
 router.post('/webhooks/delhivery', handleCourierWebhook);

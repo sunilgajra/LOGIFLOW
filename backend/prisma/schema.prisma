@@ -36,16 +36,18 @@ model Company {
 }
 
 model User {
-  id         String   @id @default(uuid())
-  company_id String
-  email      String   @unique
-  password   String?
-  first_name String?
-  last_name  String?
-  role       String   @default("VIEWER") // SUPER_ADMIN, ADMIN, OPERATIONS, ACCOUNTS, VIEWER, CLIENT
-  client_id  String?
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id                    String    @id @default(uuid())
+  company_id            String
+  email                 String    @unique
+  password              String?
+  first_name            String?
+  last_name             String?
+  role                  String    @default("VIEWER") // SUPER_ADMIN, ADMIN, OPERATIONS, ACCOUNTS, VIEWER, CLIENT
+  client_id             String?
+  reset_password_token  String?
+  reset_password_expires DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
 
   company Company @relation(fields: [company_id], references: [id])
   client  Client? @relation(fields: [client_id], references: [id])

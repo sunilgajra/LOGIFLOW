@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
@@ -30,6 +31,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/track" element={<TrackingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         
         {/* Protected ERP Dashboard */}
         <Route path="/dashboard" element={<DashboardLayout />}>

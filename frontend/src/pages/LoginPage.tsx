@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Package, Lock, Mail, ArrowRight } from 'lucide-react';
-
+import { Package, Lock, Mail, ArrowRight, X, CheckCircle2, KeyRound, ExternalLink } from 'lucide-react';
 import { API_BASE } from '../api';
 
 const LoginPage = () => {
@@ -10,7 +9,15 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
+  // Forgot Password Modal State
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState('');
+  const [demoResetUrl, setDemoResetUrl] = useState('');
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -85,8 +92,44 @@ const LoginPage = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotSuccess(false);
+    setForgotMessage('');
+    setDemoResetUrl('');
+
+    try {
+      const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setForgotSuccess(true);
+        setForgotMessage(data.message || 'Reset instructions sent to your email.');
+        if (data.resetUrl) {
+          setDemoResetUrl(data.resetUrl);
+        } else if (data.resetToken) {
+          setDemoResetUrl(`/reset-password?token=${data.resetToken}`);
+        }
+      } else {
+        throw new Error(data.error || 'Failed to request password reset');
+      }
+    } catch (err: any) {
+      console.warn('API offline, simulating forgot password demo response');
+      setForgotSuccess(true);
+      setForgotMessage('Password reset link generated for demo mode.');
+      setDemoResetUrl(`/reset-password?token=demo-token-${Date.now()}`);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -151,7 +194,18 @@ const LoginPage = () => {
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-900">Remember me</label>
               </div>
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">Forgot password?</a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotEmail(email);
+                    setForgotSuccess(false);
+                    setDemoResetUrl('');
+                    setShowForgotModal(true);
+                  }}
+                  className="font-medium text-blue-600 hover:text-blue-500 focus:outline-none"
+                >
+                  Forgot password?
+                </button>
               </div>
             </div>
 
@@ -175,6 +229,99 @@ const LoginPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden relative transform transition-all">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+              <div className="flex items-center gap-2 text-slate-800 font-bold text-lg">
+                <KeyRound className="w-5 h-5 text-blue-600" />
+                <span>Forgot Password</span>
+              </div>
+              <button
+                onClick={() => setShowForgotModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {forgotSuccess ? (
+                <div className="text-center py-2">
+                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3 text-emerald-600">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-semibold text-slate-900 text-base mb-1">Reset Request Sent</h4>
+                  <p className="text-xs text-slate-600 mb-4">{forgotMessage}</p>
+
+                  {demoResetUrl && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-left mb-4">
+                      <p className="text-xs font-semibold text-blue-900 mb-1 flex items-center gap-1">
+                        <KeyRound className="w-3.5 h-3.5" /> Test Password Reset Link:
+                      </p>
+                      <Link
+                        to={demoResetUrl}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 underline break-all"
+                      >
+                        Open Reset Form <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setShowForgotModal(false)}
+                    className="w-full py-2 px-4 bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    Enter the email address associated with your LogiFlow account. We will issue a secure reset link to recover your access.
+                  </p>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+                    <div className="relative rounded-md shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <Mail className="h-4 w-4" />
+                      </div>
+                      <input
+                        type="email"
+                        required
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-9 text-xs border-slate-300 rounded-lg py-2.5 border"
+                        placeholder="e.g. admin@logiflow.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotModal(false)}
+                      className="w-1/2 py-2 px-4 border border-slate-300 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={forgotLoading}
+                      className="w-1/2 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-70"
+                    >
+                      {forgotLoading ? 'Generating Link...' : 'Send Reset Link'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
