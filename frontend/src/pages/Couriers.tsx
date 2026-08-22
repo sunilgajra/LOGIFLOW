@@ -254,6 +254,18 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
                 </div>
               </div>
 
+              {creds.mode === 'production' && (
+                <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 p-3 rounded-lg text-xs text-amber-900 dark:text-amber-200">
+                  <p className="font-bold flex items-center">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 mr-1.5 animate-ping"></span>
+                    ⚠️ PRODUCTION LIVE WARNING
+                  </p>
+                  <p className="mt-1 opacity-90">
+                    Production credentials can create real shipments and incur real courier charges with Delhivery. Ensure you click <strong>Test Connection</strong> to verify your token before saving.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Incoming Webhook Callback URL <span className="text-emerald-600 font-bold">(Vercel Production Route)</span>
