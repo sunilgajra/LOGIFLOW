@@ -15,6 +15,7 @@ import {
 import { MockCourierProvider } from './MockCourierProvider';
 import { WaybillInventoryService } from './WaybillInventoryService';
 import { DelhiveryPickupService } from './DelhiveryPickupService';
+import { DelhiveryTrackingService } from './DelhiveryTrackingService';
 
 interface DelhiveryCredentials {
   apiKey?: string;

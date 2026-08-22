@@ -36,6 +36,7 @@ model Company {
   api_logs         ApiLog[]
   courier_accounts CourierAccount[]
   courier_waybills CourierWaybill[]
+  tracking_events  TrackingEvent[]
 }
 
 model User {
@@ -225,6 +226,9 @@ model Shipment {
   po_expiry_date         DateTime?
   promised_delivery_date DateTime?
 
+  last_status_event_time DateTime?
+  tracking_events        TrackingEvent[]
+
   invoice_id     String?
   invoice        ClientInvoice?          @relation(fields: [invoice_id], references: [id])
   status_history ShipmentStatusHistory[]
@@ -247,6 +251,31 @@ model ShipmentStatusHistory {
   created_at  DateTime @default(now())
 
   shipment Shipment @relation(fields: [shipment_id], references: [id])
+}
+
+model TrackingEvent {
+  id                 String   @id @default(uuid())
+  shipment_id        String
+  company_id         String
+  courier_account_id String?
+  awb                String
+  courier_status     String
+  internal_status    String
+  event_time         DateTime
+  location           String?
+  description        String?
+  raw_status         String?
+  correlation_id     String?
+  created_at         DateTime @default(now())
+
+  shipment Shipment @relation(fields: [shipment_id], references: [id])
+  company  Company  @relation(fields: [company_id], references: [id])
+
+  @@unique([shipment_id, awb, courier_status, event_time, location])
+  @@index([company_id])
+  @@index([shipment_id])
+  @@index([awb])
+  @@index([event_time])
 }
 
 model ImportProfile {
