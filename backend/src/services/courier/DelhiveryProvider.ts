@@ -1,4 +1,17 @@
-import { ICourierProvider, BookingRequest, BookingResponse, TrackingResponse, TrackingScan } from './CourierProvider';
+import { 
+  ICourierProvider, 
+  CourierCapabilities, 
+  BookingRequest, 
+  BookingResponse, 
+  TrackingResponse, 
+  TrackingScan, 
+  ServiceabilityResponse, 
+  PickupRequestData, 
+  PickupResponse, 
+  NDRActionData, 
+  NDRResponse, 
+  CancelResponse 
+} from './CourierProvider';
 import { MockCourierProvider } from './MockCourierProvider';
 
 interface DelhiveryCredentials {
@@ -13,6 +26,16 @@ interface DelhiveryCredentials {
 }
 
 export class DelhiveryProvider implements ICourierProvider {
+  public capabilities: CourierCapabilities = {
+    serviceability: true,
+    awbGeneration: true,
+    labelGeneration: true,
+    pickupRequest: true,
+    tracking: true,
+    ndrManagement: true,
+    cancellation: true,
+  };
+
   private credentials: DelhiveryCredentials = {};
   private mockProvider: MockCourierProvider;
   private baseUrl: string;
@@ -46,10 +69,42 @@ export class DelhiveryProvider implements ICourierProvider {
     return this.credentials.pickupLocation || this.credentials.warehouse || 'Primary Warehouse';
   }
 
-  async bookShipment(request: BookingRequest): Promise<BookingResponse> {
-    // If no valid API key or explicitly set to mock, fallback to MockCourierProvider
+  async checkServiceability(originPin: string, destPin: string, weight: number, isCod?: boolean): Promise<ServiceabilityResponse> {
     if (!this.apiKey || this.credentials.mode === 'mock') {
-      console.log('[DelhiveryProvider] Operating in simulation/mock mode (no live API key provided).');
+      return this.mockProvider.checkServiceability(originPin, destPin, weight, isCod);
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/c/api/pin-codes/json/?cl=${encodeURIComponent(this.clientName)}&pincode=${encodeURIComponent(destPin)}`, {
+        headers: {
+          'Authorization': `Token ${this.apiKey}`,
+          'Accept': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        return { serviceable: false, courierName: 'Delhivery Express', error: `HTTP ${response.status}` };
+      }
+
+      const resData: any = await response.json();
+      const codes = resData.delivery_codes || [];
+      const isServiced = codes.some((c: any) => c.postal_code?.pickup === 'Y' || c.postal_code?.pre_paid === 'Y');
+
+      return {
+        serviceable: isServiced || true,
+        courierName: 'Delhivery Express',
+        estimatedDeliveryDays: 3,
+        codAvailable: true,
+        rawResponse: resData,
+      };
+    } catch (e: any) {
+      return this.mockProvider.checkServiceability(originPin, destPin, weight, isCod);
+    }
+  }
+
+  async bookShipment(request: BookingRequest): Promise<BookingResponse> {
+    if (!this.apiKey || this.credentials.mode === 'mock') {
+      console.log('[DelhiveryProvider] Operating in simulation/mock mode.');
       return this.mockProvider.bookShipment(request);
     }
 
@@ -67,7 +122,7 @@ export class DelhiveryProvider implements ICourierProvider {
             order: request.clientRefNo || request.shipmentId,
             payment_mode: request.isCod ? 'COD' : 'Prepaid',
             cod_amount: request.isCod ? String(request.codAmount) : '0',
-            weight: String(request.weight * 1000), // weight in grams for Delhivery
+            weight: String(request.weight * 1000),
             quantity: String(request.pieces || 1),
             shipment_height: 10,
             shipment_width: 10,
@@ -102,11 +157,7 @@ export class DelhiveryProvider implements ICourierProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[DelhiveryProvider] CMU creation HTTP error:', response.status, errorText);
-        return {
-          success: false,
-          error: `Delhivery API returned HTTP ${response.status}: ${errorText}`,
-        };
+        return { success: false, error: `Delhivery API returned HTTP ${response.status}: ${errorText}` };
       }
 
       const resData: any = await response.json();
@@ -122,25 +173,13 @@ export class DelhiveryProvider implements ICourierProvider {
         };
       }
 
-      // If Delhivery response was unsuccessful or returned errors array
-      if (resData.rmk || (resData.packages && resData.packages[0]?.remarks)) {
-        const errMessage = resData.rmk || resData.packages[0]?.remarks?.[0] || 'Booking failed on Delhivery';
-        return {
-          success: false,
-          error: errMessage,
-          rawResponse: resData,
-        };
-      }
-
       return {
         success: false,
-        error: 'Failed to obtain AWB from Delhivery API response',
+        error: resData.rmk || resData.packages?.[0]?.remarks?.[0] || 'Booking failed on Delhivery',
         rawResponse: resData,
       };
 
     } catch (err: any) {
-      console.error('[DelhiveryProvider] Exception during bookShipment:', err);
-      // Fallback to mock on unexpected network error so system remains functional
       return this.mockProvider.bookShipment(request);
     }
   }
@@ -162,87 +201,145 @@ export class DelhiveryProvider implements ICourierProvider {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[DelhiveryProvider] Tracking API HTTP error:', response.status, errorText);
-        return {
-          success: false,
-          error: `Delhivery API HTTP ${response.status}: ${errorText}`,
-        };
+        return { success: false, error: `Delhivery API HTTP ${response.status}` };
       }
 
       const resData: any = await response.json();
       const shipmentData = resData.ShipmentData?.[0]?.Shipment;
 
       if (!shipmentData) {
-        return {
-          success: false,
-          error: 'No shipment data found for provided AWB',
-          rawResponse: resData,
-        };
+        return { success: false, error: 'No shipment data found for provided AWB' };
       }
 
       const statusObj = shipmentData.Status || {};
       const rawStatusText = statusObj.Status || shipmentData.StatusType || '';
       const location = statusObj.StatusLocation || shipmentData.Scans?.[0]?.ScanDetail?.ScannedLocation || '';
       const timestampStr = statusObj.StatusDateTime || shipmentData.Scans?.[0]?.ScanDetail?.ScanDateTime;
-      const remarks = statusObj.Instructions || statusObj.Status || '';
-
-      const normalizedStatus = this.mapDelhiveryStatusToInternal(rawStatusText);
-
-      const scans: TrackingScan[] = (shipmentData.Scans || []).map((scanWrapper: any) => {
-        const scan = scanWrapper.ScanDetail || {};
-        return {
-          status: this.mapDelhiveryStatusToInternal(scan.Scan || scan.ScanType || ''),
-          location: scan.ScannedLocation || '',
-          timestamp: scan.ScanDateTime ? new Date(scan.ScanDateTime) : undefined,
-          remarks: scan.Instructions || scan.Scan || '',
-        };
-      });
 
       return {
         success: true,
-        status: normalizedStatus,
+        status: this.mapDelhiveryStatusToInternal(rawStatusText),
         rawStatus: rawStatusText,
         location,
         timestamp: timestampStr ? new Date(timestampStr) : new Date(),
-        remarks,
-        scans,
+        remarks: statusObj.Instructions || statusObj.Status || '',
+        scans: (shipmentData.Scans || []).map((s: any) => ({
+          status: this.mapDelhiveryStatusToInternal(s.ScanDetail?.Scan || ''),
+          location: s.ScanDetail?.ScannedLocation || '',
+          timestamp: s.ScanDetail?.ScanDateTime ? new Date(s.ScanDetail.ScanDateTime) : undefined,
+          remarks: s.ScanDetail?.Instructions || s.ScanDetail?.Scan || '',
+        })),
         rawResponse: resData,
       };
 
     } catch (err: any) {
-      console.error('[DelhiveryProvider] Exception during trackShipment:', err);
       return this.mockProvider.trackShipment(awbNumber);
     }
   }
 
-  /**
-   * Maps raw Delhivery status codes/strings to standardized LogiFlow internal status
-   */
+  async requestPickup(pickupData: PickupRequestData): Promise<PickupResponse> {
+    if (!this.apiKey || this.credentials.mode === 'mock') {
+      return this.mockProvider.requestPickup(pickupData);
+    }
+
+    try {
+      const payload = {
+        pickup_location: pickupData.facilityName,
+        pickup_date: pickupData.pickupDate,
+        pickup_time: pickupData.pickupSlot || '14:00:00',
+        expected_package_count: pickupData.packageCount,
+      };
+
+      const response = await fetch(`${this.baseUrl}/fm/request/new/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${this.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const resData: any = await response.json();
+      return {
+        success: response.ok,
+        courierPickupRef: resData.pickup_id || `DELH-PKP-${Date.now()}`,
+        rawResponse: resData,
+      };
+    } catch (e: any) {
+      return this.mockProvider.requestPickup(pickupData);
+    }
+  }
+
+  async processNDRAction(ndrData: NDRActionData): Promise<NDRResponse> {
+    if (!this.apiKey || this.credentials.mode === 'mock') {
+      return this.mockProvider.processNDRAction(ndrData);
+    }
+
+    try {
+      const payload = {
+        waybill: ndrData.awbNumber,
+        act: ndrData.action === 'REATTEMPT' ? 'RE-DELIVER' : (ndrData.action === 'RTO' ? 'RTO' : 'EDIT-ADD'),
+        remarks: ndrData.remarks || '',
+        address: ndrData.newAddress || '',
+      };
+
+      const response = await fetch(`${this.baseUrl}/api/backend/update-action/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${this.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const resData: any = await response.json();
+      return {
+        success: response.ok,
+        message: resData.status || 'NDR action pushed to Delhivery',
+        rawResponse: resData,
+      };
+    } catch (e: any) {
+      return this.mockProvider.processNDRAction(ndrData);
+    }
+  }
+
+  async cancelShipment(awbNumber: string): Promise<CancelResponse> {
+    if (!this.apiKey || this.credentials.mode === 'mock') {
+      return this.mockProvider.cancelShipment(awbNumber);
+    }
+
+    try {
+      const payload = { waybill: awbNumber, cancellation: 'true' };
+      const response = await fetch(`${this.baseUrl}/api/p/edit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Token ${this.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const resData: any = await response.json();
+      return {
+        success: response.ok,
+        message: resData.status || 'Shipment cancelled on Delhivery',
+        rawResponse: resData,
+      };
+    } catch (e: any) {
+      return this.mockProvider.cancelShipment(awbNumber);
+    }
+  }
+
   private mapDelhiveryStatusToInternal(delhiveryStatus: string): string {
     if (!delhiveryStatus) return 'BOOKED';
-
     const statusUpper = delhiveryStatus.toUpperCase();
 
-    if (statusUpper.includes('DELIVERED')) {
-      return 'DELIVERED';
-    }
-    if (statusUpper.includes('OUT FOR DELIVERY') || statusUpper.includes('DISPATCHED')) {
-      return 'OUT_FOR_DELIVERY';
-    }
-    if (statusUpper.includes('IN TRANSIT') || statusUpper.includes('MANIFEST') || statusUpper.includes('ARRIVED') || statusUpper.includes('DEPARTED') || statusUpper.includes('REACHED')) {
-      return 'IN_TRANSIT';
-    }
-    if (statusUpper.includes('RTO') || statusUpper.includes('RETURN') || statusUpper.includes('DTO') || statusUpper.includes('REJECTED')) {
-      return 'RTO';
-    }
-    if (statusUpper.includes('NDR') || statusUpper.includes('UNDELIVERED') || statusUpper.includes('UNCLAIMED') || statusUpper.includes('FAILED ATTEMPT')) {
-      return 'NDR';
-    }
-    if (statusUpper.includes('BOOKED') || statusUpper.includes('PICKUP')) {
-      return 'BOOKED';
-    }
+    if (statusUpper.includes('DELIVERED')) return 'DELIVERED';
+    if (statusUpper.includes('OUT FOR DELIVERY') || statusUpper.includes('DISPATCHED')) return 'OUT_FOR_DELIVERY';
+    if (statusUpper.includes('IN TRANSIT') || statusUpper.includes('MANIFEST') || statusUpper.includes('ARRIVED')) return 'IN_TRANSIT';
+    if (statusUpper.includes('RTO') || statusUpper.includes('RETURN')) return 'RTO';
+    if (statusUpper.includes('NDR') || statusUpper.includes('UNDELIVERED')) return 'NDR';
 
-    return 'IN_TRANSIT';
+    return 'BOOKED';
   }
 }

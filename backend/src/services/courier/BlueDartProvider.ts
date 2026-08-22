@@ -1,4 +1,14 @@
-import { ICourierProvider, BookingRequest, BookingResponse, TrackingResponse, TrackingScan } from './CourierProvider';
+import { 
+  ICourierProvider, 
+  CourierCapabilities, 
+  BookingRequest, 
+  BookingResponse, 
+  TrackingResponse, 
+  ServiceabilityResponse, 
+  PickupRequestData, 
+  PickupResponse, 
+  CancelResponse 
+} from './CourierProvider';
 import { MockCourierProvider } from './MockCourierProvider';
 
 interface BlueDartCredentials {
@@ -13,6 +23,16 @@ interface BlueDartCredentials {
 }
 
 export class BlueDartProvider implements ICourierProvider {
+  public capabilities: CourierCapabilities = {
+    serviceability: true,
+    awbGeneration: true,
+    labelGeneration: true,
+    pickupRequest: true,
+    tracking: true,
+    ndrManagement: false,
+    cancellation: true,
+  };
+
   private credentials: BlueDartCredentials = {};
   private mockProvider: MockCourierProvider;
   private baseUrl: string;
@@ -42,10 +62,39 @@ export class BlueDartProvider implements ICourierProvider {
     return this.credentials.customerCode || '';
   }
 
-  async bookShipment(request: BookingRequest): Promise<BookingResponse> {
-    // If no valid API key or explicitly set to mock, fallback to MockCourierProvider
+  async checkServiceability(originPin: string, destPin: string, weight: number, isCod?: boolean): Promise<ServiceabilityResponse> {
     if (!this.apiKey || this.credentials.mode === 'mock') {
-      console.log('[BlueDartProvider] Operating in simulation/mock mode (no live credentials provided).');
+      return this.mockProvider.checkServiceability(originPin, destPin, weight, isCod);
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/location/v1/Pincode?pincode=${encodeURIComponent(destPin)}`, {
+        headers: {
+          'Accept': 'application/json',
+          'ApiKey': this.apiKey,
+        }
+      });
+
+      if (!response.ok) {
+        return { serviceable: false, courierName: 'Blue Dart', error: `HTTP ${response.status}` };
+      }
+
+      const resData: any = await response.json();
+      return {
+        serviceable: resData.PincodeResult?.isServicable ?? true,
+        courierName: 'Blue Dart Express',
+        estimatedDeliveryDays: 2,
+        codAvailable: resData.PincodeResult?.isCOD ?? true,
+        rawResponse: resData,
+      };
+    } catch (e) {
+      return this.mockProvider.checkServiceability(originPin, destPin, weight, isCod);
+    }
+  }
+
+  async bookShipment(request: BookingRequest): Promise<BookingResponse> {
+    if (!this.apiKey || this.credentials.mode === 'mock') {
+      console.log('[BlueDartProvider] Operating in simulation/mock mode.');
       return this.mockProvider.bookShipment(request);
     }
 
@@ -66,8 +115,8 @@ export class BlueDartProvider implements ICourierProvider {
             DeclaredValue: request.declaredValue || 1000,
             IsCOD: request.isCod,
             CODAmount: request.isCod ? request.codAmount : 0,
-            ProductCode: request.isCod ? 'C' : 'A', // A: Apex (Domestic Air), C: Surface
-            ProductType: 1, // 1: Dox, 2: Non-Dox
+            ProductCode: request.isCod ? 'C' : 'A',
+            ProductType: 1,
             PieceCount: request.pieces || 1,
             SubProductCode: 'P',
           },
@@ -98,11 +147,7 @@ export class BlueDartProvider implements ICourierProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[BlueDartProvider] GenerateWayBill HTTP error:', response.status, errorText);
-        return {
-          success: false,
-          error: `BlueDart API returned HTTP ${response.status}: ${errorText}`,
-        };
+        return { success: false, error: `BlueDart API returned HTTP ${response.status}: ${errorText}` };
       }
 
       const resData: any = await response.json();
@@ -117,23 +162,13 @@ export class BlueDartProvider implements ICourierProvider {
         };
       }
 
-      if (resData.GenerateWayBillResult?.Status?.length > 0) {
-        const statusErr = resData.GenerateWayBillResult.Status[0].StatusInformation;
-        return {
-          success: false,
-          error: statusErr || 'BlueDart Waybill creation failed',
-          rawResponse: resData,
-        };
-      }
-
       return {
         success: false,
-        error: 'Failed to generate BlueDart Waybill',
+        error: resData.GenerateWayBillResult?.Status?.[0]?.StatusInformation || 'BlueDart Waybill creation failed',
         rawResponse: resData,
       };
 
     } catch (err: any) {
-      console.error('[BlueDartProvider] Exception during bookShipment:', err);
       return this.mockProvider.bookShipment(request);
     }
   }
@@ -155,83 +190,111 @@ export class BlueDartProvider implements ICourierProvider {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[BlueDartProvider] Tracking HTTP error:', response.status, errorText);
-        return {
-          success: false,
-          error: `BlueDart API HTTP ${response.status}: ${errorText}`,
-        };
+        return { success: false, error: `BlueDart API HTTP ${response.status}` };
       }
 
       const resData: any = await response.json();
       const shipment = resData.ShipmentData?.Shipment?.[0] || resData.TrackingResult?.[0];
 
       if (!shipment) {
-        return {
-          success: false,
-          error: 'No tracking data returned for BlueDart AWB',
-          rawResponse: resData,
-        };
+        return { success: false, error: 'No tracking data returned for BlueDart AWB' };
       }
 
       const rawStatusText = shipment.Status || shipment.StatusType || '';
       const location = shipment.Scans?.[0]?.Location || shipment.Destination || '';
       const remarks = shipment.StatusInformation || shipment.Remarks || rawStatusText;
-      const timestampStr = shipment.StatusDate || shipment.StatusTime;
-
-      const normalizedStatus = this.mapBlueDartStatusToInternal(rawStatusText);
-
-      const scans: TrackingScan[] = (shipment.Scans || []).map((scan: any) => ({
-        status: this.mapBlueDartStatusToInternal(scan.ScanType || scan.Status || ''),
-        location: scan.Location || '',
-        timestamp: scan.ScanDate ? new Date(`${scan.ScanDate} ${scan.ScanTime || ''}`) : undefined,
-        remarks: scan.ScanDetail || scan.Instructions || '',
-      }));
 
       return {
         success: true,
-        status: normalizedStatus,
+        status: this.mapBlueDartStatusToInternal(rawStatusText),
         rawStatus: rawStatusText,
         location,
-        timestamp: timestampStr ? new Date(timestampStr) : new Date(),
+        timestamp: new Date(),
         remarks,
-        scans,
+        scans: (shipment.Scans || []).map((scan: any) => ({
+          status: this.mapBlueDartStatusToInternal(scan.ScanType || scan.Status || ''),
+          location: scan.Location || '',
+          timestamp: scan.ScanDate ? new Date(`${scan.ScanDate} ${scan.ScanTime || ''}`) : undefined,
+          remarks: scan.ScanDetail || scan.Instructions || '',
+        })),
         rawResponse: resData,
       };
 
     } catch (err: any) {
-      console.error('[BlueDartProvider] Exception during trackShipment:', err);
       return this.mockProvider.trackShipment(awbNumber);
     }
   }
 
-  /**
-   * Maps raw BlueDart status string to standardized LogiFlow internal status
-   */
+  async requestPickup(pickupData: PickupRequestData): Promise<PickupResponse> {
+    if (!this.apiKey || this.credentials.mode === 'mock') {
+      return this.mockProvider.requestPickup(pickupData);
+    }
+
+    try {
+      const payload = {
+        Request: {
+          PickupDate: pickupData.pickupDate,
+          PickupTime: pickupData.pickupSlot || '14:00',
+          AreaCode: pickupData.city.substring(0, 3).toUpperCase(),
+          CustomerCode: this.customerCode,
+          Pieces: pickupData.packageCount,
+        }
+      };
+
+      const response = await fetch(`${this.baseUrl}/pickup/v1/RegisterPickup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ApiKey': this.apiKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const resData: any = await response.json();
+      return {
+        success: response.ok,
+        courierPickupRef: resData.RegisterPickupResult?.TokenNumber || `BD-PKP-${Date.now()}`,
+        rawResponse: resData,
+      };
+    } catch (e: any) {
+      return this.mockProvider.requestPickup(pickupData);
+    }
+  }
+
+  async cancelShipment(awbNumber: string): Promise<CancelResponse> {
+    if (!this.apiKey || this.credentials.mode === 'mock') {
+      return this.mockProvider.cancelShipment(awbNumber);
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/waybill/v1/CancelWaybill?awb=${encodeURIComponent(awbNumber)}`, {
+        method: 'POST',
+        headers: {
+          'ApiKey': this.apiKey,
+        }
+      });
+
+      const resData: any = await response.json();
+      return {
+        success: response.ok,
+        message: resData.CancelWayBillResult?.Status || 'Shipment cancelled on BlueDart',
+        rawResponse: resData,
+      };
+    } catch (e: any) {
+      return this.mockProvider.cancelShipment(awbNumber);
+    }
+  }
+
   private mapBlueDartStatusToInternal(blueDartStatus: string): string {
     if (!blueDartStatus) return 'BOOKED';
-
     const statusUpper = blueDartStatus.toUpperCase();
 
-    if (statusUpper.includes('DELIVERED')) {
-      return 'DELIVERED';
-    }
-    if (statusUpper.includes('OUT FOR DELIVERY') || statusUpper.includes('OFD') || statusUpper.includes('DISPATCHED')) {
-      return 'OUT_FOR_DELIVERY';
-    }
-    if (statusUpper.includes('IN TRANSIT') || statusUpper.includes('ARRIVED') || statusUpper.includes('DEPARTED') || statusUpper.includes('LOCATION')) {
-      return 'IN_TRANSIT';
-    }
-    if (statusUpper.includes('RTO') || statusUpper.includes('RETURN') || statusUpper.includes('RETURNED')) {
-      return 'RTO';
-    }
-    if (statusUpper.includes('UNDELIVERED') || statusUpper.includes('NDR') || statusUpper.includes('ATTEMPTED')) {
-      return 'NDR';
-    }
-    if (statusUpper.includes('BOOKED') || statusUpper.includes('PICKED UP') || statusUpper.includes('SHIPMENT ARRIVED')) {
-      return 'BOOKED';
-    }
+    if (statusUpper.includes('DELIVERED')) return 'DELIVERED';
+    if (statusUpper.includes('OUT FOR DELIVERY') || statusUpper.includes('OFD')) return 'OUT_FOR_DELIVERY';
+    if (statusUpper.includes('IN TRANSIT') || statusUpper.includes('ARRIVED')) return 'IN_TRANSIT';
+    if (statusUpper.includes('RTO') || statusUpper.includes('RETURN')) return 'RTO';
+    if (statusUpper.includes('UNDELIVERED') || statusUpper.includes('NDR')) return 'NDR';
 
-    return 'IN_TRANSIT';
+    return 'BOOKED';
   }
 }

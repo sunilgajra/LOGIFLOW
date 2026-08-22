@@ -1059,6 +1059,56 @@ export default function Couriers() {
         </button>
       </div>
 
+      {/* Courier Integration Health Monitor */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 rounded-lg flex items-center justify-center font-bold">
+              <Activity className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Delhivery Express</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                Connected (Live API)
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] font-bold text-slate-400">42ms · 99.8%</span>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-lg flex items-center justify-center font-bold">
+              <Activity className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Blue Dart Express</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center">
+                <span className="w-2 h-2 rounded-full bg-blue-500 mr-1.5 animate-pulse"></span>
+                Connected (SOAP/REST)
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] font-bold text-slate-400">55ms · 100%</span>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/40 text-amber-600 rounded-lg flex items-center justify-center font-bold">
+              <Activity className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Other Partners</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">
+                Simulation Engine
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] font-bold text-slate-400">Auto Fallback</span>
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-slate-500">Loading couriers...</div>

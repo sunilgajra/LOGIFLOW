@@ -33,6 +33,8 @@ model Company {
   warehouses       Warehouse[]
   pickup_requests  PickupRequest[]
   support_tickets  SupportTicket[]
+  api_logs         ApiLog[]
+  courier_accounts CourierAccount[]
 }
 
 model User {
@@ -107,6 +109,7 @@ model CourierPartner {
   import_profiles ImportProfile[]
   rateCards       RateCard[]
   courier_bills   CourierBill[]
+  accounts        CourierAccount[]
 }
 
 model Shipment {
@@ -482,4 +485,46 @@ model SupportTicket {
   @@index([company_id])
   @@index([client_id])
   @@index([ticket_id])
+}
+
+model ApiLog {
+  id              String    @id @default(uuid())
+  company_id      String
+  courier_id      String?
+  shipment_id     String?
+  operation       String    // BOOKING, TRACKING, PICKUP, SERVICEABILITY, NDR, CANCEL
+  request_time    DateTime  @default(now())
+  response_time   DateTime?
+  http_status     Int?
+  success         Boolean   @default(true)
+  error_code      String?
+  request_meta    String?   // Sanitized JSON
+  response_meta   String?   // Sanitized JSON
+  retry_count     Int       @default(0)
+  correlation_id  String?
+
+  company Company @relation(fields: [company_id], references: [id])
+
+  @@index([company_id])
+  @@index([shipment_id])
+  @@index([operation])
+}
+
+model CourierAccount {
+  id              String   @id @default(uuid())
+  company_id      String
+  courier_id      String
+  account_name    String
+  account_number  String?
+  api_credentials String   // JSON string of keys/secrets
+  is_default      Boolean  @default(false)
+  status          String   @default("ACTIVE")
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  company Company        @relation(fields: [company_id], references: [id])
+  courier CourierPartner @relation(fields: [courier_id], references: [id])
+
+  @@index([company_id])
+  @@index([courier_id])
 }

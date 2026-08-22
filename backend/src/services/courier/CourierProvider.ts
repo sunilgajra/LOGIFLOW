@@ -1,3 +1,13 @@
+export interface CourierCapabilities {
+  serviceability: boolean;
+  awbGeneration: boolean;
+  labelGeneration: boolean;
+  pickupRequest: boolean;
+  tracking: boolean;
+  ndrManagement: boolean;
+  cancellation: boolean;
+}
+
 export interface BookingRequest {
   shipmentId: string;
   senderName: string;
@@ -48,15 +58,66 @@ export interface TrackingResponse {
   error?: string;
 }
 
-export interface ICourierProvider {
-  /**
-   * Pushes a new shipment to the courier and retrieves the AWB/Label
-   */
-  bookShipment(request: BookingRequest): Promise<BookingResponse>;
-
-  /**
-   * Fetches the latest tracking status for a given AWB
-   */
-  trackShipment(awbNumber: string): Promise<TrackingResponse>;
+export interface ServiceabilityResponse {
+  serviceable: boolean;
+  courierName: string;
+  estimatedDeliveryDays?: number;
+  codAvailable?: boolean;
+  rawResponse?: any;
+  error?: string;
 }
 
+export interface PickupRequestData {
+  pickupId: string;
+  facilityName: string;
+  address: string;
+  pincode: string;
+  city: string;
+  state: string;
+  phone: string;
+  pickupDate: string;
+  pickupSlot?: string;
+  packageCount: number;
+}
+
+export interface PickupResponse {
+  success: boolean;
+  courierPickupRef?: string;
+  scheduledTime?: string;
+  rawResponse?: any;
+  error?: string;
+}
+
+export interface NDRActionData {
+  awbNumber: string;
+  action: 'REATTEMPT' | 'RTO' | 'ADDRESS_UPDATE';
+  remarks?: string;
+  newAddress?: string;
+  newPhone?: string;
+  reattemptDate?: string;
+}
+
+export interface NDRResponse {
+  success: boolean;
+  message?: string;
+  rawResponse?: any;
+  error?: string;
+}
+
+export interface CancelResponse {
+  success: boolean;
+  message?: string;
+  rawResponse?: any;
+  error?: string;
+}
+
+export interface ICourierProvider {
+  capabilities: CourierCapabilities;
+
+  checkServiceability(originPin: string, destPin: string, weight: number, isCod?: boolean): Promise<ServiceabilityResponse>;
+  bookShipment(request: BookingRequest): Promise<BookingResponse>;
+  trackShipment(awbNumber: string): Promise<TrackingResponse>;
+  requestPickup?(pickupData: PickupRequestData): Promise<PickupResponse>;
+  processNDRAction?(ndrData: NDRActionData): Promise<NDRResponse>;
+  cancelShipment?(awbNumber: string): Promise<CancelResponse>;
+}
