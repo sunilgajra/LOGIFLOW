@@ -41,7 +41,7 @@ export class ApiLogService {
     }
   }
 
-  private static sanitize(obj: any): any {
+  public static sanitize(obj: any): any {
     if (!obj || typeof obj !== 'object') return obj;
 
     const copy = Array.isArray(obj) ? [...obj] : { ...obj };

@@ -17,6 +17,7 @@ import { WaybillInventoryService } from './WaybillInventoryService';
 
 interface DelhiveryCredentials {
   apiKey?: string;
+  api_key?: string;
   token?: string;
   clientName?: string;
   client?: string;
@@ -62,7 +63,7 @@ export class DelhiveryProvider implements ICourierProvider {
   }
 
   private get apiKey(): string | undefined {
-    return this.credentials.apiKey || this.credentials.token;
+    return this.credentials.apiKey || this.credentials.api_key || this.credentials.token;
   }
 
   private get clientName(): string {
@@ -391,26 +392,75 @@ export class DelhiveryProvider implements ICourierProvider {
     return `${baseUrl}/api/p/packing_slip?wbns=${encodeURIComponent(waybill)}&pdf=true&pdf_size=${pdfSize}`;
   }
 
-  async generateLabel(waybill: string, pdfSize: 'A4' | '4R' = '4R', pdf: boolean = true): Promise<{ labelUrl: string; rawData?: any }> {
+  async generateLabel(
+    waybill: string, 
+    pdfSize: 'A4' | '4R' = '4R', 
+    pdf: boolean = true,
+    verifyFetch: boolean = false
+  ): Promise<{ 
+    success: boolean; 
+    labelUrl: string; 
+    contentType?: string; 
+    byteLength?: number; 
+    isPdfValid?: boolean; 
+    rawData?: any; 
+    error?: string;
+  }> {
     const isStaging = this.credentials.mode === 'staging';
     const labelUrl = DelhiveryProvider.getLabelUrl(waybill, isStaging, pdfSize, pdf);
 
-    if (pdf) {
-      return { labelUrl };
+    if (!verifyFetch || !this.apiKey || this.credentials.mode === 'mock') {
+      return { success: true, labelUrl };
     }
 
     try {
-      const response = await fetch(labelUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Token ${this.apiKey}`,
-          'Accept': 'application/json'
-        }
-      });
-      const rawData = response.ok ? await response.json() : null;
-      return { labelUrl, rawData };
-    } catch (e) {
-      return { labelUrl, rawData: null };
+      const headers: any = {
+        'Accept': pdf ? 'application/pdf, */*' : 'application/json'
+      };
+      if (this.apiKey) {
+        headers['Authorization'] = `Token ${this.apiKey}`;
+      }
+
+      const response = await fetch(labelUrl, { method: 'GET', headers });
+      const contentType = response.headers.get('content-type') || '';
+
+      if (!response.ok) {
+        const errText = await response.text();
+        return {
+          success: false,
+          labelUrl,
+          contentType,
+          error: `HTTP ${response.status}: ${errText.substring(0, 150)}`
+        };
+      }
+
+      if (pdf) {
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const isPdfValid = buffer.length > 4 && buffer.toString('utf8', 0, 5) === '%PDF-';
+
+        return {
+          success: isPdfValid || buffer.length > 0,
+          labelUrl,
+          contentType,
+          byteLength: buffer.length,
+          isPdfValid
+        };
+      } else {
+        const rawData = await response.json();
+        return {
+          success: true,
+          labelUrl,
+          contentType,
+          rawData
+        };
+      }
+    } catch (e: any) {
+      return {
+        success: false,
+        labelUrl,
+        error: e.message || 'Failed to fetch shipping label'
+      };
     }
   }
 }
