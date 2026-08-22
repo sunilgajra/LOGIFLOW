@@ -106,6 +106,7 @@ model CourierPartner {
   shipments       Shipment[]
   import_profiles ImportProfile[]
   rateCards       RateCard[]
+  courier_bills   CourierBill[]
 }
 
 model Shipment {
@@ -156,6 +157,32 @@ model Shipment {
   oda_amount          Float   @default(0)
   fsc_amount          Float   @default(0)
   idc_amount          Float   @default(0)
+
+  // --- Client Commercial Rate Snapshot (Frozen at Booking) ---
+  client_base_freight  Float?   @default(0)
+  client_docket_charge Float?   @default(0)
+  client_fov_charge    Float?   @default(0)
+  client_fsc_amount    Float?   @default(0)
+  client_idc_amount    Float?   @default(0)
+  client_oda_amount    Float?   @default(0)
+  client_green_tax     Float?   @default(0)
+  client_gst_amount    Float?   @default(0)
+  client_total_charge  Float?   @default(0)
+
+  // --- Courier Purchase Cost Snapshot (Frozen at Booking) ---
+  courier_base_cost    Float?   @default(0)
+  courier_docket_cost  Float?   @default(0)
+  courier_fov_cost     Float?   @default(0)
+  courier_fsc_cost     Float?   @default(0)
+  courier_idc_cost     Float?   @default(0)
+  courier_oda_cost     Float?   @default(0)
+  courier_green_tax    Float?   @default(0)
+  courier_gst_amount   Float?   @default(0)
+  courier_total_cost   Float?   @default(0)
+
+  // --- Financial Profit Metrics ---
+  gross_margin         Float?   @default(0)
+  margin_percentage    Float?   @default(0)
 
   created_at   DateTime  @default(now())
   updated_at   DateTime  @updatedAt
@@ -321,11 +348,34 @@ model CourierBill {
   courier_id   String
   bill_date    DateTime
   total_amount Float
-  status       String
+  status       String   @default("SUBMITTED") // SUBMITTED, RECONCILED, DISPUTED, PAID
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
-  company Company @relation(fields: [company_id], references: [id])
+  company Company           @relation(fields: [company_id], references: [id])
+  courier CourierPartner    @relation(fields: [courier_id], references: [id])
+  items   CourierBillItem[]
+}
+
+model CourierBillItem {
+  id                   String   @id @default(uuid())
+  courier_bill_id      String
+  awb_number           String
+  expected_weight      Float?
+  billed_weight        Float?
+  weight_discrepancy   Float?
+  expected_zone        String?
+  billed_zone          String?
+  expected_cost        Float?
+  billed_cost          Float?
+  cost_variance        Float?
+  reconciliation_status String  @default("MATCHED") // MATCHED, WEIGHT_DISCREPANCY, ZONE_MISMATCH, OVERCHARGED, UNMATCHED_AWB
+  created_at           DateTime @default(now())
+
+  courier_bill CourierBill @relation(fields: [courier_bill_id], references: [id], onDelete: Cascade)
+
+  @@index([courier_bill_id])
+  @@index([awb_number])
 }
 
 model AuditLog {

@@ -145,50 +145,68 @@ export const saveZoneMapping = async (req: AuthenticatedRequest, res: Response) 
   }
 };
 
-// Helper function to be called from import.controller.ts
-export const calculateShipmentCost = async (shipmentData: any, companyId: string) => {
-  if (!shipmentData.client_id) return null; // We can't calculate without a client
+export interface ClientCostSnapshot {
+  client_base_freight: number;
+  client_docket_charge: number;
+  client_fov_charge: number;
+  client_fsc_amount: number;
+  client_idc_amount: number;
+  client_oda_amount: number;
+  client_green_tax: number;
+  client_gst_amount: number;
+  client_total_charge: number;
+}
 
-  // 1. Find Client's Rate Card
+export interface CourierCostSnapshot {
+  courier_base_cost: number;
+  courier_docket_cost: number;
+  courier_fov_cost: number;
+  courier_fsc_cost: number;
+  courier_idc_cost: number;
+  courier_oda_cost: number;
+  courier_green_tax: number;
+  courier_gst_amount: number;
+  courier_total_cost: number;
+}
+
+// Helper function to calculate CLIENT SELLING RATE
+export const calculateShipmentCost = async (shipmentData: any, companyId: string): Promise<ClientCostSnapshot | null> => {
+  if (!shipmentData.client_id) return null;
+
   const rateCard = await prisma.rateCard.findFirst({
     where: { client_id: shipmentData.client_id, company_id: companyId }
   });
 
   if (!rateCard) return null;
 
-  // 2. Determine Chargeable Weight
+  const divisor = rateCard.volumetric_divisor && rateCard.volumetric_divisor > 0 ? rateCard.volumetric_divisor : 5000;
+  const length = parseFloat(shipmentData.length) || 0;
+  const width = parseFloat(shipmentData.width) || 0;
+  const height = parseFloat(shipmentData.height) || 0;
+  
+  let volumetricWeight = parseFloat(shipmentData.volumetric_weight) || 0;
+  if (volumetricWeight === 0 && length > 0 && width > 0 && height > 0) {
+    volumetricWeight = (length * width * height) / divisor;
+  }
+
   const actualWeight = parseFloat(shipmentData.actual_weight) || 0;
-  const volumetricWeight = parseFloat(shipmentData.volumetric_weight) || 0;
   let chargeableWeight = Math.max(actualWeight, volumetricWeight);
 
-  // Apply minimum weight from Rate Card
   if (rateCard.min_weight_kg > 0) {
     chargeableWeight = Math.max(chargeableWeight, rateCard.min_weight_kg);
   }
 
-  // 3. Find Zones
-  // Default to flat rate (no matrix) if no origin/dest provided
   let ratePerKg = 0;
-  
   try {
     const matrix = JSON.parse(rateCard.rates_matrix || '{}');
-    
-    // We assume shipmentData has origin_state and dest_state. If not, maybe use city.
-    // For now, if matrix is a simple object { "N1": 10, "S1": 15 }, we just need destZone.
-    // If it's a nested object { "W1": { "S1": 15 } }, we need originZone and destZone.
-
-    // Let's get dest zone
     const destZoneMapping = shipmentData.state ? await prisma.zoneMapping.findUnique({
       where: { company_id_state_name: { company_id: companyId, state_name: shipmentData.state } }
     }) : null;
-    
     const destZone = destZoneMapping?.zone_name || 'DEFAULT';
 
-    // Check if matrix is 2D (origin -> dest)
     const originZoneMapping = shipmentData.origin ? await prisma.zoneMapping.findUnique({
       where: { company_id_state_name: { company_id: companyId, state_name: shipmentData.origin } }
     }) : null;
-
     const originZone = originZoneMapping?.zone_name || 'DEFAULT';
 
     if (matrix[originZone] && matrix[originZone][destZone]) {
@@ -197,52 +215,44 @@ export const calculateShipmentCost = async (shipmentData: any, companyId: string
       ratePerKg = parseFloat(String(matrix[destZone]));
     }
   } catch (e) {
-    console.error('Failed to parse rates matrix', e);
+    console.error('Failed to parse client rates matrix', e);
   }
 
-  // Calculate base freight
   let freight = chargeableWeight * ratePerKg;
+  if (rateCard.min_booking_amount > 0) freight = Math.max(freight, rateCard.min_booking_amount);
 
-  // Apply minimum booking
-  if (rateCard.min_booking_amount > 0) {
-    freight = Math.max(freight, rateCard.min_booking_amount);
-  }
-
-  // Add Docket Charge
-  let totalCost = freight + (rateCard.docket_charge || 0);
-
-  // FOV Calculation
+  const docket = rateCard.docket_charge || 0;
   const declaredValue = parseFloat(shipmentData.declared_value) || 0;
+  let fov = 0;
   if (rateCard.fov_percentage > 0) {
-    let fov = declaredValue * (rateCard.fov_percentage / 100);
+    fov = declaredValue * (rateCard.fov_percentage / 100);
     if (rateCard.fov_minimum > 0) fov = Math.max(fov, rateCard.fov_minimum);
-    totalCost += fov;
   }
 
-  // FSC Calculation (on freight)
-  const fsc_amount = freight * ((rateCard.fsc_percentage || 0) / 100);
-  
-  // IDC Calculation (on freight)
-  const idc_amount = freight * ((rateCard.idc_percentage || 0) / 100);
+  const fsc = freight * ((rateCard.fsc_percentage || 0) / 100);
+  const idc = freight * ((rateCard.idc_percentage || 0) / 100);
+  const oda = shipmentData.is_oda ? (rateCard.oda_charge || 0) : 0;
+  const green_tax = rateCard.green_tax_rate || 0;
 
-  // ODA Amount (applied if shipment is ODA - for now apply standard rate if set and shipment marked as ODA)
-  const oda_amount = shipmentData.is_oda ? (rateCard.oda_charge || 0) : 0;
+  const subtotal = freight + docket + fov + fsc + idc + oda + green_tax;
+  const gst = subtotal * 0.18; // Standard 18% GST
+  const total = subtotal + gst;
 
-  // Green Tax
-  const green_tax_amount = rateCard.green_tax_rate || 0;
-
-  totalCost += fsc_amount + idc_amount + oda_amount + green_tax_amount;
-
-  return totalCost > 0 ? {
-    client_charge: totalCost,
-    fsc_amount,
-    idc_amount,
-    oda_amount,
-    green_tax_amount
+  return subtotal > 0 ? {
+    client_base_freight: Math.round(freight * 100) / 100,
+    client_docket_charge: Math.round(docket * 100) / 100,
+    client_fov_charge: Math.round(fov * 100) / 100,
+    client_fsc_amount: Math.round(fsc * 100) / 100,
+    client_idc_amount: Math.round(idc * 100) / 100,
+    client_oda_amount: Math.round(oda * 100) / 100,
+    client_green_tax: Math.round(green_tax * 100) / 100,
+    client_gst_amount: Math.round(gst * 100) / 100,
+    client_total_charge: Math.round(total * 100) / 100,
   } : null;
 };
-// Helper function to calculate COURIER cost (what the courier charges US)
-export const calculateCourierCost = async (shipmentData: any, companyId: string): Promise<number | null> => {
+
+// Helper function to calculate COURIER PURCHASE COST
+export const calculateCourierCost = async (shipmentData: any, companyId: string): Promise<CourierCostSnapshot | null> => {
   if (!shipmentData.courier_id) return null;
 
   const rateCard = await prisma.rateCard.findFirst({
@@ -251,8 +261,17 @@ export const calculateCourierCost = async (shipmentData: any, companyId: string)
 
   if (!rateCard) return null;
 
+  const divisor = rateCard.volumetric_divisor && rateCard.volumetric_divisor > 0 ? rateCard.volumetric_divisor : 5000;
+  const length = parseFloat(shipmentData.length) || 0;
+  const width = parseFloat(shipmentData.width) || 0;
+  const height = parseFloat(shipmentData.height) || 0;
+
+  let volumetricWeight = parseFloat(shipmentData.volumetric_weight) || 0;
+  if (volumetricWeight === 0 && length > 0 && width > 0 && height > 0) {
+    volumetricWeight = (length * width * height) / divisor;
+  }
+
   const actualWeight = parseFloat(shipmentData.actual_weight) || 0;
-  const volumetricWeight = parseFloat(shipmentData.volumetric_weight) || 0;
   let chargeableWeight = Math.max(actualWeight, volumetricWeight);
 
   if (rateCard.min_weight_kg > 0) {
@@ -284,13 +303,12 @@ export const calculateCourierCost = async (shipmentData: any, companyId: string)
   let freight = chargeableWeight * ratePerKg;
   if (rateCard.min_booking_amount > 0) freight = Math.max(freight, rateCard.min_booking_amount);
 
-  let totalCost = freight + (rateCard.docket_charge || 0);
-
+  const docket = rateCard.docket_charge || 0;
   const declaredValue = parseFloat(shipmentData.declared_value) || 0;
+  let fov = 0;
   if (rateCard.fov_percentage > 0) {
-    let fov = declaredValue * (rateCard.fov_percentage / 100);
+    fov = declaredValue * (rateCard.fov_percentage / 100);
     if (rateCard.fov_minimum > 0) fov = Math.max(fov, rateCard.fov_minimum);
-    totalCost += fov;
   }
 
   const fsc = freight * ((rateCard.fsc_percentage || 0) / 100);
@@ -298,9 +316,21 @@ export const calculateCourierCost = async (shipmentData: any, companyId: string)
   const oda = shipmentData.is_oda ? (rateCard.oda_charge || 0) : 0;
   const green_tax = rateCard.green_tax_rate || 0;
 
-  totalCost += fsc + idc + oda + green_tax;
+  const subtotal = freight + docket + fov + fsc + idc + oda + green_tax;
+  const gst = subtotal * 0.18;
+  const total = subtotal + gst;
 
-  return totalCost > 0 ? totalCost : null;
+  return subtotal > 0 ? {
+    courier_base_cost: Math.round(freight * 100) / 100,
+    courier_docket_cost: Math.round(docket * 100) / 100,
+    courier_fov_cost: Math.round(fov * 100) / 100,
+    courier_fsc_cost: Math.round(fsc * 100) / 100,
+    courier_idc_cost: Math.round(idc * 100) / 100,
+    courier_oda_cost: Math.round(oda * 100) / 100,
+    courier_green_tax: Math.round(green_tax * 100) / 100,
+    courier_gst_amount: Math.round(gst * 100) / 100,
+    courier_total_cost: Math.round(total * 100) / 100,
+  } : null;
 };
 
 /**
@@ -337,10 +367,10 @@ export const calculateRateEstimate = async (req: AuthenticatedRequest, res: Resp
     };
 
     const clientCostData = await calculateShipmentCost(calculationPayload, companyId);
-    const courierCostAmount = await calculateCourierCost(calculationPayload, companyId);
+    const courierCostData = await calculateCourierCost(calculationPayload, companyId);
 
-    const clientCharge = clientCostData?.client_charge || 0;
-    const courierCost = courierCostAmount || 0;
+    const clientCharge = clientCostData?.client_total_charge || 0;
+    const courierCost = courierCostData?.courier_total_cost || 0;
     const estimatedProfit = clientCharge > 0 && courierCost > 0 ? clientCharge - courierCost : 0;
     const profitMarginPercentage = clientCharge > 0 ? (estimatedProfit / clientCharge) * 100 : 0;
 
@@ -352,12 +382,8 @@ export const calculateRateEstimate = async (req: AuthenticatedRequest, res: Resp
       courier_cost: Math.round(courierCost * 100) / 100,
       estimated_profit: Math.round(estimatedProfit * 100) / 100,
       profit_margin_pct: Math.round(profitMarginPercentage * 10) / 10,
-      breakdown: {
-        fsc_amount: Math.round((clientCostData?.fsc_amount || 0) * 100) / 100,
-        idc_amount: Math.round((clientCostData?.idc_amount || 0) * 100) / 100,
-        oda_amount: Math.round((clientCostData?.oda_amount || 0) * 100) / 100,
-        green_tax_amount: Math.round((clientCostData?.green_tax_amount || 0) * 100) / 100,
-      }
+      client_breakdown: clientCostData,
+      courier_breakdown: courierCostData
     });
   } catch (error: any) {
     console.error('Error calculating rate estimate:', error);

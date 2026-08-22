@@ -103,6 +103,7 @@ export const processImport = async (req: AuthenticatedRequest, res: Response) =>
         let calculated_oda = 0;
         let calculated_green_tax = 0;
 
+        let calcResult = null;
         if (client_charge === null && clientId) {
            const calcPayload = {
              client_id: clientId,
@@ -113,13 +114,13 @@ export const processImport = async (req: AuthenticatedRequest, res: Response) =>
              declared_value: mapping.declared_value ? parseFloat(record[mapping.declared_value]) || 0 : 0,
              is_oda: mapping.is_oda ? (record[mapping.is_oda]?.toLowerCase() === 'yes' || record[mapping.is_oda] === true) : false
            };
-           const calcResult = await calculateShipmentCost(calcPayload, company_id);
+           calcResult = await calculateShipmentCost(calcPayload, company_id);
            if (calcResult) {
-             client_charge = calcResult.client_charge;
-             calculated_fsc = calcResult.fsc_amount;
-             calculated_idc = calcResult.idc_amount;
-             calculated_oda = calcResult.oda_amount;
-             calculated_green_tax = calcResult.green_tax_amount;
+             client_charge = calcResult.client_total_charge;
+             calculated_fsc = calcResult.client_fsc_amount;
+             calculated_idc = calcResult.client_idc_amount;
+             calculated_oda = calcResult.client_oda_amount;
+             calculated_green_tax = calcResult.client_green_tax;
            }
         }
 
@@ -150,6 +151,15 @@ export const processImport = async (req: AuthenticatedRequest, res: Response) =>
             actual_weight,
             volumetric_weight,
             client_charge,
+            client_base_freight: calcResult?.client_base_freight || 0,
+            client_docket_charge: calcResult?.client_docket_charge || 0,
+            client_fov_charge: calcResult?.client_fov_charge || 0,
+            client_fsc_amount: calculated_fsc,
+            client_idc_amount: calculated_idc,
+            client_oda_amount: calculated_oda,
+            client_green_tax: calculated_green_tax,
+            client_gst_amount: calcResult?.client_gst_amount || 0,
+            client_total_charge: calcResult?.client_total_charge || client_charge || 0,
             fsc_amount: calculated_fsc,
             idc_amount: calculated_idc,
             oda_amount: calculated_oda,

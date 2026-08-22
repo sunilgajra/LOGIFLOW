@@ -22,6 +22,7 @@ import { getWarehouses, createWarehouse, updateWarehouse } from './controllers/w
 import { getPickupRequests, createPickupRequest, updatePickupRequestStatus } from './controllers/pickup.controller';
 import { getSupportTickets, createSupportTicket, updateTicketStatus } from './controllers/support.controller';
 import { calculateRateQuotes } from './controllers/calculator.controller';
+import { processCourierBillReconciliation, getCourierBills } from './controllers/reconciliation.controller';
 
 const upload = multer({ dest: 'uploads/' });
 const router = Router();
@@ -129,6 +130,10 @@ router.put('/pickups/:id/status', requireAuth, updatePickupRequestStatus);
 router.get('/support/tickets', requireAuth, getSupportTickets);
 router.post('/support/tickets', requireAuth, createSupportTicket);
 router.put('/support/tickets/:id/status', requireAuth, updateTicketStatus);
+
+// --- Courier Bill Reconciliation API ---
+router.post('/reconciliation/process', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'ACCOUNTS']), processCourierBillReconciliation);
+router.get('/reconciliation/bills', requireAuth, getCourierBills);
 
 export default router;
 

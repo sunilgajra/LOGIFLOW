@@ -141,9 +141,11 @@ export const bookShipment = async (req: AuthenticatedRequest, res: Response) => 
       origin: payload.origin,
       declared_value: payload.declared_value,
     }, companyId);
-    const courierCostAmount = courierCostData || 0;
-    const clientChargeAmount = costDetails?.client_charge || 0;
-    const profitAmount = clientChargeAmount > 0 && courierCostAmount > 0 ? clientChargeAmount - courierCostAmount : null;
+
+    const clientTotal = costDetails?.client_total_charge || 0;
+    const courierTotal = courierCostData?.courier_total_cost || 0;
+    const grossMargin = clientTotal > 0 && courierTotal > 0 ? clientTotal - courierTotal : 0;
+    const marginPct = clientTotal > 0 ? (grossMargin / clientTotal) * 100 : 0;
 
     const clientId = payload.client_id && String(payload.client_id).trim() !== '' ? String(payload.client_id) : null;
     const courierId = payload.courier_id && String(payload.courier_id).trim() !== '' ? String(payload.courier_id) : null;
@@ -187,14 +189,41 @@ export const bookShipment = async (req: AuthenticatedRequest, res: Response) => 
         po_expiry_date: payload.po_expiry_date ? new Date(payload.po_expiry_date) : null,
         promised_delivery_date: payload.promised_delivery_date ? new Date(payload.promised_delivery_date) : null,
         
-        // Add assigned rates
-        client_charge: clientChargeAmount,
-        courier_cost: courierCostAmount || null,
-        profit: profitAmount,
-        fsc_amount: costDetails?.fsc_amount || 0,
-        idc_amount: costDetails?.idc_amount || 0,
-        oda_amount: costDetails?.oda_amount || 0,
-        green_tax_amount: costDetails?.green_tax_amount || 0,
+        // Aggregate financial fields
+        client_charge: clientTotal,
+        courier_cost: courierTotal,
+        profit: grossMargin,
+
+        // Frozen Client Rate Snapshot
+        client_base_freight: costDetails?.client_base_freight || 0,
+        client_docket_charge: costDetails?.client_docket_charge || 0,
+        client_fov_charge: costDetails?.client_fov_charge || 0,
+        client_fsc_amount: costDetails?.client_fsc_amount || 0,
+        client_idc_amount: costDetails?.client_idc_amount || 0,
+        client_oda_amount: costDetails?.client_oda_amount || 0,
+        client_green_tax: costDetails?.client_green_tax || 0,
+        client_gst_amount: costDetails?.client_gst_amount || 0,
+        client_total_charge: clientTotal,
+
+        // Frozen Courier Cost Snapshot
+        courier_base_cost: courierCostData?.courier_base_cost || 0,
+        courier_docket_cost: courierCostData?.courier_docket_cost || 0,
+        courier_fov_cost: courierCostData?.courier_fov_cost || 0,
+        courier_fsc_cost: courierCostData?.courier_fsc_cost || 0,
+        courier_idc_cost: courierCostData?.courier_idc_cost || 0,
+        courier_oda_cost: courierCostData?.courier_oda_cost || 0,
+        courier_green_tax: courierCostData?.courier_green_tax || 0,
+        courier_gst_amount: courierCostData?.courier_gst_amount || 0,
+        courier_total_cost: courierTotal,
+
+        // Profit Margins
+        gross_margin: grossMargin,
+        margin_percentage: marginPct,
+        
+        fsc_amount: costDetails?.client_fsc_amount || 0,
+        idc_amount: costDetails?.client_idc_amount || 0,
+        oda_amount: costDetails?.client_oda_amount || 0,
+        green_tax_amount: costDetails?.client_green_tax || 0,
         
         status_history: {
           create: {
