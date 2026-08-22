@@ -196,6 +196,17 @@ model Shipment {
   deliveredAt  DateTime?
   label_url    String? // URL to the shipping label PDF from Courier
 
+  // --- Delhivery & Courier Gateway Booking Lifecycle & Idempotency ---
+  delhivery_awb           String?
+  delhivery_order_id      String?
+  courier_account_id      String?
+  booking_status          String    @default("NOT_BOOKED") // NOT_BOOKED, BOOKING_IN_PROGRESS, BOOKED, FAILED
+  booking_attempts        Int       @default(0)
+  last_booking_error      String?
+  last_booking_attempt_at DateTime?
+  booked_at               DateTime?
+  correlation_id          String?
+
   company Company         @relation(fields: [company_id], references: [id])
   client  Client?         @relation(fields: [client_id], references: [id])
   courier CourierPartner? @relation(fields: [courier_id], references: [id])
