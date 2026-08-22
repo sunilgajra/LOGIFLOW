@@ -949,79 +949,117 @@ const Shipments = () => {
         </div>
       )}
 
-      {/* Shipping Label Modal */}
+      {/* Thermal 4x6 Shipping Label Modal */}
       {selectedLabel && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            {/* Modal Overlay - hidden when printing */}
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 transition-opacity print:hidden" aria-hidden="true" onClick={() => setSelectedLabel(null)}>
-              <div className="absolute inset-0 bg-slate-900 opacity-75"></div>
+              <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xs"></div>
             </div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen print:hidden" aria-hidden="true">&#8203;</span>
             
-            {/* Modal Content / Printable Label */}
-            <div id="printable-label" className="relative z-10 inline-block align-bottom bg-white rounded-xl text-left shadow-xl transform transition-all sm:my-8 sm:align-middle w-[4in] min-h-[6in] print:w-full print:h-full print:shadow-none print:rounded-none">
+            <div className="relative z-10 inline-block align-bottom bg-white rounded-xl text-left shadow-2xl transform transition-all sm:my-8 sm:align-middle w-full max-w-md print:w-[4in] print:h-[6in] print:shadow-none print:rounded-none">
               
-              {/* Toolbar - hidden when printing */}
-              <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center rounded-t-xl print:hidden">
-                <h3 className="text-sm font-bold text-slate-700">Shipping Label Preview</h3>
+              {/* Toolbar */}
+              <div className="bg-slate-900 text-white px-4 py-3 border-b border-slate-800 flex justify-between items-center rounded-t-xl print:hidden">
+                <div className="flex items-center space-x-2">
+                  <Printer className="w-4 h-4 text-blue-400" />
+                  <span className="text-xs font-bold">4x6 Thermal Label Preview</span>
+                </div>
                 <div className="flex space-x-2">
-                  <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-medium flex items-center">
-                    <Printer className="w-3 h-3 mr-1" /> Print
+                  <button 
+                    onClick={() => window.print()} 
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center shadow-xs cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5 mr-1" /> Print 4x6 Label
                   </button>
-                  <button onClick={() => setSelectedLabel(null)} className="text-slate-500 hover:text-slate-700 p-1">
+                  <button onClick={() => setSelectedLabel(null)} className="text-slate-400 hover:text-white p-1 cursor-pointer">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              {/* Label Body */}
-              <div className="p-6 bg-white flex flex-col h-full print:p-0">
-                <div className="border-b-2 border-black pb-4 mb-4 flex justify-between items-end">
+              {/* 4x6 Label Printable Container */}
+              <div id="printable-label" className="p-4 bg-white text-black font-sans text-xs w-[4in] min-h-[6in] border border-black mx-auto print:border-none print:p-0">
+                {/* 1. Header Row */}
+                <div className="border-b-2 border-black pb-2 mb-2 flex justify-between items-start">
                   <div>
-                    <h1 className="text-2xl font-black tracking-tighter">LogiFlow</h1>
-                    <p className="text-xs font-bold text-gray-500">EXPRESS DELIVERY</p>
+                    <h1 className="text-xl font-black tracking-tight leading-none">LogiFlow</h1>
+                    <span className="text-[9px] font-black uppercase text-slate-700 tracking-wider">Express Logistics</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold">{selectedLabel.booking_date ? format(new Date(selectedLabel.booking_date), 'dd MMM yyyy') : 'N/A'}</p>
-                    <p className="text-xs font-bold uppercase">{selectedLabel.courier?.courier_name || 'Standard'}</p>
+                    <span className="text-[9px] font-bold block text-slate-600">DATE: {selectedLabel.booking_date ? format(new Date(selectedLabel.booking_date), 'dd/MM/yyyy') : format(new Date(), 'dd/MM/yyyy')}</span>
+                    <span className="text-xs font-black uppercase bg-black text-white px-1.5 py-0.5 rounded inline-block mt-0.5">
+                      {selectedLabel.courier?.courier_name || 'DELHIVERY AIR'}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex-grow flex flex-col justify-between">
+                {/* 2. Routing Code Box */}
+                <div className="border-2 border-black p-1.5 mb-2 bg-black text-white flex justify-between items-center rounded-xs">
                   <div>
-                    <div className="mb-6">
-                      <p className="text-xs font-bold uppercase text-gray-500 mb-1">To (Receiver):</p>
-                      <p className="font-bold text-lg leading-tight">{selectedLabel.receiver_name}</p>
-                      <p className="text-sm">{selectedLabel.address}</p>
-                      <p className="text-sm font-bold mt-1">{selectedLabel.city}, {selectedLabel.state} {selectedLabel.pincode}</p>
-                      <p className="text-sm mt-1">Ph: {selectedLabel.phone}</p>
-                    </div>
-
-                    <div className="border-t-2 border-black pt-4 mb-6">
-                      <p className="text-xs font-bold uppercase text-gray-500 mb-1">From (Sender):</p>
-                      <p className="font-bold text-sm">{selectedLabel.client?.company_name || 'LogiFlow User'}</p>
-                      <p className="text-xs">Authorized Shipping Center</p>
-                    </div>
-                    
-                    <div className="border-t-2 border-b-2 border-black py-4 mb-6 flex justify-between items-center">
-                      <div>
-                        <p className="text-xs font-bold uppercase text-gray-500 mb-1">Weight:</p>
-                        <p className="font-bold">{selectedLabel.actual_weight || '1.0'} kg</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-bold uppercase text-gray-500 mb-1">Routing Code:</p>
-                        <p className="font-black text-2xl uppercase">{selectedLabel.city?.substring(0, 3) || 'RTE'}-{selectedLabel.pincode?.substring(0, 2) || '00'}</p>
-                      </div>
-                    </div>
+                    <span className="text-[8px] uppercase tracking-widest text-slate-300 block">Hub Sort Code</span>
+                    <span className="text-lg font-black tracking-widest font-mono">
+                      {selectedLabel.city?.substring(0, 3).toUpperCase() || 'DEL'}/{selectedLabel.state?.substring(0, 2).toUpperCase() || 'N1'}-{selectedLabel.pincode || '400001'}
+                    </span>
                   </div>
-
-                  <div className="text-center pt-2">
-                    <div className="flex justify-center mb-2">
-                      <Barcode value={selectedLabel.awb_number} width={2} height={80} fontSize={16} margin={0} />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2 font-mono">Scan to Track</p>
+                  <div className="text-right">
+                    <span className="text-[9px] font-bold bg-white text-black px-1.5 py-0.5 rounded uppercase">
+                      {selectedLabel.service_type || 'EXPRESS'}
+                    </span>
                   </div>
+                </div>
+
+                {/* 3. Deliver To (Consignee) */}
+                <div className="border-b-2 border-black pb-2 mb-2">
+                  <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 block mb-0.5">SHIP TO (CONSIGNEE):</span>
+                  <p className="text-sm font-black leading-tight text-black">{selectedLabel.receiver_name}</p>
+                  <p className="text-[11px] font-semibold leading-tight text-slate-800 mt-0.5">{selectedLabel.receiver_address || selectedLabel.address}</p>
+                  <p className="text-xs font-black text-black mt-1 uppercase">
+                    {selectedLabel.city}, {selectedLabel.state} - {selectedLabel.pincode}
+                  </p>
+                  <p className="text-[11px] font-bold text-slate-900 mt-0.5">Ph: {selectedLabel.receiver_phone || selectedLabel.phone || 'N/A'}</p>
+                </div>
+
+                {/* 4. Sender Details */}
+                <div className="border-b-2 border-black pb-2 mb-2">
+                  <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 block mb-0.5">SHIP FROM (SENDER):</span>
+                  <p className="text-xs font-bold text-black">{selectedLabel.client?.company_name || selectedLabel.sender_name || 'LogiFlow Merchant'}</p>
+                  <p className="text-[10px] text-slate-700 leading-tight">{selectedLabel.sender_address || selectedLabel.client?.address || 'Authorized LogiFlow Origin Fulfillment Center'}</p>
+                </div>
+
+                {/* 5. Package Details & Payment Grid */}
+                <div className="border-2 border-black p-1.5 mb-2 grid grid-cols-3 gap-1 text-center bg-slate-50">
+                  <div className="border-r border-black pr-1">
+                    <span className="text-[8px] font-bold uppercase text-slate-500 block">Actual Wt</span>
+                    <span className="text-xs font-black">{selectedLabel.actual_weight || '1.0'} kg</span>
+                  </div>
+                  <div className="border-r border-black px-1">
+                    <span className="text-[8px] font-bold uppercase text-slate-500 block">Pieces</span>
+                    <span className="text-xs font-black">{selectedLabel.number_of_pieces || 1} Pcs</span>
+                  </div>
+                  <div className="pl-1">
+                    <span className="text-[8px] font-bold uppercase text-slate-500 block">Payment</span>
+                    <span className={`text-[10px] font-black px-1 rounded block ${selectedLabel.cod_amount ? 'bg-black text-white' : 'bg-slate-200 text-black'}`}>
+                      {selectedLabel.cod_amount ? `COD: ₹${selectedLabel.cod_amount}` : 'PREPAID'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 6. Code-128 Barcode */}
+                <div className="text-center pt-1 border-t border-slate-300">
+                  <div className="flex justify-center my-1">
+                    <Barcode 
+                      value={selectedLabel.awb_number || 'DELH88291034'} 
+                      width={1.8} 
+                      height={65} 
+                      fontSize={13} 
+                      margin={0} 
+                    />
+                  </div>
+                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                    Scan Barcode at Dispatch & Sorting Hub
+                  </p>
                 </div>
               </div>
             </div>
