@@ -205,7 +205,7 @@ async function runCommercialAuditSuite() {
   });
 
   const frozenShip = await CommercialEngineService.freezeShipmentCommercials(compA, shipId);
-  if (frozenShip.client_base_freight === 65 && frozenShip.client_total_charge === 84.37 && frozenShip.courier_total_cost === 49.56) {
+  if (Number(frozenShip.client_base_freight) === 65 && Number(frozenShip.client_total_charge) === 84.37 && Number(frozenShip.courier_total_cost) === 49.56) {
     console.log('✅ TEST 13 PASSED: Rate snapshot frozen on shipment record (Client Charge: ₹84.37, Courier Cost: ₹49.56).');
     passedTests++;
   } else {
@@ -234,7 +234,7 @@ async function runCommercialAuditSuite() {
   });
 
   const checkShip15 = await prisma.shipment.findUnique({ where: { id: shipId } });
-  if (line1.variance_reason === 'MATCHED' && checkShip15?.actual_courier_cost === 49.56 && checkShip15?.cost_variance === 0) {
+  if (line1.variance_reason === 'MATCHED' && Number(checkShip15?.actual_courier_cost) === 49.56 && Number(checkShip15?.cost_variance) === 0) {
     console.log('✅ TEST 15 PASSED: Invoice line matched to AWB. Cost variance = ₹0 (MATCHED).');
     passedTests++;
   } else {
@@ -271,7 +271,7 @@ async function runCommercialAuditSuite() {
   });
 
   const checkShipVar = await prisma.shipment.findUnique({ where: { id: shipVarId } });
-  if (lineVar.cost_variance === 15.44 && checkShipVar?.variance_reason === 'WEIGHT_DIFFERENCE') {
+  if (Number(lineVar.cost_variance) === 15.44 && checkShipVar?.variance_reason === 'WEIGHT_DIFFERENCE') {
     console.log('✅ TEST 17 PASSED: Variance calculated (Expected: ₹49.56, Actual: ₹65, Variance: +₹15.44, Reason: WEIGHT_DIFFERENCE).');
     passedTests++;
   } else {
@@ -281,7 +281,7 @@ async function runCommercialAuditSuite() {
   // --- 18. Actual Profit Calculation ---
   console.log('\n--- SCENARIO 18: Actual Profit Calculation ---');
   // Client Revenue = ₹84.37, Actual Courier Cost = ₹65. Actual Profit = 84.37 - 65 = ₹19.37
-  if (checkShipVar?.actual_profit === 19.37) {
+  if (Number(checkShipVar?.actual_profit) === 19.37) {
     console.log('✅ TEST 18 PASSED: Actual Profit calculated as ₹19.37 (Client Revenue ₹84.37 - Actual Cost ₹65).');
     passedTests++;
   } else {
@@ -354,7 +354,7 @@ async function runCommercialAuditSuite() {
     awbNumber: awbVar, chargedWeight: 0.4, baseFreight: 40, totalAmount: 49.56
   });
   const checkShipCorr = await prisma.shipment.findUnique({ where: { id: shipVarId } });
-  if (checkShipCorr?.actual_courier_cost === 49.56 && checkShipCorr?.cost_variance === 0 && checkShipCorr?.variance_reason === 'MATCHED') {
+  if (Number(checkShipCorr?.actual_courier_cost) === 49.56 && Number(checkShipCorr?.cost_variance) === 0 && checkShipCorr?.variance_reason === 'MATCHED') {
     console.log('✅ TEST 24 PASSED: Invoice correction processed. Variance reset to ₹0 (MATCHED).');
     passedTests++;
   } else {
@@ -365,11 +365,11 @@ async function runCommercialAuditSuite() {
   console.log('\n--- SCENARIO 25: Full End-to-End Profitability Cycle ---');
   const e2eShip = await prisma.shipment.findUnique({ where: { id: shipId } });
   if (
-    e2eShip?.client_total_charge === 84.37 &&
-    e2eShip?.expected_courier_cost === 49.56 &&
-    e2eShip?.actual_courier_cost === 49.56 &&
-    e2eShip?.actual_profit === 34.81 &&
-    e2eShip?.margin_percentage === 41.26
+    Number(e2eShip?.client_total_charge) === 84.37 &&
+    Number(e2eShip?.expected_courier_cost) === 49.56 &&
+    Number(e2eShip?.actual_courier_cost) === 49.56 &&
+    Number(e2eShip?.actual_profit) === 34.81 &&
+    Number(e2eShip?.margin_percentage) === 41.26
   ) {
     console.log('✅ TEST 25 PASSED: Full E2E Profitability Cycle verified! (Revenue: ₹84.37, Cost: ₹49.56, Profit: ₹34.81, Margin: 41.26%).');
     passedTests++;

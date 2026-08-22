@@ -175,11 +175,11 @@ export const getMonthlyReport = async (req: AuthenticatedRequest, res: Response)
         cityMap[s.city] = (cityMap[s.city] || 0) + 1;
       }
 
-      totalFreightCharges += s.client_charge || 0;
-      totalCourierCost += s.courier_cost || 0;
-      totalProfit += s.profit || 0;
-      totalActualWeight += s.actual_weight || 0;
-      totalChargeableWeight += s.chargeable_weight || 0;
+      totalFreightCharges += s.client_charge ? Number(s.client_charge) : 0;
+      totalCourierCost += s.courier_cost ? Number(s.courier_cost) : 0;
+      totalProfit += s.profit ? Number(s.profit) : 0;
+      totalActualWeight += s.actual_weight ? Number(s.actual_weight) : 0;
+      totalChargeableWeight += s.chargeable_weight ? Number(s.chargeable_weight) : 0;
     });
 
     const slaRate = totalShipments > 0 ? Math.round((delivered / totalShipments) * 100) : 0;

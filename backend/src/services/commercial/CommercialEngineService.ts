@@ -179,26 +179,29 @@ export class CommercialEngineService {
       || rateCard.rules[0];
 
     const chargeableGrams = weights.chargeableKg * 1000;
-    let baseFreight = rule.base_rate;
+    let baseFreight = Number(rule.base_rate);
+    const maxWeightG = Number(rule.max_weight_g);
+    const addWeightG = Number(rule.additional_weight_g) || 500;
+    const addRate = Number(rule.additional_rate);
 
-    if (chargeableGrams > rule.max_weight_g) {
-      const extraGrams = chargeableGrams - rule.max_weight_g;
-      const extraSlabs = Math.ceil(extraGrams / (rule.additional_weight_g || 500));
-      baseFreight += extraSlabs * rule.additional_rate;
+    if (chargeableGrams > maxWeightG) {
+      const extraGrams = chargeableGrams - maxWeightG;
+      const extraSlabs = Math.ceil(extraGrams / addWeightG);
+      baseFreight += extraSlabs * addRate;
     }
     baseFreight = this.round2(baseFreight);
 
     const codCharge = input.paymentMode === 'COD'
-      ? this.round2(Math.max(rule.cod_min_fee, ((input.codAmount || 0) * rule.cod_percentage) / 100))
+      ? this.round2(Math.max(Number(rule.cod_min_fee), ((input.codAmount || 0) * Number(rule.cod_percentage)) / 100))
       : 0;
 
-    const fuelSurcharge = this.round2((baseFreight * rule.fuel_surcharge_pct) / 100);
-    const handlingFee = this.round2(rule.handling_fee);
-    const remoteAreaFee = zone === 'Zone E' ? this.round2(rule.remote_area_fee) : 0;
-    const otherSurcharge = this.round2(rule.other_surcharge);
+    const fuelSurcharge = this.round2((baseFreight * Number(rule.fuel_surcharge_pct)) / 100);
+    const handlingFee = this.round2(Number(rule.handling_fee));
+    const remoteAreaFee = zone === 'Zone E' ? this.round2(Number(rule.remote_area_fee)) : 0;
+    const otherSurcharge = this.round2(Number(rule.other_surcharge));
 
     const subtotal = this.round2(baseFreight + codCharge + fuelSurcharge + handlingFee + remoteAreaFee + otherSurcharge);
-    const gstAmount = this.round2((subtotal * rule.gst_rate_pct) / 100);
+    const gstAmount = this.round2((subtotal * Number(rule.gst_rate_pct)) / 100);
     const totalCharge = this.round2(subtotal + gstAmount);
 
     return {
@@ -267,25 +270,28 @@ export class CommercialEngineService {
       || rateCard.rules[0];
 
     const chargeableGrams = weights.chargeableKg * 1000;
-    let baseCost = rule.base_cost;
+    let baseCost = Number(rule.base_cost);
+    const maxWeightG = Number(rule.max_weight_g);
+    const addWeightG = Number(rule.additional_weight_g) || 500;
+    const addCost = Number(rule.additional_cost);
 
-    if (chargeableGrams > rule.max_weight_g) {
-      const extraGrams = chargeableGrams - rule.max_weight_g;
-      const extraSlabs = Math.ceil(extraGrams / (rule.additional_weight_g || 500));
-      baseCost += extraSlabs * rule.additional_cost;
+    if (chargeableGrams > maxWeightG) {
+      const extraGrams = chargeableGrams - maxWeightG;
+      const extraSlabs = Math.ceil(extraGrams / addWeightG);
+      baseCost += extraSlabs * addCost;
     }
     baseCost = this.round2(baseCost);
 
-    const codCost = input.paymentMode === 'COD' ? this.round2(rule.cod_fee) : 0;
-    const fuelSurcharge = this.round2((baseCost * rule.fuel_surcharge_pct) / 100);
+    const codCost = input.paymentMode === 'COD' ? this.round2(Number(rule.cod_fee)) : 0;
+    const fuelSurcharge = this.round2((baseCost * Number(rule.fuel_surcharge_pct)) / 100);
     const rtoCharge = 0; // Calculated on actual RTO event
     const ndrCharge = 0; // Calculated on actual NDR event
     const returnShippingCharge = 0;
-    const remoteAreaCharge = zone === 'Zone E' ? this.round2(rule.remote_area_charge) : 0;
-    const otherCharge = this.round2(rule.other_charge);
+    const remoteAreaCharge = zone === 'Zone E' ? this.round2(Number(rule.remote_area_charge)) : 0;
+    const otherCharge = this.round2(Number(rule.other_charge));
 
     const subtotal = this.round2(baseCost + codCost + fuelSurcharge + remoteAreaCharge + otherCharge);
-    const gstAmount = this.round2((subtotal * rule.gst_rate_pct) / 100);
+    const gstAmount = this.round2((subtotal * Number(rule.gst_rate_pct)) / 100);
     const totalCost = this.round2(subtotal + gstAmount);
 
     return {
@@ -318,7 +324,7 @@ export class CommercialEngineService {
     if (!shipment) throw new Error(`Shipment ${shipmentId} not found`);
 
     const weights = this.calculateWeights({
-      actualKg: shipment.actual_weight || 0,
+      actualKg: shipment.actual_weight ? Number(shipment.actual_weight) : 0,
       lengthCm: shipment.length_cm || 0,
       widthCm: shipment.width_cm || 0,
       heightCm: shipment.height_cm || 0
@@ -337,8 +343,8 @@ export class CommercialEngineService {
         lengthCm: shipment.length_cm || undefined,
         widthCm: shipment.width_cm || undefined,
         heightCm: shipment.height_cm || undefined,
-        paymentMode: shipment.cod_amount && shipment.cod_amount > 0 ? 'COD' : 'PREPAID',
-        codAmount: shipment.cod_amount || 0,
+        paymentMode: shipment.cod_amount && Number(shipment.cod_amount) > 0 ? 'COD' : 'PREPAID',
+        codAmount: shipment.cod_amount ? Number(shipment.cod_amount) : 0,
         serviceType: (shipment.service_type as any) || 'SURFACE',
         bookingDate: shipment.booking_date || new Date()
       });
@@ -354,15 +360,15 @@ export class CommercialEngineService {
         lengthCm: shipment.length_cm || undefined,
         widthCm: shipment.width_cm || undefined,
         heightCm: shipment.height_cm || undefined,
-        paymentMode: shipment.cod_amount && shipment.cod_amount > 0 ? 'COD' : 'PREPAID',
-        codAmount: shipment.cod_amount || 0,
+        paymentMode: shipment.cod_amount && Number(shipment.cod_amount) > 0 ? 'COD' : 'PREPAID',
+        codAmount: shipment.cod_amount ? Number(shipment.cod_amount) : 0,
         serviceType: (shipment.service_type as any) || 'SURFACE',
         bookingDate: shipment.booking_date || new Date()
       });
     }
 
-    const clientTotal = clientCalc ? clientCalc.totalCharge : (shipment.client_total_charge || 0);
-    const courierTotal = courierCalc ? courierCalc.totalCost : (shipment.courier_total_cost || 0);
+    const clientTotal = clientCalc ? clientCalc.totalCharge : (shipment.client_total_charge ? Number(shipment.client_total_charge) : 0);
+    const courierTotal = courierCalc ? courierCalc.totalCost : (shipment.courier_total_cost ? Number(shipment.courier_total_cost) : 0);
     const estimatedProfit = this.round2(clientTotal - courierTotal);
     const marginPct = clientTotal > 0 ? this.round2((estimatedProfit / clientTotal) * 100) : 0;
 
@@ -451,7 +457,7 @@ export class CommercialEngineService {
       where: { company_id: companyId, awb_number: awbClean }
     });
 
-    const expectedCost = shipment?.expected_courier_cost || shipment?.courier_total_cost || 0;
+    const expectedCost = shipment?.expected_courier_cost ? Number(shipment.expected_courier_cost) : (shipment?.courier_total_cost ? Number(shipment.courier_total_cost) : 0);
     const actualCost = this.round2(line.totalAmount);
     const costVariance = this.round2(actualCost - expectedCost);
 
@@ -459,7 +465,7 @@ export class CommercialEngineService {
     if (!shipment) {
       varianceReason = 'UNMATCHED';
     } else if (costVariance > 0.5) {
-      if (line.chargedWeight > (shipment.chargeable_weight || 0)) varianceReason = 'WEIGHT_DIFFERENCE';
+      if (line.chargedWeight > (shipment.chargeable_weight ? Number(shipment.chargeable_weight) : 0)) varianceReason = 'WEIGHT_DIFFERENCE';
       else if (line.zone && line.zone !== shipment.destination) varianceReason = 'ZONE_DIFFERENCE';
       else if ((line.codFee || 0) > 0) varianceReason = 'COD_DIFFERENCE';
       else if ((line.ndrFee || 0) > 0) varianceReason = 'NDR';
@@ -516,7 +522,7 @@ export class CommercialEngineService {
 
     // Update True Profit on Shipment without overwriting estimated costs
     if (shipment) {
-      const clientRevenue = shipment.client_total_charge || 0;
+      const clientRevenue = shipment.client_total_charge ? Number(shipment.client_total_charge) : 0;
       const actualProfit = this.round2(clientRevenue - actualCost);
       const marginPct = clientRevenue > 0 ? this.round2((actualProfit / clientRevenue) * 100) : 0;
 

@@ -150,12 +150,12 @@ model Shipment {
   service_type      String?
   package_type      String?
   number_of_pieces  Int?
-  actual_weight     Float?
-  volumetric_weight Float?
-  chargeable_weight Float?
+  actual_weight     Decimal?  @db.Decimal(12, 4)
+  volumetric_weight Decimal?  @db.Decimal(12, 4)
+  chargeable_weight Decimal?  @db.Decimal(12, 4)
 
-  cod_amount     Float?
-  declared_value Float?
+  cod_amount     Decimal?  @db.Decimal(12, 2)
+  declared_value Decimal?  @db.Decimal(12, 2)
 
   courier_status   String? // Raw status from courier
   internal_status  String  @default("BOOKED") // Normalized status
@@ -163,38 +163,38 @@ model Shipment {
   rto_reason       String?
   exception_reason String?
 
-  courier_cost  Float?
-  client_charge Float? // Base freight + docket + fov
-  profit        Float?
+  courier_cost  Decimal?  @db.Decimal(12, 2)
+  client_charge Decimal?  @db.Decimal(12, 2) // Base freight + docket + fov
+  profit        Decimal?  @db.Decimal(12, 2)
   remarks       String?
 
   client_reference_no String? // e.g. Inv No. from client
-  green_tax_amount    Float   @default(0)
-  oda_amount          Float   @default(0)
-  fsc_amount          Float   @default(0)
-  idc_amount          Float   @default(0)
+  green_tax_amount    Decimal   @default(0) @db.Decimal(12, 2)
+  oda_amount          Decimal   @default(0) @db.Decimal(12, 2)
+  fsc_amount          Decimal   @default(0) @db.Decimal(12, 2)
+  idc_amount          Decimal   @default(0) @db.Decimal(12, 2)
 
   // --- Client Commercial Rate Snapshot (Frozen at Booking) ---
-  client_base_freight  Float?   @default(0)
-  client_docket_charge Float?   @default(0)
-  client_fov_charge    Float?   @default(0)
-  client_fsc_amount    Float?   @default(0)
-  client_idc_amount    Float?   @default(0)
-  client_oda_amount    Float?   @default(0)
-  client_green_tax     Float?   @default(0)
-  client_gst_amount    Float?   @default(0)
-  client_total_charge  Float?   @default(0)
+  client_base_freight  Decimal?   @default(0) @db.Decimal(12, 2)
+  client_docket_charge Decimal?   @default(0) @db.Decimal(12, 2)
+  client_fov_charge    Decimal?   @default(0) @db.Decimal(12, 2)
+  client_fsc_amount    Decimal?   @default(0) @db.Decimal(12, 2)
+  client_idc_amount    Decimal?   @default(0) @db.Decimal(12, 2)
+  client_oda_amount    Decimal?   @default(0) @db.Decimal(12, 2)
+  client_green_tax     Decimal?   @default(0) @db.Decimal(12, 2)
+  client_gst_amount    Decimal?   @default(0) @db.Decimal(12, 2)
+  client_total_charge  Decimal?   @default(0) @db.Decimal(12, 2)
 
   // --- Courier Purchase Cost Snapshot (Frozen at Booking) ---
-  courier_base_cost    Float?   @default(0)
-  courier_docket_cost  Float?   @default(0)
-  courier_fov_cost     Float?   @default(0)
-  courier_fsc_cost     Float?   @default(0)
-  courier_idc_cost     Float?   @default(0)
-  courier_oda_cost     Float?   @default(0)
-  courier_green_tax    Float?   @default(0)
-  courier_gst_amount   Float?   @default(0)
-  courier_total_cost   Float?   @default(0)
+  courier_base_cost    Decimal?   @default(0) @db.Decimal(12, 2)
+  courier_docket_cost  Decimal?   @default(0) @db.Decimal(12, 2)
+  courier_fov_cost     Decimal?   @default(0) @db.Decimal(12, 2)
+  courier_fsc_cost     Decimal?   @default(0) @db.Decimal(12, 2)
+  courier_idc_cost     Decimal?   @default(0) @db.Decimal(12, 2)
+  courier_oda_cost     Decimal?   @default(0) @db.Decimal(12, 2)
+  courier_green_tax    Decimal?   @default(0) @db.Decimal(12, 2)
+  courier_gst_amount   Decimal?   @default(0) @db.Decimal(12, 2)
+  courier_total_cost   Decimal?   @default(0) @db.Decimal(12, 2)
 
   // --- Package Dimensions & Volumetric Metrics ---
   length_cm            Float?
@@ -202,21 +202,21 @@ model Shipment {
   height_cm            Float?
 
   // --- Detailed Courier Cost Breakdown & Commercial Charges ---
-  forward_courier_cost Float?   @default(0)
-  ndr_charge           Float?   @default(0)
-  rto_charge           Float?   @default(0)
-  return_shipping_cost Float?   @default(0)
-  other_courier_cost   Float?   @default(0)
+  forward_courier_cost Decimal?   @default(0) @db.Decimal(12, 2)
+  ndr_charge           Decimal?   @default(0) @db.Decimal(12, 2)
+  rto_charge           Decimal?   @default(0) @db.Decimal(12, 2)
+  return_shipping_cost Decimal?   @default(0) @db.Decimal(12, 2)
+  other_courier_cost   Decimal?   @default(0) @db.Decimal(12, 2)
 
   // --- Expected vs Actual Invoice Reconciliation & True Profit Metrics ---
-  expected_courier_cost Float?  @default(0)
-  actual_courier_cost   Float?  @default(0)
-  cost_variance         Float?  @default(0)
+  expected_courier_cost Decimal?  @default(0) @db.Decimal(12, 2)
+  actual_courier_cost   Decimal?  @default(0) @db.Decimal(12, 2)
+  cost_variance         Decimal?  @default(0) @db.Decimal(12, 2)
   variance_reason       String? // WEIGHT_DIFFERENCE, ZONE_DIFFERENCE, FUEL_SURCHARGE, COD_DIFFERENCE, NDR, RTO, REMOTE_AREA, OTHER, UNMATCHED
-  estimated_profit      Float?  @default(0)
-  actual_profit         Float?  @default(0)
-  gross_margin          Float?  @default(0)
-  margin_percentage     Float?  @default(0)
+  estimated_profit      Decimal?  @default(0) @db.Decimal(12, 2)
+  actual_profit         Decimal?  @default(0) @db.Decimal(12, 2)
+  gross_margin          Decimal?  @default(0) @db.Decimal(12, 2)
+  margin_percentage     Decimal?  @default(0) @db.Decimal(12, 2)
 
   // --- Frozen Rate Card Versioning Snapshot ---
   client_rate_card_id   String?
@@ -710,18 +710,18 @@ model ClientRateRule {
   company_id            String
   zone                  String         // Zone A, Zone B, Zone C, Zone D, Zone E, Special
   service_type          String         @default("SURFACE") // SURFACE, EXPRESS
-  min_weight_g          Float          @default(0)
-  max_weight_g          Float          @default(500)
-  base_rate             Float          @default(0)
-  additional_weight_g   Float          @default(500)
-  additional_rate       Float          @default(0)
-  cod_percentage        Float          @default(0)
-  cod_min_fee           Float          @default(0)
-  fuel_surcharge_pct    Float          @default(0)
-  handling_fee          Float          @default(0)
-  remote_area_fee       Float          @default(0)
-  other_surcharge       Float          @default(0)
-  gst_rate_pct          Float          @default(18)
+  min_weight_g          Decimal        @default(0) @db.Decimal(12, 4)
+  max_weight_g          Decimal        @default(500) @db.Decimal(12, 4)
+  base_rate             Decimal        @default(0) @db.Decimal(12, 2)
+  additional_weight_g   Decimal        @default(500) @db.Decimal(12, 4)
+  additional_rate       Decimal        @default(0) @db.Decimal(12, 2)
+  cod_percentage        Decimal        @default(0) @db.Decimal(12, 2)
+  cod_min_fee           Decimal        @default(0) @db.Decimal(12, 2)
+  fuel_surcharge_pct    Decimal        @default(0) @db.Decimal(12, 2)
+  handling_fee          Decimal        @default(0) @db.Decimal(12, 2)
+  remote_area_fee       Decimal        @default(0) @db.Decimal(12, 2)
+  other_surcharge       Decimal        @default(0) @db.Decimal(12, 2)
+  gst_rate_pct          Decimal        @default(18) @db.Decimal(12, 2)
   created_at            DateTime       @default(now())
   updated_at            DateTime       @updatedAt
 
@@ -759,19 +759,19 @@ model CourierRateRule {
   company_id             String
   zone                   String
   service_type           String          @default("SURFACE")
-  min_weight_g           Float           @default(0)
-  max_weight_g           Float           @default(500)
-  base_cost              Float           @default(0)
-  additional_weight_g    Float           @default(500)
-  additional_cost        Float           @default(0)
-  cod_fee                Float           @default(0)
-  fuel_surcharge_pct     Float           @default(0)
-  rto_charge             Float           @default(0)
-  ndr_charge             Float           @default(0)
-  return_shipping_charge Float           @default(0)
-  remote_area_charge     Float           @default(0)
-  other_charge           Float           @default(0)
-  gst_rate_pct           Float           @default(18)
+  min_weight_g           Decimal         @default(0) @db.Decimal(12, 4)
+  max_weight_g           Decimal         @default(500) @db.Decimal(12, 4)
+  base_cost              Decimal         @default(0) @db.Decimal(12, 2)
+  additional_weight_g    Decimal         @default(500) @db.Decimal(12, 4)
+  additional_cost        Decimal         @default(0) @db.Decimal(12, 2)
+  cod_fee                Decimal         @default(0) @db.Decimal(12, 2)
+  fuel_surcharge_pct     Decimal         @default(0) @db.Decimal(12, 2)
+  rto_charge             Decimal         @default(0) @db.Decimal(12, 2)
+  ndr_charge             Decimal         @default(0) @db.Decimal(12, 2)
+  return_shipping_charge Decimal         @default(0) @db.Decimal(12, 2)
+  remote_area_charge     Decimal         @default(0) @db.Decimal(12, 2)
+  other_charge           Decimal         @default(0) @db.Decimal(12, 2)
+  gst_rate_pct           Decimal         @default(18) @db.Decimal(12, 2)
   created_at             DateTime        @default(now())
   updated_at             DateTime        @updatedAt
 
@@ -807,7 +807,7 @@ model CourierInvoice {
   courier_account_id String?
   invoice_number     String
   invoice_date       DateTime
-  total_amount       Float                @default(0)
+  total_amount       Decimal              @default(0) @db.Decimal(12, 2)
   status             String               @default("UNRECONCILED") // UNRECONCILED, PARTIALLY_RECONCILED, RECONCILED, DISPUTED
   created_at         DateTime             @default(now())
   updated_at         DateTime             @updatedAt
@@ -827,19 +827,19 @@ model CourierInvoiceLine {
   company_id         String
   awb_number         String
   shipment_id        String?
-  charged_weight     Float          @default(0)
+  charged_weight     Decimal        @default(0) @db.Decimal(12, 4)
   zone               String?
-  base_freight       Float          @default(0)
-  fuel_surcharge     Float          @default(0)
-  cod_fee            Float          @default(0)
-  ndr_fee            Float          @default(0)
-  rto_fee            Float          @default(0)
-  return_charge      Float          @default(0)
-  other_charge       Float          @default(0)
-  gst_amount         Float          @default(0)
-  total_amount       Float          @default(0)
-  expected_cost      Float          @default(0)
-  cost_variance      Float          @default(0)
+  base_freight       Decimal        @default(0) @db.Decimal(12, 2)
+  fuel_surcharge     Decimal        @default(0) @db.Decimal(12, 2)
+  cod_fee            Decimal        @default(0) @db.Decimal(12, 2)
+  ndr_fee            Decimal        @default(0) @db.Decimal(12, 2)
+  rto_fee            Decimal        @default(0) @db.Decimal(12, 2)
+  return_charge      Decimal        @default(0) @db.Decimal(12, 2)
+  other_charge       Decimal        @default(0) @db.Decimal(12, 2)
+  gst_amount         Decimal        @default(0) @db.Decimal(12, 2)
+  total_amount       Decimal        @default(0) @db.Decimal(12, 2)
+  expected_cost      Decimal        @default(0) @db.Decimal(12, 2)
+  cost_variance      Decimal        @default(0) @db.Decimal(12, 2)
   variance_reason    String         @default("UNMATCHED") // WEIGHT_DIFFERENCE, ZONE_DIFFERENCE, FUEL_SURCHARGE, COD_DIFFERENCE, NDR, RTO, REMOTE_AREA, OTHER, UNMATCHED, MATCHED
   created_at         DateTime       @default(now())
   updated_at         DateTime       @updatedAt
@@ -863,7 +863,7 @@ model CommercialAuditLog {
   rate_card_id     String?
   rate_card_name   String?
   rate_card_version String?
-  chargeable_weight Float?
+  chargeable_weight Decimal?  @db.Decimal(12, 4)
   zone             String?
   breakdown_json   String?   // JSON string of rate breakdown
   correlation_id   String?

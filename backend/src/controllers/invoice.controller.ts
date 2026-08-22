@@ -32,11 +32,11 @@ export const generateInvoice = async (req: AuthenticatedRequest, res: Response) 
     let total_green_tax = 0;
 
     shipments.forEach(s => {
-      subtotal += s.client_charge || 0;
-      total_fsc += s.fsc_amount || 0;
-      total_idc += s.idc_amount || 0;
-      total_oda += s.oda_amount || 0;
-      total_green_tax += s.green_tax_amount || 0;
+      subtotal += s.client_charge ? Number(s.client_charge) : 0;
+      total_fsc += s.fsc_amount ? Number(s.fsc_amount) : 0;
+      total_idc += s.idc_amount ? Number(s.idc_amount) : 0;
+      total_oda += s.oda_amount ? Number(s.oda_amount) : 0;
+      total_green_tax += s.green_tax_amount ? Number(s.green_tax_amount) : 0;
     });
 
     const off_loading_charges = parseFloat(req.body.off_loading_charges) || 0;

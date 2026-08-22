@@ -116,7 +116,7 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
       totalShipments++;
       if (s.internal_status === 'DELIVERED') delivered++;
       if (s.internal_status === 'IN_TRANSIT' || s.internal_status === 'OUT_FOR_DELIVERY') inTransit++;
-      if (s.client_charge && s.invoice_id === null) totalBilling += s.client_charge;
+      if (s.client_charge && s.invoice_id === null) totalBilling += Number(s.client_charge);
     });
 
     // Fetch Invoices with connected shipments

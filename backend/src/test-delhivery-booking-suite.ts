@@ -367,10 +367,10 @@ async function runBookingSuite() {
   console.log(`[Financial Metrics] Margin %: ${finShipment?.margin_percentage?.toFixed(2)}%`);
 
   if (
-    finShipment?.client_total_charge === 180 &&
-    finShipment?.courier_total_cost === 110 &&
-    finShipment?.gross_margin === 70 &&
-    Math.round(finShipment?.margin_percentage || 0) === 39
+    Number(finShipment?.client_total_charge) === 180 &&
+    Number(finShipment?.courier_total_cost) === 110 &&
+    Number(finShipment?.gross_margin) === 70 &&
+    Math.round(Number(finShipment?.margin_percentage || 0)) === 39
   ) {
     console.log('✅ TEST 15 PASSED: Client rate and courier cost stored independently with exact margin calculation.');
     passedTests++;

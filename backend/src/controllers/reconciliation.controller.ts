@@ -48,8 +48,8 @@ export const processCourierBillReconciliation = async (req: AuthenticatedRequest
         recStatus = 'UNMATCHED_AWB';
         unmatchedCount++;
       } else {
-        expectedWeight = shipment.chargeable_weight || shipment.actual_weight || 0;
-        expectedCost = shipment.courier_total_cost || shipment.courier_cost || 0;
+        expectedWeight = shipment.chargeable_weight ? Number(shipment.chargeable_weight) : (shipment.actual_weight ? Number(shipment.actual_weight) : 0);
+        expectedCost = shipment.courier_total_cost ? Number(shipment.courier_total_cost) : (shipment.courier_cost ? Number(shipment.courier_cost) : 0);
         expectedZone = shipment.state || 'DEFAULT';
 
         const weightDiff = billedWeight - expectedWeight;

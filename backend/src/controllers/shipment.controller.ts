@@ -292,7 +292,7 @@ export const updateShipment = async (req: AuthenticatedRequest, res: Response) =
             receiverName: payload.receiver_name || existing.receiver_name || 'Receiver',
             receiverAddress: payload.receiver_address || existing.receiver_address || '',
             receiverPhone: payload.receiver_phone || existing.receiver_phone || '',
-            weight: parseFloat(payload.actual_weight) || existing.actual_weight || 1,
+            weight: parseFloat(payload.actual_weight) || (existing.actual_weight ? Number(existing.actual_weight) : 1),
             pieces: parseInt(payload.number_of_pieces) || existing.number_of_pieces || 1,
             isCod: (parseFloat(payload.cod_amount) || 0) > 0,
             codAmount: parseFloat(payload.cod_amount) || 0,
