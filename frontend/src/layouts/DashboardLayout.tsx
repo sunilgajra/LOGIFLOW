@@ -16,22 +16,27 @@ const DashboardLayout = () => {
     return <Navigate to="/login" replace />;
   }
 
+  // Delivery Staff / Driver RBAC Guard: Restrict OPERATIONS role strictly to Delivery Mode (E-POD)
+  if (user?.role === 'OPERATIONS' && location.pathname !== '/dashboard/delivery') {
+    return <Navigate to="/dashboard/delivery" replace />;
+  }
+
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
   const allNavigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
-    { name: 'Shipments', href: '/dashboard/shipments', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
-    { name: 'Pickup Requests', href: '/dashboard/pickups', icon: Package, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
-    { name: 'Dock Appointments', href: '/dashboard/appointments', icon: Calendar, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
-    { name: 'Support / Tickets', href: '/dashboard/support', icon: MessageSquare, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS', 'ACCOUNTS', 'VIEWER'] },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
+    { name: 'Shipments', href: '/dashboard/shipments', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
+    { name: 'Pickup Requests', href: '/dashboard/pickups', icon: Package, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
+    { name: 'Dock Appointments', href: '/dashboard/appointments', icon: Calendar, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
+    { name: 'Support / Tickets', href: '/dashboard/support', icon: MessageSquare, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
     { name: 'Monthly Reports', href: '/dashboard/reports', icon: BarChart3, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS'] },
-    { name: 'NDR Action Desk', href: '/dashboard/ndr', icon: ShieldAlert, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'OPERATIONS'] },
+    { name: 'NDR Action Desk', href: '/dashboard/ndr', icon: ShieldAlert, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT'] },
     { name: 'Billing / Invoices', href: `/dashboard/clients/${user?.client_id}`, icon: FileText, roles: ['CLIENT'] },
     { name: 'Delivery Mode (E-POD)', href: '/dashboard/delivery', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS'] },
-    { name: 'Import Delivery Sheets', href: '/dashboard/import', icon: UploadCloud, roles: ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS'] },
+    { name: 'Import Delivery Sheets', href: '/dashboard/import', icon: UploadCloud, roles: ['SUPER_ADMIN', 'ADMIN'] },
     { name: 'Clients', href: '/dashboard/clients', icon: Users, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTS'] },
     { name: 'Team Users', href: '/dashboard/users', icon: UserCheck, roles: ['SUPER_ADMIN', 'ADMIN'] },
     { name: 'Couriers', href: '/dashboard/couriers', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN'] },
