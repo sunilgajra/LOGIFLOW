@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { fetchApi } from '../api';
 import { Calculator, ArrowRight, Package, MapPin, Truck, ShieldCheck, Info, CheckCircle2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
+import { useAuth } from '../context/AuthContext';
+
 export default function RateCalculator() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const [form, setForm] = useState({
     origin_pincode: '400001',
@@ -322,7 +325,11 @@ export default function RateCalculator() {
 
                         <button
                           onClick={() => {
-                            navigate(`/dashboard/shipments?bookCourierId=${quote.courier_id}&origin=${form.origin_pincode}&destination=${form.destination_pincode}&weight=${chargeableWeight}`);
+                            if (!isAuthenticated) {
+                              navigate('/login');
+                            } else {
+                              navigate(`/dashboard/shipments?bookCourierId=${quote.courier_id}&origin=${form.origin_pincode}&destination=${form.destination_pincode}&weight=${chargeableWeight}`);
+                            }
                           }}
                           className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-xs transition-all flex items-center cursor-pointer"
                         >

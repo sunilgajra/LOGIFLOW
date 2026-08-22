@@ -91,6 +91,25 @@ const Shipments = () => {
     fetchApi('/couriers').then(res => setCouriers(Array.isArray(res) ? res : [])).catch(console.error);
   }, [page, filterClientId, filterStatus]);
 
+  useEffect(() => {
+    const bookCourierId = searchParams.get('bookCourierId');
+    const origin = searchParams.get('origin');
+    const destination = searchParams.get('destination');
+    const weight = searchParams.get('weight');
+
+    if (bookCourierId || origin || destination || weight) {
+      setBookingForm((prev: any) => ({
+        ...prev,
+        courier_id: couriers.some((c: any) => c.id === bookCourierId) ? bookCourierId : (couriers[0]?.id || ''),
+        origin: origin || prev.origin,
+        pincode: destination || prev.pincode,
+        destination: destination || prev.destination,
+        actual_weight: weight || prev.actual_weight
+      }));
+      setShowBookModal(true);
+    }
+  }, [searchParams, couriers]);
+
   const handleBookShipment = async (e: React.FormEvent) => {
     e.preventDefault();
     setBookingSubmitting(true);
