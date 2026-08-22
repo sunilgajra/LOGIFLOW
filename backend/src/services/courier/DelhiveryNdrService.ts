@@ -1,4 +1,8 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../prisma';
+
+type Decimal = Prisma.Decimal;
+const Decimal = Prisma.Decimal;
 import { ApiLogService } from '../logger/ApiLogService';
 
 export interface SubmitNdrActionInput {
@@ -407,18 +411,23 @@ export class DelhiveryNdrService {
       throw new Error(`Shipment ${shipmentId} not found`);
     }
 
-    const forwardCost = shipment.forward_courier_cost ? Number(shipment.forward_courier_cost) : (shipment.courier_total_cost ? Number(shipment.courier_total_cost) : 0);
-    const rtoCost = charges.rtoCharge || (shipment.rto_charge ? Number(shipment.rto_charge) : 0);
-    const ndrCost = charges.ndrCharge || (shipment.ndr_charge ? Number(shipment.ndr_charge) : 0);
-    const retShipCost = charges.returnShippingCost || (shipment.return_shipping_cost ? Number(shipment.return_shipping_cost) : 0);
-    const otherCost = charges.otherCourierCost || (shipment.other_courier_cost ? Number(shipment.other_courier_cost) : 0);
+    const toDec = (val: any) => val instanceof Decimal ? val : new Decimal(val || 0);
+    const forwardCost = shipment.forward_courier_cost 
+      ? toDec(shipment.forward_courier_cost) 
+      : toDec(shipment.courier_total_cost);
+    const rtoCost = charges.rtoCharge ? toDec(charges.rtoCharge) : toDec(shipment.rto_charge);
+    const ndrCost = charges.ndrCharge ? toDec(charges.ndrCharge) : toDec(shipment.ndr_charge);
+    const retShipCost = charges.returnShippingCost ? toDec(charges.returnShippingCost) : toDec(shipment.return_shipping_cost);
+    const otherCost = charges.otherCourierCost ? toDec(charges.otherCourierCost) : toDec(shipment.other_courier_cost);
 
-    const courierTotalCost = forwardCost + rtoCost + ndrCost + retShipCost + otherCost;
-    const clientCharge = shipment.client_total_charge ? Number(shipment.client_total_charge) : 0;
+    const courierTotalCost = forwardCost.add(rtoCost).add(ndrCost).add(retShipCost).add(otherCost).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const clientCharge = toDec(shipment.client_total_charge);
 
     // Commercial Rule: client_total_charge is NOT automatically increased
-    const grossMargin = clientCharge - courierTotalCost;
-    const marginPct = clientCharge > 0 ? (grossMargin / clientCharge) * 100 : 0;
+    const grossMargin = clientCharge.sub(courierTotalCost).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+    const marginPct = clientCharge.gt(0) 
+      ? grossMargin.div(clientCharge).mul(100).toDecimalPlaces(2, Decimal.ROUND_HALF_UP) 
+      : new Decimal(0);
 
     return await prisma.shipment.update({
       where: { id: shipment.id },
