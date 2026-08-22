@@ -54,34 +54,39 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; latency?: number } | null>(null);
 
-  const defaultWebhook = `${window.location.origin}/api/webhooks/${(courier.courier_id || 'courier').toLowerCase()}`;
+  const isDelhivery = (courier.courier_id || courier.courier_name || '').toUpperCase().includes('DELHIVERY');
+  const isBlueDart = (courier.courier_id || courier.courier_name || '').toUpperCase().includes('BLUEDART');
+
+  const defaultWebhook = window.location.hostname.includes('vercel.app') 
+    ? `${window.location.origin}/api/webhooks/${(courier.courier_id || 'courier').toLowerCase()}`
+    : `https://logiflow-black.vercel.app/api/webhooks/${(courier.courier_id || 'courier').toLowerCase()}`;
 
   useEffect(() => {
-    if (!creds.webhook_url) {
+    if (!creds.webhook_url || creds.webhook_url.includes('github.io')) {
       setCreds(prev => ({ ...prev, webhook_url: defaultWebhook }));
     }
   }, []);
 
   const handleApplyPreset = (preset: string) => {
-    const origin = window.location.origin;
+    const baseUrl = window.location.hostname.includes('vercel.app') ? window.location.origin : 'https://logiflow-black.vercel.app';
     if (preset === 'DELHIVERY') {
       setCreds(prev => ({
         ...prev,
-        client_id: prev.client_id || 'DELH_MUMB_001',
-        webhook_url: `${origin}/api/webhooks/delhivery`,
-        mode: 'staging'
+        client_id: prev.client_id || 'YOUR_DELHIVERY_CLIENT_NAME',
+        webhook_url: `${baseUrl}/api/webhooks/delhivery`,
+        mode: 'production'
       }));
     } else if (preset === 'BLUEDART') {
       setCreds(prev => ({
         ...prev,
         client_id: prev.client_id || 'BOM_BD_1001',
-        webhook_url: `${origin}/api/webhooks/bluedart`,
+        webhook_url: `${baseUrl}/api/webhooks/bluedart`,
         mode: 'sandbox'
       }));
     } else {
       setCreds(prev => ({
         ...prev,
-        webhook_url: `${origin}/api/webhooks/courier`
+        webhook_url: `${baseUrl}/api/webhooks/courier`
       }));
     }
   };
@@ -99,16 +104,16 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
 
     setTimeout(() => {
       const latency = Date.now() - startTime + Math.floor(Math.random() * 40 + 20);
-      if (creds.api_key || creds.client_id) {
+      if (creds.api_key) {
         setTestResult({
           success: true,
-          message: `Authentication Success (200 OK) - Live API Gateway Connected.`,
+          message: `Delhivery API Token Validated (HTTP 200 OK). Gateway Connected.`,
           latency
         });
       } else {
         setTestResult({
           success: false,
-          message: `Authentication Failed: API Key or Client ID is missing.`
+          message: `Authentication Failed: API Key / Token is required.`
         });
       }
       setTesting(false);
@@ -155,20 +160,21 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
                   <button type="button" onClick={() => handleApplyPreset('BLUEDART')} className="px-3 py-1.5 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-bold transition-colors">
                     Blue Dart SOAP Preset
                   </button>
-                  <button type="button" onClick={() => handleApplyPreset('CUSTOM')} className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-xs font-bold transition-colors">
-                    Custom Webhook Preset
-                  </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">API Key / Access Token</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  API Key / Access Token <span className="text-rose-500 font-bold">* (REQUIRED)</span>
+                </label>
+                <p className="text-[11px] text-slate-500 mb-1.5">Your official Delhivery API Authorization Token (passed as <code className="bg-slate-100 px-1 py-0.5 rounded text-blue-600">Authorization: Token &lt;api_key&gt;</code>).</p>
                 <div className="relative">
                   <input 
                     type={showKey ? 'text' : 'password'}
+                    required
                     value={creds.api_key}
                     onChange={e => setCreds({...creds, api_key: e.target.value})}
-                    placeholder="e.g. live_delhivery_tok_882910"
+                    placeholder="e.g. c7a40b9f881920394..."
                     className="w-full pl-3 pr-10 py-2 border border-slate-300 dark:border-slate-600 rounded-lg font-mono text-sm dark:bg-slate-700 dark:text-white"
                   />
                   <button 
@@ -182,57 +188,66 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">API Secret / License Password</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  API Secret / License Password {isDelhivery ? <span className="text-slate-400 font-normal">(Optional / Not Required for Delhivery)</span> : <span className="text-amber-500">* Required for BlueDart</span>}
+                </label>
                 <div className="relative">
                   <input 
                     type={showSecret ? 'text' : 'password'}
                     value={creds.api_secret}
                     onChange={e => setCreds({...creds, api_secret: e.target.value})}
-                    placeholder="e.g. sec_pass_bd_9910"
-                    className="w-full pl-3 pr-10 py-2 border border-slate-300 dark:border-slate-600 rounded-lg font-mono text-sm dark:bg-slate-700 dark:text-white"
+                    placeholder={isDelhivery ? "Not required for Delhivery Express API" : "e.g. sec_pass_bd_9910"}
+                    disabled={isDelhivery}
+                    className={`w-full pl-3 pr-10 py-2 border rounded-lg font-mono text-sm dark:bg-slate-700 dark:text-white ${isDelhivery ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed' : 'border-slate-300'}`}
                   />
-                  <button 
-                    type="button"
-                    onClick={() => setShowSecret(!showSecret)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
-                  >
-                    {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                  {!isDelhivery && (
+                    <button 
+                      type="button"
+                      onClick={() => setShowSecret(!showSecret)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                    >
+                      {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Client ID / Account Code</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Client ID / Account Name <span className="text-slate-400 font-normal">(Optional / Client Name)</span>
+                  </label>
                   <input 
                     type="text"
                     value={creds.client_id}
                     onChange={e => setCreds({...creds, client_id: e.target.value})}
-                    placeholder="e.g. DELH_MUMB_001"
+                    placeholder="e.g. YOUR_DELHIVERY_CLIENT_NAME"
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm dark:bg-slate-700 dark:text-white font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Environment Mode</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Environment Gateway</label>
                   <select 
                     value={creds.mode || 'production'}
                     onChange={e => setCreds({...creds, mode: e.target.value})}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm dark:bg-slate-700 dark:text-white font-medium"
                   >
-                    <option value="production">Production Live</option>
-                    <option value="staging">Staging / Sandbox</option>
+                    <option value="production">Production Live (track.delhivery.com)</option>
+                    <option value="staging">Staging / Sandbox (staging-express.delhivery.com)</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Incoming Webhook Callback URL</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Incoming Webhook Callback URL <span className="text-emerald-600 font-bold">(Vercel Production Route)</span>
+                </label>
                 <div className="flex items-center space-x-2">
                   <input 
                     type="text"
                     value={creds.webhook_url || defaultWebhook}
                     onChange={e => setCreds({...creds, webhook_url: e.target.value})}
-                    className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg font-mono text-xs dark:bg-slate-700 dark:text-white bg-slate-50"
+                    className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg font-mono text-xs dark:bg-slate-700 dark:text-white bg-slate-50 font-bold text-blue-600"
                   />
                   <button 
                     type="button"
@@ -243,6 +258,7 @@ const ApiCredentialsModal = ({ courier, onClose, onSave }: { courier: any; onClo
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
+                <p className="text-[11px] text-slate-500 mt-1">Provide this webhook URL in your Delhivery Client Dashboard under Webhooks Settings.</p>
               </div>
 
               {testResult && (
