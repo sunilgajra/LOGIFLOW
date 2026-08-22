@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Package, Truck, CheckCircle, AlertTriangle, IndianRupee, Clock, ArrowUpRight, ChevronRight, Activity, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Package, Truck, AlertCircle, PlusCircle, Calculator, BookOpen, HelpCircle, ChevronRight, Info, CheckCircle2, ArrowRight, RefreshCw, Calendar } from 'lucide-react';
 import { fetchApi } from '../api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -26,222 +25,237 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  if (loading || !data) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-slate-500 space-y-3">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
-        <p className="text-sm font-semibold">Loading LogiFlow Logistics Analytics...</p>
-      </div>
-    );
-  }
+  const userName = user?.first_name ? user.first_name.toUpperCase() : 'POOJA';
 
-  const isClientRole = user?.role === 'CLIENT';
-
-  const kpis = [
-    { name: 'Total Shipments', value: data.totalShipments || 0, sub: 'All dispatches', icon: Package, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/30', border: 'border-blue-200 dark:border-blue-800' },
-    { name: 'In Transit', value: data.inTransit || 0, sub: 'Active on route', icon: Truck, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/30', border: 'border-amber-200 dark:border-amber-800' },
-    { name: 'Delivered', value: data.delivered || 0, sub: 'Successfully signed', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/30', border: 'border-emerald-200 dark:border-emerald-800' },
-    { name: 'Delivery SLA Rate', value: `${data.slaRate || 98.4}%`, sub: 'On-time delivery', icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/30', border: 'border-purple-200 dark:border-purple-800' },
-    { 
-      name: isClientRole ? 'Total Billed Freight' : 'Total Freight Revenue', 
-      value: `₹${(data.totalRevenue || 0).toLocaleString('en-IN')}`, 
-      sub: isClientRole ? 'Account summary' : 'Billed to clients', 
-      icon: IndianRupee, 
-      color: 'text-indigo-600', 
-      bg: 'bg-indigo-50 dark:bg-indigo-900/30', 
-      border: 'border-indigo-200 dark:border-indigo-800' 
-    },
-  ];
-
-  const courierBreakdown = data.courierBreakdown || [
-    { name: 'Delhivery Express', count: 86, percent: 67, slaScore: '99.1%' },
-    { name: 'Blue Dart', count: 42, percent: 33, slaScore: '98.5%' }
-  ];
-
-  const recentActivity = data.recentActivity || [];
+  const awaitingPickupCount = data?.awaitingPickup || 2;
+  const inTransitCount = data?.inTransit || 111;
+  const exceptionsCount = data?.exceptions || 29;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-20 font-sans text-slate-800 dark:text-slate-200 max-w-7xl mx-auto">
       
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center">
-            LogiFlow Executive Analytics <Activity className="w-5 h-5 ml-2 text-blue-600 animate-pulse" />
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">Real-time logistics overview, courier partner SLAs, and revenue metrics.</p>
-        </div>
+      {/* Top Greeting */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+          Hi, {userName}
+        </h1>
         <button 
           onClick={fetchDashboardData}
-          className="self-start md:self-auto px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold flex items-center hover:bg-slate-50 shadow-2xs transition-colors"
+          className="text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs transition-all"
         >
-          <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh Analytics
+          <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} /> Refresh Data
         </button>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {kpis.map((kpi) => (
-          <div key={kpi.name} className={`bg-white dark:bg-slate-800 rounded-xl border ${kpi.border} p-5 shadow-2xs space-y-3`}>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{kpi.name}</span>
-              <div className={`p-2 rounded-lg ${kpi.bg} ${kpi.color}`}>
-                <kpi.icon className="w-5 h-5" />
-              </div>
-            </div>
-            <div>
-              <h3 className="text-2xl font-black text-slate-900 dark:text-white">{kpi.value}</h3>
-              <p className="text-[11px] font-medium text-slate-400 mt-0.5">{kpi.sub}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Main Charts & Courier Distribution Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Top Main Section: Actions | Shortcuts | Knowledge Base & Rate Calculator */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* 7-Day Shipment Volume Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-2xs space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Shipment Volume Trend</h2>
-              <p className="text-xs text-slate-500">Daily dispatch volume over the last 7 days.</p>
-            </div>
-            <span className="bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 text-xs font-bold px-3 py-1 rounded-full flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5 mr-1" /> Peak Demand
-            </span>
+        {/* Left Box: Actions (Awaiting Pickup, In Transit, Exceptions) */}
+        <div className="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-2xs space-y-6">
+          <div className="flex items-center space-x-2 border-b border-slate-100 dark:border-slate-700/60 pb-3">
+            <Truck className="w-5 h-5 text-slate-400" />
+            <h2 className="text-sm font-black text-slate-800 dark:text-slate-200 tracking-wide uppercase">Actions</h2>
           </div>
 
-          <div className="h-72 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorShipments" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                <Tooltip 
-                  cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', background: '#0f172a', color: '#fff' }}
-                />
-                <Area type="monotone" dataKey="shipments" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorShipments)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-3 gap-4 pt-1">
+            
+            {/* Awaiting Pickup */}
+            <div className="space-y-3">
+              <div>
+                <p className="text-3xl font-black text-slate-900 dark:text-white">{awaitingPickupCount}</p>
+                <p className="text-xs font-semibold text-slate-500 mt-1 leading-tight">Awaiting Pickup</p>
+              </div>
+              <button 
+                onClick={() => navigate('/dashboard/pickups')}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center"
+              >
+                View
+              </button>
+            </div>
+
+            {/* In Transit */}
+            <div className="space-y-3 border-l border-slate-100 dark:border-slate-700 pl-4">
+              <div>
+                <p className="text-3xl font-black text-slate-900 dark:text-white">{inTransitCount}</p>
+                <p className="text-xs font-semibold text-slate-500 mt-1 leading-tight">In Transit</p>
+              </div>
+              <button 
+                onClick={() => navigate('/dashboard/shipments?status=IN_TRANSIT')}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center"
+              >
+                View
+              </button>
+            </div>
+
+            {/* Exceptions */}
+            <div className="space-y-3 border-l border-slate-100 dark:border-slate-700 pl-4">
+              <div>
+                <p className="text-3xl font-black text-slate-900 dark:text-white">{exceptionsCount}</p>
+                <p className="text-xs font-semibold text-slate-500 mt-1 leading-tight">Exceptions</p>
+              </div>
+              <button 
+                onClick={() => navigate('/dashboard/ndr')}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center"
+              >
+                Act Now
+              </button>
+            </div>
+
           </div>
         </div>
 
-        {/* Courier Partner Load & SLA Breakdown */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Courier Partner Load</h2>
-              <span className="text-xs text-slate-400 font-bold">Active Partners</span>
-            </div>
-            <p className="text-xs text-slate-500 mb-6">Distribution of volume across integrated courier providers.</p>
-
-            <div className="space-y-5">
-              {courierBreakdown.map((courier: any, idx: number) => {
-                const colors = ['bg-blue-600', 'bg-indigo-600', 'bg-purple-600', 'bg-emerald-600'];
-                const color = colors[idx % colors.length];
-                return (
-                  <div key={courier.name} className="space-y-2">
-                    <div className="flex justify-between items-center text-xs font-bold">
-                      <span className="text-slate-800 dark:text-slate-200">{courier.name}</span>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-slate-500">{courier.count} pkgs</span>
-                        <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded text-[10px]">
-                          SLA {courier.slaScore || '99%'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-2.5 rounded-full ${color} transition-all duration-500`} 
-                        style={{ width: `${Math.min(100, Math.max(15, (courier.count / (data.totalShipments || 1)) * 100))}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        {/* Middle Box: Shortcuts (Create New Order, Create New Pickup) */}
+        <div className="lg:col-span-4 bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-2xs space-y-4">
+          <div className="flex items-center space-x-2 border-b border-slate-100 dark:border-slate-700/60 pb-3">
+            <Package className="w-5 h-5 text-slate-400" />
+            <h2 className="text-sm font-black text-slate-800 dark:text-slate-200 tracking-wide uppercase">Shortcuts</h2>
           </div>
 
-          <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
-            <span className="text-xs font-bold text-slate-500 flex items-center">
-              <ShieldCheck className="w-4 h-4 text-emerald-500 mr-1" /> API Gateway Online
-            </span>
-            <button 
-              onClick={() => navigate('/dashboard/couriers')}
-              className="text-xs font-bold text-blue-600 hover:underline flex items-center"
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            
+            <button
+              onClick={() => navigate('/dashboard/shipments')}
+              className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all flex flex-col items-center justify-center text-center space-y-2 group cursor-pointer"
             >
-              Manage Partners <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-800 shadow-2xs border border-slate-200 dark:border-slate-700 text-indigo-600 group-hover:scale-105 transition-transform">
+                <Package className="w-6 h-6" />
+              </div>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Create New Order</span>
             </button>
+
+            <button
+              onClick={() => navigate('/dashboard/pickups')}
+              className="p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all flex flex-col items-center justify-center text-center space-y-2 group cursor-pointer"
+            >
+              <div className="p-3 rounded-xl bg-white dark:bg-slate-800 shadow-2xs border border-slate-200 dark:border-slate-700 text-indigo-600 group-hover:scale-105 transition-transform">
+                <Truck className="w-6 h-6" />
+              </div>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Create New Pickup</span>
+            </button>
+
           </div>
+        </div>
+
+        {/* Right Cards: Knowledge Base & Rate Calculator */}
+        <div className="lg:col-span-3 grid grid-cols-2 lg:grid-cols-1 gap-3">
+          
+          <div 
+            onClick={() => navigate('/dashboard/support')}
+            className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center space-x-3 cursor-pointer hover:border-indigo-500 transition-all"
+          >
+            <div className="p-2.5 bg-blue-50 dark:bg-blue-950 text-blue-600 rounded-xl">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-xs font-black text-slate-900 dark:text-white">Knowledge Base</h3>
+              <p className="text-[10px] text-slate-400">Guides & Help</p>
+            </div>
+          </div>
+
+          <div 
+            onClick={() => navigate('/dashboard/calculator')}
+            className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center space-x-3 cursor-pointer hover:border-indigo-500 transition-all"
+          >
+            <div className="p-2.5 bg-purple-50 dark:bg-purple-950 text-purple-600 rounded-xl">
+              <Calculator className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-xs font-black text-slate-900 dark:text-white">Rate Calculator</h3>
+              <p className="text-[10px] text-slate-400">Check Shipping Rates</p>
+            </div>
+          </div>
+
         </div>
 
       </div>
 
-      {/* Recent Activity Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-2xs">
-        <div className="p-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">Recent Dispatches & Activity</h2>
-            <p className="text-xs text-slate-500">Latest shipments processed across your accounts.</p>
+      {/* Upcoming Pickups Section */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-2xs space-y-4">
+        
+        <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700/60 pb-3">
+          <div className="flex items-center space-x-2">
+            <Truck className="w-5 h-5 text-slate-400" />
+            <h2 className="text-sm font-black text-slate-800 dark:text-slate-200 tracking-wide uppercase">Upcoming Pickups</h2>
           </div>
           <button 
-            onClick={() => navigate('/dashboard/shipments')}
-            className="px-3.5 py-1.5 bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
+            onClick={() => navigate('/dashboard/pickups')}
+            className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center"
           >
-            View All Shipments
+            View All &gt;
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead className="bg-slate-50 dark:bg-slate-900 text-slate-500 font-bold uppercase">
-              <tr>
-                <th className="p-3.5 pl-5">AWB Number</th>
-                <th className="p-3.5">Recipient</th>
-                <th className="p-3.5">Destination</th>
-                <th className="p-3.5">Client</th>
-                <th className="p-3.5">Courier</th>
-                <th className="p-3.5">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {recentActivity.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400">No recent shipment activity recorded.</td>
-                </tr>
-              ) : (
-                recentActivity.map((shipment: any) => (
-                  <tr key={shipment.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="p-3.5 pl-5 font-mono font-bold text-blue-600">
-                      {shipment.awb_number}
-                    </td>
-                    <td className="p-3.5 font-bold text-slate-900 dark:text-white">{shipment.receiver_name}</td>
-                    <td className="p-3.5 text-slate-600 dark:text-slate-400">{shipment.city || shipment.state || 'India'}</td>
-                    <td className="p-3.5 text-slate-600 dark:text-slate-400 font-medium">{shipment.client?.company_name || 'Direct'}</td>
-                    <td className="p-3.5 font-bold text-slate-800 dark:text-slate-200">{shipment.courier?.courier_name || 'Express'}</td>
-                    <td className="p-3.5">
-                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                        shipment.internal_status === 'DELIVERED' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' :
-                        shipment.internal_status === 'IN_TRANSIT' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' :
-                        'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
-                      }`}>
-                        {shipment.internal_status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* Pickup Location Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+          
+          {/* Card 1: 249402 - PROSTARM INFO */}
+          <div className="bg-indigo-50/40 dark:bg-slate-900/60 rounded-2xl p-4 border border-indigo-100 dark:border-slate-700 relative space-y-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide">
+                  249402 - PROSTARM INFO
+                </h3>
+                <div className="flex items-center space-x-3 text-xs text-slate-500 font-medium mt-1">
+                  <span className="flex items-center"><Calendar className="w-3.5 h-3.5 mr-1 text-slate-400" /> Today</span>
+                  <span>·</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">10 AWBs</span>
+                </div>
+              </div>
+              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800">
+                1st Pickup
+              </span>
+            </div>
+
+            <div className="pt-2">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" /> Out For Pickup
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Avenue Supermarts Ltd - Haryana */}
+          <div className="bg-slate-50/60 dark:bg-slate-900/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 relative space-y-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide">
+                  Avenue Supermarts Ltd - Haryana
+                </h3>
+                <div className="flex items-center space-x-3 text-xs text-slate-500 font-medium mt-1">
+                  <span className="flex items-center"><Calendar className="w-3.5 h-3.5 mr-1 text-slate-400" /> Today</span>
+                  <span>·</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">2 AWBs</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-emerald-600" /> Out For Pickup
+              </span>
+            </div>
+          </div>
+
         </div>
+
+        {/* Guidelines Info Bar */}
+        <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3 flex items-center space-x-2 text-xs text-slate-600 dark:text-slate-400">
+          <Info className="w-4 h-4 text-slate-400 shrink-0" />
+          <span>
+            Your pickup will happen during the selected time slot. Check <button onClick={() => navigate('/dashboard/support')} className="text-indigo-600 font-bold hover:underline">guidelines</button> to keep your shipment ready for pickup.
+          </span>
+        </div>
+
+      </div>
+
+      {/* Floating Help Center Button */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button 
+          onClick={() => navigate('/dashboard/support')}
+          className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-full shadow-2xl border border-slate-700 flex items-center space-x-2 text-xs transition-transform hover:scale-105 cursor-pointer"
+        >
+          <HelpCircle className="w-4 h-4 text-blue-400" />
+          <span>Help Center</span>
+        </button>
       </div>
 
     </div>
