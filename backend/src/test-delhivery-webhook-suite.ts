@@ -150,8 +150,8 @@ async function runWebhookAuditSuite() {
     body: { Waybill: 'UNKNOWN_AWB_99999', Status: 'In Transit' }
   });
 
-  if (!res7.success && res7.httpStatus === 404) {
-    console.log('✅ TEST 7 PASSED: Unknown AWB webhook returned controlled 404 Not Found response.');
+  if (res7.success && res7.httpStatus === 200 && res7.message?.includes('Shipment not found')) {
+    console.log('✅ TEST 7 PASSED: Unknown AWB webhook returned HTTP 200 ACK to satisfy gateway worker and stop retry loops.');
     passedTests++;
   } else {
     console.error('❌ TEST 7 FAILED:', res7);

@@ -75,7 +75,13 @@ export class DelhiveryWebhookService {
     const correlationId = `DELH-WH-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     try {
-      const body = input.body || {};
+      let body = input.body || {};
+      if (body && typeof body.data === 'string') {
+        try {
+          body = JSON.parse(body.data);
+        } catch (e) {}
+      }
+
       const payloadItems = Array.isArray(body) ? body : (body.ShipmentData || body.scans || [body]);
 
       let processedCount = 0;
@@ -108,15 +114,17 @@ export class DelhiveryWebhookService {
           await ApiLogService.log({
             companyId: 'unknown',
             operation: 'WEBHOOK',
-            httpStatus: 404,
+            httpStatus: 200,
             success: false,
             errorCode: 'SHIPMENT_NOT_FOUND',
             requestMeta: { awb, refNo, rawStatus, correlationId }
           });
+          // Return HTTP 200 to acknowledge Delhivery push worker and prevent infinite retries
           lastResult = {
-            success: false,
-            httpStatus: 404,
-            error: `Shipment not found for AWB: ${awb || refNo}`,
+            success: true,
+            httpStatus: 200,
+            message: `Shipment not found for AWB: ${awb || refNo}. Acknowledged receipt to gateway.`,
+            awb: awb || refNo,
             correlationId
           };
           continue;
