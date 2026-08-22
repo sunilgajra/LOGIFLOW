@@ -33,6 +33,7 @@ model Company {
   warehouses       Warehouse[]
   pickup_requests  PickupRequest[]
   support_tickets  SupportTicket[]
+  allocationRules  CourierAllocationRule[]
   api_logs         ApiLog[]
   courier_accounts CourierAccount[]
   courier_waybills CourierWaybill[]
@@ -92,6 +93,7 @@ model Client {
   warehouses       Warehouse[]
   pickup_requests  PickupRequest[]
   support_tickets  SupportTicket[]
+  allocationRules  CourierAllocationRule[]
   client_rate_cards ClientRateCard[]
 }
 
@@ -107,6 +109,11 @@ model CourierPartner {
   billing_cycle  String?
   gst_number     String?
   status         String   @default("ACTIVE")
+  active         Boolean  @default(true)
+  sla_days       Int      @default(3)
+  max_weight_kg  Decimal? @db.Decimal(12, 4)
+  cod_supported  Boolean  @default(true)
+  max_cod_amount Decimal? @db.Decimal(12, 2)
   notes          String?
   api_credentials     String? // JSON string containing API keys/secrets
   agreement_document  String? // Base64 string for PDF/Image
@@ -220,8 +227,23 @@ model Shipment {
 
   // --- Frozen Rate Card Versioning Snapshot ---
   client_rate_card_id   String?
+  client_rate_card_version String?
   courier_rate_card_id  String?
+  courier_rate_card_version String?
   rate_card_version     String?
+
+  // --- Courier Allocation Engine Persistence ---
+  selected_courier_id          String?
+  selected_courier_account_id  String?
+  allocation_strategy          String?  // LOWEST_COST, HIGHEST_MARGIN, FASTEST_DELIVERY, BALANCED, CLIENT_PREFERRED
+  allocation_score             Decimal? @db.Decimal(12, 4)
+  allocation_reason            String?
+  expected_client_charge       Decimal? @db.Decimal(12, 2)
+  expected_gross_profit        Decimal? @db.Decimal(12, 2)
+  expected_margin_percentage   Decimal? @db.Decimal(12, 2)
+  client_zone                  String?
+  courier_zone                 String?
+  allocated_at                 DateTime?
 
   created_at   DateTime  @default(now())
   updated_at   DateTime  @updatedAt
@@ -875,4 +897,26 @@ model CommercialAuditLog {
   @@index([company_id])
   @@index([shipment_id])
   @@index([awb_number])
+}
+
+model CourierAllocationRule {
+  id                    String   @id @default(uuid())
+  company_id            String
+  client_id             String?  // Null for company default rule
+  default_strategy      String   @default("BALANCED") // LOWEST_COST, HIGHEST_MARGIN, FASTEST_DELIVERY, BALANCED, CLIENT_PREFERRED
+  min_margin_percentage Decimal  @default(10) @db.Decimal(12, 2)
+  cost_weight           Decimal  @default(0.4) @db.Decimal(12, 2)
+  sla_weight            Decimal  @default(0.4) @db.Decimal(12, 2)
+  preference_weight     Decimal  @default(0.2) @db.Decimal(12, 2)
+  preferred_courier_id  String?
+  active                Boolean  @default(true)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
+  client  Client?  @relation(fields: [client_id], references: [id])
+
+  @@unique([company_id, client_id])
+  @@index([company_id])
+  @@index([client_id])
 }
