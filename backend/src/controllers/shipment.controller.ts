@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { calculateShipmentCost, calculateCourierCost } from './rate.controller';
 import { CourierFactory } from '../services/courier/CourierFactory';
 import { AuthenticatedRequest } from '../auth.middleware';
+import { triggerAutoNotification } from '../services/notification.service';
 
 export const getShipments = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -204,6 +205,14 @@ export const bookShipment = async (req: AuthenticatedRequest, res: Response) => 
       }
     });
 
+    // Trigger Notification
+    triggerAutoNotification({
+      awb_number: shipment.awb_number,
+      receiver_name: shipment.receiver_name || undefined,
+      receiver_phone: shipment.receiver_phone || undefined,
+      internal_status: shipment.internal_status
+    });
+
     res.json({ message: 'Shipment booked successfully', shipment });
   } catch (error: any) {
     console.error('Book shipment error:', error);
@@ -308,6 +317,16 @@ export const updateShipment = async (req: AuthenticatedRequest, res: Response) =
       },
       include: { client: true, courier: true }
     });
+
+    if (payload.internal_status && payload.internal_status !== existing.internal_status) {
+      triggerAutoNotification({
+        awb_number: updated.awb_number,
+        receiver_name: updated.receiver_name || undefined,
+        receiver_phone: updated.receiver_phone || undefined,
+        internal_status: updated.internal_status,
+        exception_reason: payload.remarks || undefined
+      });
+    }
 
     res.json({ message: 'Shipment updated successfully', shipment: updated });
   } catch (error: any) {
