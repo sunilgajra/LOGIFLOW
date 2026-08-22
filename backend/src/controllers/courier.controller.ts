@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthenticatedRequest } from '../auth.middleware';
 import { CourierFactory } from '../services/courier/CourierFactory';
+import { WaybillInventoryService } from '../services/courier/WaybillInventoryService';
 
 export const getCouriers = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -148,5 +149,42 @@ export const testCourierConnection = async (req: AuthenticatedRequest, res: Resp
       success: false,
       message: `Connection Error: ${error.message}`
     });
+  }
+};
+
+export const getWaybillInventorySummary = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const courierId = String(req.params.id || '');
+    const summary = await WaybillInventoryService.getInventorySummary(companyId, courierId);
+    res.json(summary);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch waybill inventory summary', details: error.message });
+  }
+};
+
+export const fetchWaybillsBulk = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const courierId = String(req.params.id || '');
+    const count = parseInt(req.body.count) || 100;
+
+    const result = await WaybillInventoryService.fetchDelhiveryWaybills(companyId, courierId, count);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error || 'Failed to fetch waybills from Delhivery API' });
+    }
+
+    const summary = await WaybillInventoryService.getInventorySummary(companyId, courierId);
+    res.json({
+      message: `Successfully fetched and stored ${result.count} waybills from Delhivery API into inventory.`,
+      result,
+      summary
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch waybills in bulk', details: error.message });
   }
 };

@@ -13,6 +13,7 @@ import {
   CancelResponse 
 } from './CourierProvider';
 import { MockCourierProvider } from './MockCourierProvider';
+import { WaybillInventoryService } from './WaybillInventoryService';
 
 interface DelhiveryCredentials {
   apiKey?: string;
@@ -108,31 +109,45 @@ export class DelhiveryProvider implements ICourierProvider {
       return this.mockProvider.bookShipment(request);
     }
 
+    // Try reserving pre-fetched AWB from inventory pool
+    let reservedWb: any = null;
+    if (request.companyId && request.courierId) {
+      reservedWb = await WaybillInventoryService.reserveNextWaybill(request.companyId, request.courierId);
+      if (!reservedWb) {
+        // Automatically trigger background replenishment
+        WaybillInventoryService.fetchDelhiveryWaybills(request.companyId, request.courierId, 50).catch(console.error);
+      }
+    }
+
     try {
+      const shipmentData: any = {
+        name: request.receiverName,
+        add: request.receiverAddress,
+        pin: request.receiverPincode || '',
+        city: request.receiverCity || '',
+        state: request.receiverState || '',
+        country: 'India',
+        phone: request.receiverPhone,
+        order: request.clientRefNo || request.shipmentId,
+        payment_mode: request.isCod ? 'COD' : 'Prepaid',
+        cod_amount: request.isCod ? String(request.codAmount) : '0',
+        weight: String(request.weight * 1000),
+        quantity: String(request.pieces || 1),
+        shipment_height: 10,
+        shipment_width: 10,
+        shipment_length: 10,
+        product_desc: request.productDescription || 'General Parcel',
+        seller_name: request.senderName,
+        seller_add: request.senderAddress,
+        pickup_location: this.pickupLocation,
+      };
+
+      if (reservedWb?.waybill) {
+        shipmentData.waybill = reservedWb.waybill;
+      }
+
       const payload = {
-        shipments: [
-          {
-            name: request.receiverName,
-            add: request.receiverAddress,
-            pin: request.receiverPincode || '',
-            city: request.receiverCity || '',
-            state: request.receiverState || '',
-            country: 'India',
-            phone: request.receiverPhone,
-            order: request.clientRefNo || request.shipmentId,
-            payment_mode: request.isCod ? 'COD' : 'Prepaid',
-            cod_amount: request.isCod ? String(request.codAmount) : '0',
-            weight: String(request.weight * 1000),
-            quantity: String(request.pieces || 1),
-            shipment_height: 10,
-            shipment_width: 10,
-            shipment_length: 10,
-            product_desc: request.productDescription || 'General Parcel',
-            seller_name: request.senderName,
-            seller_add: request.senderAddress,
-            pickup_location: this.pickupLocation,
-          }
-        ],
+        shipments: [shipmentData],
         pickup_location: {
           name: this.pickupLocation,
           add: request.senderAddress,
@@ -157,6 +172,9 @@ export class DelhiveryProvider implements ICourierProvider {
 
       if (!response.ok) {
         const errorText = await response.text();
+        if (reservedWb?.id) {
+          await WaybillInventoryService.invalidateWaybill(reservedWb.id);
+        }
         return { success: false, error: `Delhivery API returned HTTP ${response.status}: ${errorText}` };
       }
 
@@ -164,13 +182,22 @@ export class DelhiveryProvider implements ICourierProvider {
 
       if (resData.success && resData.packages && resData.packages.length > 0) {
         const pkg = resData.packages[0];
-        const awb = pkg.waybill || pkg.refnum;
+        const awb = pkg.waybill || pkg.refnum || reservedWb?.waybill;
+
+        if (reservedWb?.id) {
+          await WaybillInventoryService.confirmWaybillUsage(reservedWb.id, request.shipmentId);
+        }
+
         return {
           success: true,
           awbNumber: awb,
           labelUrl: `${this.baseUrl}/api/v1/packages/label/?waybill=${awb}`,
           rawResponse: resData,
         };
+      }
+
+      if (reservedWb?.id) {
+        await WaybillInventoryService.invalidateWaybill(reservedWb.id);
       }
 
       return {
@@ -180,6 +207,9 @@ export class DelhiveryProvider implements ICourierProvider {
       };
 
     } catch (err: any) {
+      if (reservedWb?.id) {
+        await WaybillInventoryService.invalidateWaybill(reservedWb.id);
+      }
       return this.mockProvider.bookShipment(request);
     }
   }

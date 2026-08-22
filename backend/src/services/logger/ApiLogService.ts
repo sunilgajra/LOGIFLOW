@@ -4,7 +4,7 @@ export interface LogApiInput {
   companyId: string;
   courierId?: string;
   shipmentId?: string;
-  operation: 'BOOKING' | 'TRACKING' | 'PICKUP' | 'SERVICEABILITY' | 'NDR' | 'CANCEL' | 'WEBHOOK';
+  operation: 'BOOKING' | 'TRACKING' | 'PICKUP' | 'SERVICEABILITY' | 'NDR' | 'CANCEL' | 'WEBHOOK' | 'FETCH_WAYBILL';
   httpStatus?: number;
   success: boolean;
   errorCode?: string;

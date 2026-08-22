@@ -10,6 +10,8 @@ export interface CourierCapabilities {
 
 export interface BookingRequest {
   shipmentId: string;
+  companyId?: string;
+  courierId?: string;
   senderName: string;
   senderAddress: string;
   senderPhone: string;

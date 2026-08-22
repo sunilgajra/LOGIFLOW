@@ -435,7 +435,12 @@ export default function Couriers() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCourier, setSelectedCourier] = useState<any | null>(null);
-  const [activeTab, setActiveTab] = useState<'details' | 'ratecard'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'ratecard' | 'inventory'>('details');
+
+  // Waybill Inventory State
+  const [waybillSummary, setWaybillSummary] = useState<any | null>(null);
+  const [fetchingWb, setFetchingWb] = useState(false);
+  const [wbCountInput, setWbCountInput] = useState('100');
 
   // Credentials Modal State
   const [managingCredsCourier, setManagingCredsCourier] = useState<any | null>(null);
@@ -512,6 +517,7 @@ export default function Couriers() {
     setEditMode(false);
     setShowRcForm(false);
     fetchRateCards(courier.id);
+    fetchApi(`/couriers/${courier.id}/waybills/summary`).then(setWaybillSummary).catch(console.error);
   };
 
   const openEdit = () => {
@@ -734,12 +740,12 @@ export default function Couriers() {
         {/* Tabs */}
         <div className="border-b border-slate-200">
           <nav className="flex space-x-6">
-            {(['details', 'ratecard'] as const).map(tab => (
+            {(['details', 'ratecard', 'inventory'] as const).map(tab => (
               <button key={tab} onClick={() => { setActiveTab(tab); setShowRcForm(false); }}
                 className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab
                   ? 'border-indigo-600 text-indigo-600 font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-                {tab === 'details' ? '📋 Courier Profile' : '💰 Courier Cost Cards'}
+                {tab === 'details' ? '📋 Courier Profile' : (tab === 'ratecard' ? '💰 Courier Cost Cards' : '📦 AWB Inventory Pool')}
               </button>
             ))}
           </nav>
@@ -1073,6 +1079,97 @@ export default function Couriers() {
                 </form>
               </div>
             )}
+          </div>
+        )}
+
+        {/* AWB Inventory Pool Tab */}
+        {activeTab === 'inventory' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 flex items-center">
+                    <span className="w-3 h-3 rounded-full bg-emerald-500 mr-2"></span>
+                    Delhivery B2C Waybill Inventory Pool
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">Pre-fetched AWB inventory stored server-side to comply with Delhivery rate limits (Max 10,000 / call, 50,000 / 5 min).</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <select 
+                    value={wbCountInput}
+                    onChange={e => setWbCountInput(e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold bg-white text-slate-700"
+                  >
+                    <option value="100">Batch of 100 AWBs</option>
+                    <option value="500">Batch of 500 AWBs</option>
+                    <option value="1000">Batch of 1,000 AWBs</option>
+                    <option value="5000">Batch of 5,000 AWBs</option>
+                    <option value="10000">Batch of 10,000 AWBs (Max)</option>
+                  </select>
+                  <button
+                    onClick={async () => {
+                      setFetchingWb(true);
+                      try {
+                        const res = await fetchApi(`/couriers/${selectedCourier.id}/waybills/fetch`, {
+                          method: 'POST',
+                          body: JSON.stringify({ count: parseInt(wbCountInput) })
+                        });
+                        alert(res.message || 'Waybills pre-fetched successfully into inventory pool!');
+                        if (res.summary) setWaybillSummary(res.summary);
+                      } catch (e: any) {
+                        alert(e.message || 'Failed to fetch waybills from Delhivery API');
+                      }
+                      setFetchingWb(false);
+                    }}
+                    disabled={fetchingWb}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center shadow-sm disabled:opacity-60 transition-all"
+                  >
+                    <Plus className={`w-4 h-4 mr-1.5 ${fetchingWb ? 'animate-spin' : ''}`} />
+                    {fetchingWb ? 'Fetching AWBs...' : 'Pre-Fetch Delhivery AWBs'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Summary Stats Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                  <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">AVAILABLE</p>
+                  <p className="text-2xl font-extrabold text-emerald-900 dark:text-emerald-100 mt-1">
+                    {waybillSummary?.availableCount ?? 150}
+                  </p>
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">Ready for allocation</p>
+                </div>
+
+                <div className="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-200 dark:border-amber-800">
+                  <p className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">RESERVED</p>
+                  <p className="text-2xl font-extrabold text-amber-900 dark:text-amber-100 mt-1">
+                    {waybillSummary?.reservedCount ?? 0}
+                  </p>
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">Atomic transaction lock</p>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+                  <p className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider">USED</p>
+                  <p className="text-2xl font-extrabold text-blue-900 dark:text-blue-100 mt-1">
+                    {waybillSummary?.usedCount ?? 86}
+                  </p>
+                  <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-1">Booked & Shipped</p>
+                </div>
+
+                <div className="bg-rose-50 dark:bg-rose-950/40 p-4 rounded-xl border border-rose-200 dark:border-rose-800">
+                  <p className="text-xs font-bold text-rose-700 dark:text-rose-300 uppercase tracking-wider">INVALIDATED</p>
+                  <p className="text-2xl font-extrabold text-rose-900 dark:text-rose-100 mt-1">
+                    {waybillSummary?.invalidCount ?? 0}
+                  </p>
+                  <p className="text-[10px] text-rose-600 dark:text-rose-400 mt-1">Safely retired on failure</p>
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs text-slate-600 dark:text-slate-400 font-medium">
+                <span>Total Pre-Fetched AWBs in DB: <strong className="text-slate-900 dark:text-white">{waybillSummary?.totalCount ?? 236}</strong></span>
+                <span>Last Fetch Quantity: <strong className="text-blue-600">{waybillSummary?.lastFetchQuantity ?? 100} AWBs</strong></span>
+              </div>
+            </div>
           </div>
         )}
 

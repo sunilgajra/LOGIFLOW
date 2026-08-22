@@ -35,6 +35,7 @@ model Company {
   support_tickets  SupportTicket[]
   api_logs         ApiLog[]
   courier_accounts CourierAccount[]
+  courier_waybills CourierWaybill[]
 }
 
 model User {
@@ -110,6 +111,7 @@ model CourierPartner {
   rateCards       RateCard[]
   courier_bills   CourierBill[]
   accounts        CourierAccount[]
+  courier_waybills CourierWaybill[]
 }
 
 model Shipment {
@@ -527,4 +529,28 @@ model CourierAccount {
 
   @@index([company_id])
   @@index([courier_id])
+}
+
+model CourierWaybill {
+  id                 String    @id @default(uuid())
+  company_id         String
+  courier_account_id String?
+  courier_id         String
+  waybill            String    @unique
+  status             String    @default("AVAILABLE") // AVAILABLE, RESERVED, USED, INVALID, EXPIRED
+  shipment_id        String?
+  fetched_at         DateTime  @default(now())
+  reserved_at        DateTime?
+  used_at            DateTime?
+  invalidated_at     DateTime?
+  correlation_id     String?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  company Company        @relation(fields: [company_id], references: [id])
+  courier CourierPartner @relation(fields: [courier_id], references: [id])
+
+  @@unique([company_id, waybill])
+  @@index([company_id, courier_id, status])
+  @@index([waybill])
 }
