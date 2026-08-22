@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Camera, Edit3, CheckCircle, Package, Search, X, ChevronRight, User, MapPin, 
   Navigation, RefreshCw, Smartphone, Phone, MessageSquare, IndianRupee, AlertTriangle, 
-  QrCode, Check, ShieldAlert, Barcode, DollarSign, Truck
+  QrCode, Check, ShieldAlert, Barcode, DollarSign, Truck, Filter
 } from 'lucide-react';
 import { fetchApi } from '../api';
 
@@ -12,6 +12,9 @@ export default function DeliveryMode() {
   const [loading, setLoading] = useState(false);
   const [selectedShipment, setSelectedShipment] = useState<any | null>(null);
   
+  // Filter tab state: 'ALL' | 'DELIVERED' | 'PENDING'
+  const [filterTab, setFilterTab] = useState<'ALL' | 'DELIVERED' | 'PENDING'>('ALL');
+
   const [status, setStatus] = useState<'idle' | 'delivering' | 'success' | 'failed_submitted'>('idle');
   const [error, setError] = useState('');
   
@@ -203,6 +206,13 @@ export default function DeliveryMode() {
   const totalAssigned = shipments.length || 14;
   const deliveredCount = shipments.filter(s => s.internal_status === 'DELIVERED').length || 8;
   const pendingCount = totalAssigned - deliveredCount;
+
+  // Filtered shipments list based on active tab
+  const displayShipments = shipments.filter(s => {
+    if (filterTab === 'DELIVERED') return s.internal_status === 'DELIVERED';
+    if (filterTab === 'PENDING') return s.internal_status !== 'DELIVERED';
+    return true;
+  });
 
   if (selectedShipment) {
     const fullAddress = `${selectedShipment.receiver_address || ''}, ${selectedShipment.city || ''} ${selectedShipment.pincode || ''}`;
@@ -574,24 +584,72 @@ export default function DeliveryMode() {
         </button>
       </div>
 
-      {/* Driver Shift Summary Dashboard Card */}
-      <div className="grid grid-cols-4 gap-2">
-        <div className="bg-white border border-slate-200 p-2.5 rounded-xl text-center shadow-xs">
-          <span className="text-[10px] font-bold text-slate-400 block uppercase">Assigned</span>
-          <span className="text-base font-black text-slate-900">{totalAssigned}</span>
-        </div>
-        <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-center shadow-xs">
-          <span className="text-[10px] font-bold text-emerald-700 block uppercase">Delivered</span>
-          <span className="text-base font-black text-emerald-800">{deliveredCount}</span>
-        </div>
-        <div className="bg-blue-50 border border-blue-200 p-2.5 rounded-xl text-center shadow-xs">
-          <span className="text-[10px] font-bold text-blue-700 block uppercase">Pending</span>
-          <span className="text-base font-black text-blue-800">{pendingCount}</span>
-        </div>
-        <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-center shadow-xs">
+      {/* Driver Shift Summary Dashboard Cards (Interactive Clickable Filter Tabs) */}
+      <div className="grid grid-cols-4 gap-1.5">
+        <button
+          type="button"
+          onClick={() => setFilterTab('ALL')}
+          className={`p-2 rounded-xl text-center transition-all cursor-pointer ${
+            filterTab === 'ALL'
+              ? 'bg-slate-900 text-white ring-2 ring-slate-900 shadow-md scale-[1.02]'
+              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+          }`}
+          title="Click to view all assigned shipments"
+        >
+          <span className={`text-[10px] font-bold block uppercase ${filterTab === 'ALL' ? 'text-slate-300' : 'text-slate-400'}`}>Assigned</span>
+          <span className="text-base font-black">{totalAssigned}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterTab('DELIVERED')}
+          className={`p-2 rounded-xl text-center transition-all cursor-pointer ${
+            filterTab === 'DELIVERED'
+              ? 'bg-emerald-600 text-white ring-2 ring-emerald-600 shadow-md scale-[1.02]'
+              : 'bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100'
+          }`}
+          title="Click to filter delivered shipments"
+        >
+          <span className={`text-[10px] font-bold block uppercase ${filterTab === 'DELIVERED' ? 'text-emerald-100' : 'text-emerald-700'}`}>Delivered</span>
+          <span className="text-base font-black">{deliveredCount}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterTab('PENDING')}
+          className={`p-2 rounded-xl text-center transition-all cursor-pointer ${
+            filterTab === 'PENDING'
+              ? 'bg-blue-600 text-white ring-2 ring-blue-600 shadow-md scale-[1.02]'
+              : 'bg-blue-50 border border-blue-200 text-blue-800 hover:bg-blue-100'
+          }`}
+          title="Click to filter pending deliveries"
+        >
+          <span className={`text-[10px] font-bold block uppercase ${filterTab === 'PENDING' ? 'text-blue-100' : 'text-blue-700'}`}>Pending</span>
+          <span className="text-base font-black">{pendingCount}</span>
+        </button>
+
+        <div className="bg-amber-50 border border-amber-200 p-2 rounded-xl text-center shadow-xs">
           <span className="text-[10px] font-bold text-amber-700 block uppercase">COD Cash</span>
           <span className="text-xs font-black text-amber-900 mt-1 block">₹{codCollectedToday}</span>
         </div>
+      </div>
+
+      {/* Filter Label Indicator */}
+      <div className="flex justify-between items-center px-1">
+        <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
+          <Filter className="w-3 h-3 text-blue-600" />
+          Filter: <span className="text-slate-900 font-extrabold">
+            {filterTab === 'ALL' ? 'All Assigned Deliveries' : filterTab === 'DELIVERED' ? 'Completed Deliveries' : 'Pending Tasks'}
+          </span>
+        </span>
+        {filterTab !== 'ALL' && (
+          <button
+            onClick={() => setFilterTab('ALL')}
+            className="text-[10px] font-bold text-blue-600 hover:underline"
+          >
+            Show All ({totalAssigned})
+          </button>
+        )}
       </div>
 
       {/* Search Input */}
@@ -612,14 +670,24 @@ export default function DeliveryMode() {
           <div className="p-8 text-center text-slate-400 flex items-center justify-center">
             <RefreshCw className="w-4 h-4 mr-2 animate-spin text-blue-600" /> Loading assigned deliveries...
           </div>
-        ) : shipments.length === 0 ? (
+        ) : displayShipments.length === 0 ? (
           <div className="p-8 text-center bg-white rounded-xl border border-dashed border-slate-300">
             <Package className="w-9 h-9 text-slate-300 mx-auto mb-2" />
-            <p className="font-bold text-slate-700 text-sm">No Assigned Deliveries</p>
-            <p className="text-xs text-slate-500 mt-1">New shipments assigned to your run-sheet will appear here.</p>
+            <p className="font-bold text-slate-700 text-sm">No Shipments Found</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {filterTab === 'DELIVERED' ? 'No completed deliveries found in this list yet.' : filterTab === 'PENDING' ? 'All assigned packages are delivered!' : 'No shipments assigned to your run-sheet.'}
+            </p>
+            {filterTab !== 'ALL' && (
+              <button
+                onClick={() => setFilterTab('ALL')}
+                className="mt-3 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold"
+              >
+                View All Deliveries
+              </button>
+            )}
           </div>
         ) : (
-          shipments.map((shipment) => (
+          displayShipments.map((shipment) => (
             <button
               key={shipment.id}
               onClick={() => handleSelectShipment(shipment)}
