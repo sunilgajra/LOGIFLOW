@@ -90,6 +90,10 @@ export const updatePickupRequestStatus = async (req: AuthenticatedRequest, res: 
       return res.status(404).json({ error: 'Pickup request record not found' });
     }
 
+    if (req.user?.role === 'CLIENT' && existing.client_id && existing.client_id !== req.user.client_id) {
+      return res.status(403).json({ error: 'Access denied: Cannot modify another client\'s pickup request' });
+    }
+
     const updated = await prisma.pickupRequest.update({
       where: { id: String(id) },
       data: {

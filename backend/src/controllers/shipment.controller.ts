@@ -6,6 +6,46 @@ import { CourierFactory } from '../services/courier/CourierFactory';
 import { AuthenticatedRequest } from '../auth.middleware';
 import { triggerAutoNotification } from '../services/notification.service';
 
+export const sanitizeShipmentForClient = (shipment: any, role?: string) => {
+  if (!shipment) return shipment;
+  if (role === 'CLIENT') {
+    const {
+      courier_cost,
+      profit,
+      gross_margin,
+      margin_percentage,
+      courier_base_cost,
+      courier_docket_cost,
+      courier_fov_cost,
+      courier_fsc_cost,
+      courier_idc_cost,
+      courier_oda_cost,
+      courier_green_tax,
+      courier_gst_amount,
+      courier_total_cost,
+      expected_courier_cost,
+      actual_courier_cost,
+      forward_courier_cost,
+      ndr_charge,
+      rto_charge,
+      return_shipping_cost,
+      other_courier_cost,
+      cost_variance,
+      variance_reason,
+      expected_gross_profit,
+      expected_margin_percentage,
+      ...cleanShipment
+    } = shipment;
+
+    if (cleanShipment.courier) {
+      const { api_credentials, account_number, ...cleanCourier } = cleanShipment.courier;
+      cleanShipment.courier = cleanCourier;
+    }
+    return cleanShipment;
+  }
+  return shipment;
+};
+
 export const getShipments = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -39,13 +79,16 @@ export const getShipments = async (req: AuthenticatedRequest, res: Response) => 
         include: {
           client: true,
           courier: true,
+          trackingEvents: { orderBy: { event_time: 'desc' } }
         }
       }),
       prisma.shipment.count({ where })
     ]);
 
+    const sanitizedData = shipments.map(s => sanitizeShipmentForClient(s, req.user?.role));
+
     res.json({
-      data: shipments,
+      data: sanitizedData,
       pagination: {
         total,
         page,
@@ -55,6 +98,46 @@ export const getShipments = async (req: AuthenticatedRequest, res: Response) => 
     });
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch shipments', details: error.message });
+  }
+};
+
+export const getShipmentById = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { id } = req.params;
+    const targetId = String(id || '');
+
+    const shipment = await prisma.shipment.findFirst({
+      where: {
+        company_id: companyId,
+        OR: [
+          { id: targetId },
+          { awb_number: targetId }
+        ]
+      },
+      include: {
+        client: true,
+        courier: true,
+        tracking_events: { orderBy: { event_time: 'desc' } },
+        ndrRecords: { orderBy: { created_at: 'desc' } }
+      }
+    });
+
+    if (!shipment) {
+      return res.status(404).json({ error: 'Shipment not found' });
+    }
+
+    // Role-based tenant isolation check
+    if (req.user?.role === 'CLIENT' && shipment.client_id && shipment.client_id !== req.user.client_id) {
+      return res.status(403).json({ error: 'Forbidden: Access denied to another tenant\'s shipment' });
+    }
+
+    const sanitized = sanitizeShipmentForClient(shipment, req.user?.role);
+    res.json({ success: true, shipment: sanitized });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch shipment details', details: error.message });
   }
 };
 

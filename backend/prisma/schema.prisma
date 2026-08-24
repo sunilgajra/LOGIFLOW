@@ -34,6 +34,8 @@ model Company {
   pickup_requests  PickupRequest[]
   support_tickets  SupportTicket[]
   allocationRules  CourierAllocationRule[]
+  notificationPreferences ClientNotificationPreference[]
+  notificationLogs NotificationLog[]
   api_logs         ApiLog[]
   courier_accounts CourierAccount[]
   courier_waybills CourierWaybill[]
@@ -94,6 +96,8 @@ model Client {
   pickup_requests  PickupRequest[]
   support_tickets  SupportTicket[]
   allocationRules  CourierAllocationRule[]
+  notificationPreferences ClientNotificationPreference[]
+  notificationLogs NotificationLog[]
   client_rate_cards ClientRateCard[]
 }
 
@@ -919,4 +923,59 @@ model CourierAllocationRule {
   @@unique([company_id, client_id])
   @@index([company_id])
   @@index([client_id])
+}
+
+model ClientNotificationPreference {
+  id                        String   @id @default(uuid())
+  company_id                String
+  client_id                 String?  // Null for company default rule
+  whatsapp_enabled          Boolean  @default(true)
+  email_enabled             Boolean  @default(true)
+  booked_enabled            Boolean  @default(true)
+  picked_up_enabled         Boolean  @default(true)
+  in_transit_enabled        Boolean  @default(true)
+  out_for_delivery_enabled  Boolean  @default(true)
+  delivered_enabled         Boolean  @default(true)
+  ndr_enabled               Boolean  @default(true)
+  rto_enabled               Boolean  @default(true)
+  rto_delivered_enabled     Boolean  @default(true)
+  customer_whatsapp_enabled Boolean  @default(true)
+  client_whatsapp_enabled   Boolean  @default(false)
+  client_email_enabled      Boolean  @default(true)
+  client_whatsapp_number    String?
+  client_email_address      String?
+  operations_email_address  String?
+  created_at                DateTime @default(now())
+  updated_at                DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
+  client  Client?  @relation(fields: [client_id], references: [id])
+
+  @@unique([company_id, client_id])
+  @@index([company_id])
+  @@index([client_id])
+}
+
+model NotificationLog {
+  id                  String   @id @default(uuid())
+  company_id          String
+  client_id           String?
+  shipment_id         String?
+  awb                 String?
+  event_type          String   // BOOKED, PICKED_UP, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED, NDR, RTO, RTO_DELIVERED, TEST
+  channel             String   // WHATSAPP, EMAIL
+  recipient           String   // Sanitized phone or email
+  template_text       String?
+  status              String   @default("SENT") // SENT, FAILED, SIMULATED
+  provider_message_id String?
+  correlation_id      String?
+  error_message       String?
+  created_at          DateTime @default(now())
+
+  company Company @relation(fields: [company_id], references: [id])
+  client  Client?  @relation(fields: [client_id], references: [id])
+
+  @@index([company_id])
+  @@index([shipment_id])
+  @@index([awb])
 }

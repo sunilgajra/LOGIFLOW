@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthenticatedRequest } from '../auth.middleware';
+import { sanitizeShipmentForClient } from './shipment.controller';
 
 export const generateInvoice = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -132,7 +133,12 @@ export const getInvoicesByClient = async (req: AuthenticatedRequest, res: Respon
       }
     });
 
-    res.json(invoices);
+    const sanitizedInvoices = invoices.map(inv => ({
+      ...inv,
+      shipments: inv.shipments ? inv.shipments.map(s => sanitizeShipmentForClient(s, req.user?.role)) : []
+    }));
+
+    res.json(sanitizedInvoices);
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch invoices', details: error.message });
   }
@@ -161,7 +167,12 @@ export const getInvoiceById = async (req: AuthenticatedRequest, res: Response) =
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    res.json(invoice);
+    const sanitizedInvoice = {
+      ...invoice,
+      shipments: invoice.shipments ? invoice.shipments.map(s => sanitizeShipmentForClient(s, req.user?.role)) : []
+    };
+
+    res.json(sanitizedInvoice);
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch invoice details', details: error.message });
   }

@@ -1323,3 +1323,58 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     return null;
   }
 };
+
+export const api = {
+  fetch: fetchApi,
+
+  // --- Client Notification Center API ---
+  async getNotificationPreferences() {
+    try {
+      const res = await fetchApi('/notifications/preferences');
+      if (res && res.preferences) return res.preferences;
+    } catch (e) {}
+    return {
+      whatsapp_enabled: true,
+      email_enabled: true,
+      booked_enabled: true,
+      picked_up_enabled: true,
+      in_transit_enabled: true,
+      out_for_delivery_enabled: true,
+      delivered_enabled: true,
+      ndr_enabled: true,
+      rto_enabled: true,
+      rto_delivered_enabled: true,
+      customer_whatsapp_enabled: true,
+      client_whatsapp_enabled: false,
+      client_email_enabled: true,
+      client_whatsapp_number: '+91 9876543210',
+      client_email_address: 'merchant@apexlogistics.com',
+      operations_email_address: 'ops@apexlogistics.com'
+    };
+  },
+
+  async saveNotificationPreferences(data: any) {
+    try {
+      const res = await fetchApi('/notifications/preferences', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      if (res && res.preferences) return res.preferences;
+    } catch (e) {}
+    return data;
+  },
+
+  async sendTestWhatsApp(phone: string) {
+    return await fetchApi('/notifications/test-whatsapp', {
+      method: 'POST',
+      body: JSON.stringify({ phone })
+    });
+  },
+
+  async sendTestEmail(email: string) {
+    return await fetchApi('/notifications/test-email', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+  }
+};

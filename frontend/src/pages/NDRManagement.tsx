@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { fetchApi } from '../api';
-import { AlertTriangle, RefreshCw, PhoneCall, MapPin, XCircle, CheckCircle, Search, ShieldAlert, Clock, ArrowRight, ShieldCheck, Check } from 'lucide-react';
+import { AlertTriangle, RefreshCw, PhoneCall, MapPin, XCircle, CheckCircle, Search, ShieldAlert, History, Calendar, User, Truck, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,11 +12,22 @@ export default function NDRManagement() {
   const [selectedShipment, setSelectedShipment] = useState<any | null>(null);
   const [actionType, setActionType] = useState<'REATTEMPT' | 'UPDATE_ADDRESS' | 'UPDATE_PHONE' | 'RTO' | null>(null);
   
+  // NDR Form States
   const [remarks, setRemarks] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newAddress, setNewAddress] = useState('');
+  const [newCity, setNewCity] = useState('');
+  const [newStateStr, setNewStateStr] = useState('');
+  const [newPincode, setNewPincode] = useState('');
   const [preferredDate, setPreferredDate] = useState('');
+
+  // History Modal State
+  const [historyShipment, setHistoryShipment] = useState<any | null>(null);
+  const [ndrHistoryList, setNdrHistoryList] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,10 +48,34 @@ export default function NDRManagement() {
   const openActionModal = (shipment: any, action: 'REATTEMPT' | 'UPDATE_ADDRESS' | 'UPDATE_PHONE' | 'RTO') => {
     setSelectedShipment(shipment);
     setActionType(action);
+    setFormError(null);
     setRemarks('');
-    setNewPhone(shipment.receiver_phone || '');
+    setNewPhone(shipment.receiver_phone ? shipment.receiver_phone.replace(/[^0-9]/g, '').slice(-10) : '');
     setNewAddress(shipment.receiver_address || '');
-    setPreferredDate('');
+    setNewCity(shipment.city || '');
+    setNewStateStr(shipment.state || '');
+    setNewPincode(shipment.pincode || '');
+    
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setPreferredDate(tomorrow.toISOString().split('T')[0]);
+  };
+
+  const openHistoryModal = async (shipment: any) => {
+    setHistoryShipment(shipment);
+    setHistoryLoading(true);
+    try {
+      const res = await fetchApi(`/ndr/${shipment.id}/history`);
+      if (res && res.history) {
+        setNdrHistoryList(res.history);
+      } else {
+        setNdrHistoryList(shipment.ndrRecords || []);
+      }
+    } catch (e) {
+      setNdrHistoryList(shipment.ndrRecords || []);
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   const showToast = (msg: string) => {
@@ -48,34 +83,72 @@ export default function NDRManagement() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  const validateForm = (): boolean => {
+    setFormError(null);
+
+    if (actionType === 'UPDATE_PHONE') {
+      const cleanPhone = newPhone.replace(/[^0-9]/g, '');
+      if (cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+        setFormError('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+        return false;
+      }
+    }
+
+    if (actionType === 'UPDATE_ADDRESS') {
+      if (!newAddress || newAddress.trim().length < 10) {
+        setFormError('Please enter a complete delivery address (minimum 10 characters).');
+        return false;
+      }
+      if (!newPincode || !/^\d{6}$/.test(newPincode.trim())) {
+        setFormError('Please enter a valid 6-digit Indian PIN code.');
+        return false;
+      }
+    }
+
+    if (actionType === 'REATTEMPT') {
+      if (!preferredDate) {
+        setFormError('Please select a valid preferred delivery date.');
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleActionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedShipment || !actionType) return;
+    if (!validateForm()) return;
 
     setSubmitting(true);
     try {
+      const combinedAddress = actionType === 'UPDATE_ADDRESS'
+        ? `${newAddress.trim()}, ${newCity.trim()}, ${newStateStr.trim()} - ${newPincode.trim()}`
+        : newAddress;
+
       await fetchApi(`/ndr/${selectedShipment.id}/action`, {
         method: 'POST',
         body: JSON.stringify({
           action: actionType,
-          remarks,
-          new_phone: newPhone,
-          new_address: newAddress,
+          remarks: remarks || `Client authorized ${actionType}`,
+          new_phone: newPhone ? `+91${newPhone.replace(/[^0-9]/g, '').slice(-10)}` : undefined,
+          new_address: combinedAddress,
           preferred_date: preferredDate
         })
       });
 
-      // Remove or update item locally
+      // Remove from active list
       setNdrList(prev => prev.filter(item => item.id !== selectedShipment.id));
-      showToast(`NDR Action '${actionType}' submitted successfully for AWB ${selectedShipment.awb_number}!`);
+      showToast(`NDR Action '${actionType}' recorded successfully for AWB ${selectedShipment.awb_number}!`);
       
       setSelectedShipment(null);
       setActionType(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to submit NDR action');
+      setFormError(err.message || 'Failed to submit NDR action. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const filteredList = ndrList.filter(item => {
@@ -109,14 +182,14 @@ export default function NDRManagement() {
               <ShieldAlert className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-white">NDR Action Engine Desk</h1>
-              <p className="text-slate-400 text-xs mt-0.5">Automated exception management, customer outreach, and RTO prevention.</p>
+              <h1 className="text-2xl font-black tracking-tight text-white">NDR Action Desk</h1>
+              <p className="text-slate-400 text-xs mt-0.5">Manage delivery exception re-attempts, address updates, and RTO authorizations.</p>
             </div>
           </div>
         </div>
         <button 
           onClick={fetchNDR} 
-          className="self-start sm:self-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center border border-slate-700 transition-colors shadow-2xs"
+          className="self-start sm:self-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center border border-slate-700 transition-colors shadow-2xs cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh Exceptions
         </button>
@@ -165,7 +238,7 @@ export default function NDRManagement() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search NDR by AWB, Receiver, City, Client..."
+            placeholder="Search NDR by AWB, Receiver, City..."
             className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none"
           />
         </div>
@@ -204,6 +277,13 @@ export default function NDRManagement() {
                   <span className="text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2.5 py-0.5 rounded-lg border border-slate-200 dark:border-slate-600">
                     {item.courier?.courier_name || 'Delhivery Express'}
                   </span>
+
+                  <button
+                    onClick={() => openHistoryModal(item)}
+                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center ml-auto"
+                  >
+                    <History className="w-3.5 h-3.5 mr-1" /> View NDR History
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -218,9 +298,8 @@ export default function NDRManagement() {
                     <span className="block text-slate-500 truncate max-w-[200px] mt-0.5">{item.receiver_address}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Client Partner</span>
-                    <span className="font-bold text-slate-900 dark:text-white">{item.client?.company_name || 'Direct'}</span>
-                    <span className="block text-slate-400 mt-0.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Last Updated</span>
+                    <span className="font-bold text-slate-900 dark:text-white">
                       {item.updated_at ? format(new Date(item.updated_at), 'dd MMM, hh:mm a') : 'Recent'}
                     </span>
                   </div>
@@ -240,28 +319,28 @@ export default function NDRManagement() {
               <div className="grid grid-cols-2 sm:flex sm:flex-wrap lg:flex-col gap-2 min-w-[210px]">
                 <button 
                   onClick={() => openActionModal(item, 'REATTEMPT')}
-                  className="flex items-center justify-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-2xs"
+                  className="flex items-center justify-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
                   Request Re-attempt
                 </button>
                 <button 
                   onClick={() => openActionModal(item, 'UPDATE_PHONE')}
-                  className="flex items-center justify-center px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-2xs"
+                  className="flex items-center justify-center px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
                 >
                   <PhoneCall className="w-3.5 h-3.5 mr-1.5" />
                   Update Phone
                 </button>
                 <button 
                   onClick={() => openActionModal(item, 'UPDATE_ADDRESS')}
-                  className="flex items-center justify-center px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-2xs"
+                  className="flex items-center justify-center px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
                 >
                   <MapPin className="w-3.5 h-3.5 mr-1.5" />
                   Update Address
                 </button>
                 <button 
                   onClick={() => openActionModal(item, 'RTO')}
-                  className="flex items-center justify-center px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-2xs"
+                  className="flex items-center justify-center px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
                 >
                   <XCircle className="w-3.5 h-3.5 mr-1.5" />
                   Authorize RTO
@@ -276,71 +355,156 @@ export default function NDRManagement() {
       {/* Action Modal */}
       {selectedShipment && actionType && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-700">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-700">
             <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center">
-                {actionType === 'REATTEMPT' && '🔄 Schedule Re-attempt'}
-                {actionType === 'UPDATE_PHONE' && '📞 Update Receiver Phone'}
-                {actionType === 'UPDATE_ADDRESS' && '🏠 Update Delivery Address'}
-                {actionType === 'RTO' && '🚫 Authorize Return to Origin (RTO)'}
+                {actionType === 'REATTEMPT' && '🔄 Schedule Delivery Re-attempt'}
+                {actionType === 'UPDATE_PHONE' && '📞 Update Consignee Phone Number'}
+                {actionType === 'UPDATE_ADDRESS' && '🏠 Update Consignee Delivery Address'}
+                {actionType === 'RTO' && '⚠️ Confirm Return to Origin (RTO)'}
               </h3>
-              <button onClick={() => setSelectedShipment(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <button onClick={() => setSelectedShipment(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1">
-              <p><span className="text-slate-400">AWB Number:</span> <span className="font-mono font-bold text-blue-600">{selectedShipment.awb_number}</span></p>
-              <p><span className="text-slate-400">Recipient:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{selectedShipment.receiver_name}</span></p>
+            {/* Shipment Context Summary */}
+            <div className="bg-slate-50 dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-400">AWB Number:</span>
+                <span className="font-mono font-bold text-blue-600">{selectedShipment.awb_number}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Recipient Name:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{selectedShipment.receiver_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Courier Partner:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">{selectedShipment.courier?.courier_name || 'Delhivery Express'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Delivery Attempt #:</span>
+                <span className="font-bold text-amber-600">Attempt #{selectedShipment.delivery_attempt || 1}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">NDR Reason:</span>
+                <span className="font-semibold text-rose-600">{selectedShipment.remarks || selectedShipment.courier_status || 'Customer Unavailable'}</span>
+              </div>
             </div>
 
+            {/* Validation Error Alert */}
+            {formError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 rounded-xl text-xs flex items-center space-x-2 font-medium">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+
+            {/* Action Form */}
             <form onSubmit={handleActionSubmit} className="space-y-4">
+              
+              {/* RTO Warning Banner */}
+              {actionType === 'RTO' && (
+                <div className="p-4 bg-rose-50 border-2 border-rose-300 dark:bg-rose-950/50 dark:border-rose-800 rounded-xl text-xs text-rose-900 dark:text-rose-200 space-y-2">
+                  <div className="flex items-center font-black uppercase text-rose-700 dark:text-rose-300">
+                    <AlertTriangle className="w-4 h-4 mr-1.5 shrink-0 text-rose-600" />
+                    Irreversible Action Warning
+                  </div>
+                  <p className="leading-relaxed text-[11px]">
+                    Are you sure you want to authorize Return to Origin (RTO)? Once confirmed, the courier partner will cancel further delivery attempts and initiate return shipment back to merchant warehouse.
+                  </p>
+                </div>
+              )}
+
               {actionType === 'UPDATE_PHONE' && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">New Phone Number</label>
-                  <input 
-                    type="text" 
-                    required 
-                    value={newPhone} 
-                    onChange={e => setNewPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-white font-mono font-bold focus:ring-2 focus:ring-amber-500" 
-                    placeholder="e.g. +91 9876543210"
-                  />
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">New 10-Digit Mobile Number</label>
+                  <div className="flex space-x-2">
+                    <span className="px-3 py-2 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-xl text-xs font-mono font-bold text-slate-600 dark:text-slate-300">+91</span>
+                    <input 
+                      type="text" 
+                      required 
+                      maxLength={10}
+                      value={newPhone} 
+                      onChange={e => setNewPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-white font-mono font-bold focus:ring-2 focus:ring-blue-500" 
+                      placeholder="9876543210"
+                    />
+                  </div>
                 </div>
               )}
 
               {actionType === 'UPDATE_ADDRESS' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">New Delivery Address</label>
-                  <textarea 
-                    required 
-                    rows={3} 
-                    value={newAddress} 
-                    onChange={e => setNewAddress(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-amber-500" 
-                    placeholder="Full new street address with landmark..."
-                  />
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Street Address</label>
+                    <textarea 
+                      required 
+                      rows={2} 
+                      value={newAddress} 
+                      onChange={e => setNewAddress(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500" 
+                      placeholder="Building, Flat, Street, Landmark..."
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">City</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={newCity} 
+                        onChange={e => setNewCity(e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs dark:bg-slate-700 dark:text-white" 
+                        placeholder="City"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">State</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={newStateStr} 
+                        onChange={e => setNewStateStr(e.target.value)}
+                        className="w-full px-2.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs dark:bg-slate-700 dark:text-white" 
+                        placeholder="State"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">PIN Code</label>
+                      <input 
+                        type="text" 
+                        required 
+                        maxLength={6}
+                        value={newPincode} 
+                        onChange={e => setNewPincode(e.target.value.replace(/[^0-9]/g, ''))}
+                        className="w-full px-2.5 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-mono font-bold dark:bg-slate-700 dark:text-white" 
+                        placeholder="400001"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
               {actionType === 'REATTEMPT' && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Preferred Delivery Date</label>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Requested Re-attempt Date</label>
                   <input 
                     type="date" 
+                    required
                     value={preferredDate} 
                     onChange={e => setPreferredDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-amber-500" 
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-emerald-500" 
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Remarks for Courier Partner Agent</label>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Remarks for Delivery Executive</label>
                 <textarea 
                   rows={2} 
                   value={remarks} 
                   onChange={e => setRemarks(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-white font-medium focus:ring-2 focus:ring-amber-500" 
-                  placeholder="e.g. Customer will be available after 3 PM, please call before delivery..."
+                  placeholder="e.g. Customer will be available after 2 PM, please call before arriving..."
                 />
               </div>
 
@@ -348,19 +512,70 @@ export default function NDRManagement() {
                 <button 
                   type="button" 
                   onClick={() => setSelectedShipment(null)} 
-                  className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100"
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={submitting} 
-                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50"
+                  className={`px-5 py-2 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50 cursor-pointer ${
+                    actionType === 'RTO' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-amber-600 hover:bg-amber-700'
+                  }`}
                 >
-                  {submitting ? 'Submitting...' : 'Submit NDR Action'}
+                  {submitting ? 'Submitting...' : actionType === 'RTO' ? 'Confirm & Authorize RTO' : 'Submit NDR Action'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* NDR History Modal */}
+      {historyShipment && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center">
+                <History className="w-5 h-5 mr-2 text-indigo-600" /> NDR History — AWB {historyShipment.awb_number}
+              </h3>
+              <button onClick={() => setHistoryShipment(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+            </div>
+
+            {historyLoading ? (
+              <div className="p-8 text-center text-xs text-slate-500">Loading NDR history logs...</div>
+            ) : ndrHistoryList.length === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-400">No prior NDR action records found for this shipment.</div>
+            ) : (
+              <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                {ndrHistoryList.map((h: any, idx: number) => (
+                  <div key={h.id || idx} className="p-3.5 bg-slate-50 dark:bg-slate-900/70 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-1.5">
+                    <div className="flex justify-between font-bold text-slate-900 dark:text-white">
+                      <span>Attempt #{h.attempt_number || 1} — {h.selected_action || h.ndr_code || 'NDR_EVENT'}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {h.event_time ? format(new Date(h.event_time), 'dd MMM yyyy, hh:mm a') : 'N/A'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+                      Reason: <span className="font-semibold text-amber-700 dark:text-amber-300">{h.ndr_reason || 'Undelivered'}</span>
+                    </p>
+                    <div className="flex justify-between text-[10px] pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                      <span className="text-slate-400">Status: <span className="font-bold text-emerald-600 uppercase">{h.action_status || h.ndr_status || 'PROCESSED'}</span></span>
+                      {user?.role !== 'CLIENT' && h.correlation_id && <span className="font-mono text-slate-400">ID: {h.correlation_id}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-700">
+              <button 
+                onClick={() => setHistoryShipment(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold cursor-pointer"
+              >
+                Close History
+              </button>
+            </div>
           </div>
         </div>
       )}

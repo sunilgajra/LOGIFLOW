@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { triggerAutoNotification } from '../services/notification.service';
+import { DelhiveryNdrService } from '../services/courier/DelhiveryNdrService';
 
 /**
  * Get all NDR / Exception shipments for the authenticated user's company.
@@ -13,6 +14,7 @@ export const getNDRShipments = async (req: Request, res: Response) => {
     const whereCondition: any = {
       company_id: user.company_id,
       OR: [
+        { internal_status: 'NDR' },
         { internal_status: 'EXCEPTION' },
         { courier_status: { contains: 'NDR', mode: 'insensitive' } },
         { courier_status: { contains: 'UNDELIVERED', mode: 'insensitive' } },
@@ -37,6 +39,9 @@ export const getNDRShipments = async (req: Request, res: Response) => {
         status_history: {
           orderBy: { timestamp: 'desc' },
           take: 5
+        },
+        ndrRecords: {
+          orderBy: { event_time: 'desc' }
         }
       },
       orderBy: { updated_at: 'desc' }
@@ -45,6 +50,49 @@ export const getNDRShipments = async (req: Request, res: Response) => {
     res.json(ndrShipments);
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch NDR shipments', details: error.message });
+  }
+};
+
+/**
+ * Get NDR history for a specific shipment.
+ * GET /api/ndr/:id/history
+ */
+export const getNDRHistory = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { id } = req.params;
+    const targetId = String(id || '');
+
+    const shipment = await prisma.shipment.findFirst({
+      where: {
+        company_id: user.company_id,
+        OR: [{ id: targetId }, { awb_number: targetId }]
+      }
+    });
+
+    if (!shipment) {
+      return res.status(404).json({ error: 'Shipment not found' });
+    }
+
+    if (user.role === 'CLIENT' && user.client_id && shipment.client_id !== user.client_id) {
+      return res.status(403).json({ error: 'Forbidden: Cannot view another client\'s NDR history' });
+    }
+
+    const history = await prisma.ndrRecord.findMany({
+      where: {
+        company_id: user.company_id,
+        shipment_id: shipment.id
+      },
+      orderBy: { event_time: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      awb: shipment.awb_number,
+      history
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch NDR history', details: error.message });
   }
 };
 
@@ -64,11 +112,20 @@ export const processNDRAction = async (req: Request, res: Response) => {
     }
 
     const shipment = await prisma.shipment.findFirst({
-      where: { id, company_id: user.company_id }
+      where: {
+        company_id: user.company_id,
+        OR: [{ id }, { awb_number: id }]
+      },
+      include: { courier: true }
     });
 
     if (!shipment) {
       return res.status(404).json({ error: 'Shipment not found' });
+    }
+
+    // Role-based tenant isolation check
+    if (user.role === 'CLIENT' && user.client_id && shipment.client_id !== user.client_id) {
+      return res.status(403).json({ error: 'Forbidden: Cannot action another client\'s NDR record' });
     }
 
     let updateData: any = {
@@ -107,7 +164,42 @@ export const processNDRAction = async (req: Request, res: Response) => {
       data: updateData
     });
 
-    // Record in history
+    // Record in NdrRecord for history
+    const ndrRecord = await prisma.ndrRecord.create({
+      data: {
+        company_id: user.company_id,
+        shipment_id: shipment.id,
+        courier_id: shipment.courier_id || 'DELHIVERY',
+        awb: shipment.awb_number,
+        ndr_code: 'NDR_ACTION',
+        ndr_reason: historyRemarks,
+        ndr_status: 'ACTION_REQUESTED',
+        attempt_number: shipment.delivery_attempt || 1,
+        selected_action: action,
+        action_status: 'SUBMITTED',
+        event_time: new Date()
+      }
+    }).catch(() => null);
+
+    // Trigger DelhiveryNdrService integration if applicable
+    if (shipment.courier?.courier_name?.toUpperCase().includes('DELHIVERY') && ndrRecord) {
+      let delhiveryAction: 'REATTEMPT' | 'UPDATE_ADDRESS' | 'UPDATE_PHONE' | 'RTO' = 'REATTEMPT';
+      if (action === 'RTO') delhiveryAction = 'RTO';
+      else if (action === 'UPDATE_ADDRESS') delhiveryAction = 'UPDATE_ADDRESS';
+      else if (action === 'UPDATE_PHONE') delhiveryAction = 'UPDATE_PHONE';
+
+      await DelhiveryNdrService.submitNdrAction({
+        companyId: user.company_id,
+        ndrRecordId: ndrRecord.id,
+        action: delhiveryAction,
+        remarks,
+        consigneePhone: new_phone,
+        consigneeAddress: new_address,
+        scheduledDate: preferred_date
+      }).catch(err => console.error('Delhivery NDR action error:', err.message));
+    }
+
+    // Record in status history
     await prisma.shipmentStatusHistory.create({
       data: {
         shipment_id: shipment.id,
@@ -120,6 +212,9 @@ export const processNDRAction = async (req: Request, res: Response) => {
 
     // Trigger WhatsApp & Email Notification
     triggerAutoNotification({
+      company_id: user.company_id,
+      client_id: shipment.client_id || undefined,
+      shipment_id: shipment.id,
       awb_number: updated.awb_number,
       receiver_name: updated.receiver_name || undefined,
       receiver_phone: updated.receiver_phone || undefined,
@@ -148,3 +243,4 @@ export const processNDRAction = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to process NDR action', details: error.message });
   }
 };
+

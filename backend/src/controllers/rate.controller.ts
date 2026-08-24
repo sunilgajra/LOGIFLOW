@@ -5,10 +5,39 @@ import { AuthenticatedRequest } from '../auth.middleware';
 // CRUD for RateCards
 export const getRateCards = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const where: any = { company_id: req.user?.company_id };
+    if (req.user?.role === 'CLIENT') {
+      where.type = 'CLIENT';
+      if (req.user.client_id) {
+        where.client_id = req.user.client_id;
+      }
+    }
+
     const rateCards = await prisma.rateCard.findMany({
-      where: { company_id: req.user?.company_id },
+      where,
       include: { client: true, courier: true }
     });
+
+    if (req.user?.role === 'CLIENT') {
+      const sanitized = rateCards.map((rc: any) => ({
+        id: rc.id,
+        name: rc.name,
+        type: rc.type,
+        min_weight_kg: rc.min_weight_kg,
+        docket_charge: rc.docket_charge,
+        min_booking_amount: rc.min_booking_amount,
+        volumetric_divisor: rc.volumetric_divisor,
+        fov_percentage: rc.fov_percentage,
+        fov_minimum: rc.fov_minimum,
+        fsc_percentage: rc.fsc_percentage,
+        idc_percentage: rc.idc_percentage,
+        oda_charge: rc.oda_charge,
+        green_tax_rate: rc.green_tax_rate,
+        rates_matrix: rc.rates_matrix
+      }));
+      return res.json(sanitized);
+    }
+
     res.json(rateCards);
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch rate cards', details: error.message });
@@ -373,6 +402,16 @@ export const calculateRateEstimate = async (req: AuthenticatedRequest, res: Resp
     const courierCost = courierCostData?.courier_total_cost || 0;
     const estimatedProfit = clientCharge > 0 && courierCost > 0 ? clientCharge - courierCost : 0;
     const profitMarginPercentage = clientCharge > 0 ? (estimatedProfit / clientCharge) * 100 : 0;
+
+    if (req.user?.role === 'CLIENT') {
+      return res.json({
+        actual_weight,
+        volumetric_weight: Math.round(volumetric_weight * 100) / 100,
+        chargeable_weight: Math.round(chargeable_weight * 100) / 100,
+        client_charge: Math.round(clientCharge * 100) / 100,
+        client_breakdown: clientCostData
+      });
+    }
 
     res.json({
       actual_weight,

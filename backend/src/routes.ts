@@ -6,7 +6,7 @@ import { prisma } from './prisma';
 
 import { getClients, createClient, updateClient, deleteClient, getClientById, uploadClientAgreement, createClientLogin } from './controllers/client.controller';
 import { getCouriers, createCourier, updateCourier, deleteCourier, testCourierConnection, getWaybillInventorySummary, fetchWaybillsBulk } from './controllers/courier.controller';
-import { getShipments, bookShipment, updateShipment } from './controllers/shipment.controller';
+import { getShipments, getShipmentById, bookShipment, updateShipment } from './controllers/shipment.controller';
 import { getAnalytics, getMonthlyReport } from './controllers/analytics.controller';
 import { getUsers, createUser, updateUser, deleteUser } from './controllers/user.controller';
 import { getPublicTracking, syncShipmentTracking, syncAllActiveShipments } from './controllers/tracking.controller';
@@ -16,13 +16,14 @@ import { getCompanySettings, updateCompanySettings } from './controllers/setting
 import { getRateCards, createRateCard, updateRateCard, deleteRateCard, getZoneMappings, saveZoneMapping, calculateRateEstimate } from './controllers/rate.controller';
 import { login, forgotPassword, verifyResetToken, resetPassword } from './controllers/auth.controller';
 import { handleCourierWebhook } from './controllers/webhook.controller';
-import { getNDRShipments, processNDRAction } from './controllers/ndr.controller';
+import { getNDRShipments, getNDRHistory, processNDRAction } from './controllers/ndr.controller';
 import { deliverShipment } from './controllers/delivery.controller';
 import { getWarehouses, createWarehouse, updateWarehouse } from './controllers/warehouse.controller';
 import { getPickupRequests, createPickupRequest, updatePickupRequestStatus } from './controllers/pickup.controller';
 import { getSupportTickets, createSupportTicket, updateTicketStatus } from './controllers/support.controller';
 import { calculateRateQuotes } from './controllers/calculator.controller';
 import { processCourierBillReconciliation, getCourierBills } from './controllers/reconciliation.controller';
+import { getPreferences, updatePreferences, sendTestWhatsApp, sendTestEmail } from './controllers/notification.controller';
 
 const upload = multer({ dest: 'uploads/' });
 const router = Router();
@@ -47,12 +48,15 @@ router.post('/auth/dev-login', async (req, res) => {
   res.json({ token, user });
 });
 
+import { submitContactEnquiry } from './controllers/contact.controller';
+
 // --- Public APIs ---
 router.post('/auth/login', login);
 router.post('/auth/forgot-password', forgotPassword);
 router.get('/auth/verify-reset-token/:token', verifyResetToken);
 router.post('/auth/reset-password', resetPassword);
 router.get('/public/track/:awb', getPublicTracking);
+router.post('/public/contact', submitContactEnquiry);
 router.post('/public/rates/calculate', calculateRateQuotes);
 router.post('/rates/calculator-quotes', requireAuth, calculateRateQuotes);
 router.post('/webhooks/courier', handleCourierWebhook);
@@ -75,6 +79,7 @@ router.get('/analytics/monthly-report', requireAuth, getMonthlyReport);
 
 // --- NDR Management API ---
 router.get('/ndr', requireAuth, getNDRShipments);
+router.get('/ndr/:id/history', requireAuth, getNDRHistory);
 router.post('/ndr/:id/action', requireAuth, processNDRAction);
 
 // --- Clients API ---
@@ -97,24 +102,25 @@ router.put('/settings/company', requireAuth, updateCompanySettings);
 
 // --- Rates API ---
 router.get('/rates', requireAuth, getRateCards);
-router.post('/rates', requireAuth, createRateCard);
+router.post('/rates', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), createRateCard);
 router.post('/rates/calculate', requireAuth, calculateRateEstimate);
-router.put('/rates/:id', requireAuth, updateRateCard);
-router.delete('/rates/:id', requireAuth, deleteRateCard);
+router.put('/rates/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), updateRateCard);
+router.delete('/rates/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), deleteRateCard);
 router.get('/zones', requireAuth, getZoneMappings);
-router.post('/zones', requireAuth, saveZoneMapping);
+router.post('/zones', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), saveZoneMapping);
 
 // --- Couriers API ---
 router.get('/couriers', requireAuth, getCouriers);
-router.post('/couriers', requireAuth, createCourier);
-router.post('/couriers/test-connection', requireAuth, testCourierConnection);
-router.get('/couriers/:id/waybills/summary', requireAuth, getWaybillInventorySummary);
+router.post('/couriers', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'OPERATIONS']), createCourier);
+router.post('/couriers/test-connection', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'OPERATIONS']), testCourierConnection);
+router.get('/couriers/:id/waybills/summary', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'OPERATIONS']), getWaybillInventorySummary);
 router.post('/couriers/:id/waybills/fetch', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'OPERATIONS']), fetchWaybillsBulk);
-router.put('/couriers/:id', requireAuth, updateCourier);
+router.put('/couriers/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'OPERATIONS']), updateCourier);
 router.delete('/couriers/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), deleteCourier);
 
 // --- Shipments API ---
 router.get('/shipments', requireAuth, getShipments);
+router.get('/shipments/:id', requireAuth, getShipmentById);
 router.post('/shipments', requireAuth, bookShipment);
 router.put('/shipments/:id', requireAuth, updateShipment);
 router.post('/shipments/:awb/deliver', requireAuth, deliverShipment);
@@ -137,6 +143,12 @@ router.put('/support/tickets/:id/status', requireAuth, updateTicketStatus);
 // --- Courier Bill Reconciliation API ---
 router.post('/reconciliation/process', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN', 'ACCOUNTS']), processCourierBillReconciliation);
 router.get('/reconciliation/bills', requireAuth, getCourierBills);
+
+// --- Client Notification Center API ---
+router.get('/notifications/preferences', requireAuth, getPreferences);
+router.post('/notifications/preferences', requireAuth, updatePreferences);
+router.post('/notifications/test-whatsapp', requireAuth, sendTestWhatsApp);
+router.post('/notifications/test-email', requireAuth, sendTestEmail);
 
 export default router;
 

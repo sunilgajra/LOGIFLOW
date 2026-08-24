@@ -25,6 +25,10 @@ import Support from './pages/Support';
 import RateCalculator from './pages/RateCalculator';
 import NotificationsConfig from './pages/NotificationsConfig';
 
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
+import CookiesPage from './pages/CookiesPage';
+
 function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
@@ -35,6 +39,9 @@ function App() {
         <Route path="/calculator" element={<RateCalculator />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/cookies" element={<CookiesPage />} />
         
         {/* Protected ERP Dashboard */}
         <Route path="/dashboard" element={<DashboardLayout />}>

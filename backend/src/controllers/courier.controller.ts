@@ -19,6 +19,18 @@ export const getCouriers = async (req: AuthenticatedRequest, res: Response) => {
         }
       }
     });
+    if (req.user?.role === 'CLIENT') {
+      const sanitized = couriers.map((c: any) => ({
+        id: c.id,
+        courier_id: c.courier_id,
+        courier_name: c.courier_name,
+        active: c.active,
+        status: c.status,
+        sla_days: c.sla_days,
+        cod_supported: c.cod_supported
+      }));
+      return res.json(sanitized);
+    }
     res.json(couriers);
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch couriers', details: error.message });

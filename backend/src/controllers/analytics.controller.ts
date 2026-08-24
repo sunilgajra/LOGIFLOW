@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../prisma';
 import { AuthenticatedRequest } from '../auth.middleware';
+import { sanitizeShipmentForClient } from './shipment.controller';
 
 export const getAnalytics = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -89,6 +90,8 @@ export const getAnalytics = async (req: AuthenticatedRequest, res: Response) => 
       slaScore: '99.1%'
     }));
 
+    const sanitizedActivity = recentActivity.map(s => sanitizeShipmentForClient(s, req.user?.role));
+
     res.json({
       totalShipments,
       inTransit,
@@ -98,7 +101,7 @@ export const getAnalytics = async (req: AuthenticatedRequest, res: Response) => 
       slaRate,
       chartData,
       courierBreakdown,
-      recentActivity
+      recentActivity: sanitizedActivity
     });
 
   } catch (error: any) {
@@ -190,6 +193,7 @@ export const getMonthlyReport = async (req: AuthenticatedRequest, res: Response)
       .slice(0, 5);
 
     const isClientRole = req.user?.role === 'CLIENT';
+    const sanitizedShipments = shipments.slice(0, 100).map(s => sanitizeShipmentForClient(s, req.user?.role));
 
     res.json({
       period: {
@@ -214,7 +218,7 @@ export const getMonthlyReport = async (req: AuthenticatedRequest, res: Response)
       },
       statusBreakdown: Object.entries(statusMap).map(([status, count]) => ({ status, count })),
       topDestinations,
-      shipments: shipments.slice(0, 100) // Return top 100 recent for table/preview
+      shipments: sanitizedShipments
     });
 
   } catch (error: any) {

@@ -86,6 +86,10 @@ export const updateTicketStatus = async (req: AuthenticatedRequest, res: Respons
       return res.status(404).json({ error: 'Support ticket record not found' });
     }
 
+    if (req.user?.role === 'CLIENT' && existing.client_id && existing.client_id !== req.user.client_id) {
+      return res.status(403).json({ error: 'Access denied: Cannot update another client\'s support ticket' });
+    }
+
     const updated = await prisma.supportTicket.update({
       where: { id: String(id) },
       data: {
