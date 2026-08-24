@@ -1,13 +1,321 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Package, Truck, ShieldCheck, Zap, Globe, Clock, MapPin, ChevronRight, 
   BarChart3, Users, CheckCircle2, ArrowRight, RefreshCw, AlertTriangle, 
   Layers, Lock, Database, FileText, HelpCircle, Mail, Phone, Building2, 
   Send, Menu, X, ChevronDown, Check, ArrowUpRight, Scale, SlidersHorizontal, 
-  Bell, CheckCircle, XCircle, ArrowRightCircle, DollarSign, Calculator, Eye
+  Bell, CheckCircle, XCircle, ArrowRightCircle, DollarSign, Calculator, Eye, Activity
 } from 'lucide-react';
 import { fetchApi } from '../api';
+
+// --- HERO LOGISTICS VISUALIZATION SUB-COMPONENT ---
+function HeroLogisticsVisualization() {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isReducedMotion, setIsReducedMotion] = useState(false);
+  const [hoveredNode, setHoveredNode] = useState<number | null>(null);
+
+  // Sequence Steps
+  const sequence = [
+    {
+      stage: 'ORDER CREATED',
+      awb: 'DELH88291034',
+      status: 'BOOKED',
+      statusBg: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+      route: 'Mumbai (BOM) → Delhi (DEL)',
+      courier: 'Pending Allocation',
+      details: 'Consignee: Vikram Mehta | Weight: 1.5 kg',
+      nodeIndex: 0
+    },
+    {
+      stage: 'SMART ALLOCATION',
+      awb: 'DELH88291034',
+      status: 'ALLOCATING',
+      statusBg: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+      route: 'Evaluating Rate & SLA Rules...',
+      courier: 'Selected: Delhivery B2C (Lowest Cost / SLA)',
+      details: 'Rule: Lowest Cost + Serviced Pincode 110001',
+      nodeIndex: 1
+    },
+    {
+      stage: 'BOOKED & WAYBILL RESERVED',
+      awb: 'DELH88291034',
+      status: 'BOOKED',
+      statusBg: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+      route: 'Mumbai → Delhi Transit Hub',
+      courier: 'Delhivery Express',
+      details: 'Waybill Allocated | PDF 4R Label Generated',
+      nodeIndex: 2
+    },
+    {
+      stage: 'IN TRANSIT',
+      awb: 'DELH88291034',
+      status: 'IN TRANSIT',
+      statusBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
+      route: 'Delhi Sorting Hub Scan',
+      courier: 'Delhivery Express',
+      details: 'Webhook Scan: Ingested at Hub 04:15 PM',
+      nodeIndex: 3
+    },
+    {
+      stage: 'NDR EXCEPTION DETECTED',
+      awb: 'DELH88291034',
+      status: 'NDR EXCEPTION',
+      statusBg: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+      route: 'Attempt Failed: Consignee Unavailable',
+      courier: 'Delhivery Express',
+      details: 'Code: NDR_EX | Auto-flagged in NDR Action Desk',
+      nodeIndex: 4
+    },
+    {
+      stage: 'NDR ACTION DESK',
+      awb: 'DELH88291034',
+      status: 'RE-ATTEMPT',
+      statusBg: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+      route: 'Action Dispatched to Courier API',
+      courier: 'Delhivery API Confirmed',
+      details: 'REATTEMPT Scheduled for Next Morning Slot',
+      nodeIndex: 4
+    },
+    {
+      stage: 'OUT FOR DELIVERY',
+      awb: 'DELH88291034',
+      status: 'OUT FOR DELIVERY',
+      statusBg: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+      route: 'Gurgaon Delivery Executive Assigned',
+      courier: 'Delhivery Express',
+      details: 'OTP Verification Sent to Recipient',
+      nodeIndex: 5
+    },
+    {
+      stage: 'DELIVERED & E-POD',
+      awb: 'DELH88291034',
+      status: 'DELIVERED',
+      statusBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      route: 'Delivered to Recipient (Vikram Mehta)',
+      courier: 'Delhivery Express',
+      details: 'E-POD Signed & Timestamp Locked',
+      nodeIndex: 6
+    },
+    {
+      stage: 'COMMERCIAL RECONCILIATION',
+      awb: 'DELH88291034',
+      status: 'RECONCILED',
+      statusBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+      route: 'Billing Reconciliation Complete',
+      courier: 'Delhivery Express',
+      details: 'Client ₹188.80 - Courier ₹118.00 = Margin ₹70.80 (37.5%)',
+      nodeIndex: 6
+    }
+  ];
+
+  // Check prefers-reduced-motion
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setIsReducedMotion(mediaQuery.matches);
+
+    const handleChange = (e: MediaQueryListEvent) => setIsReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  // Sequence Timer Loop
+  useEffect(() => {
+    if (isReducedMotion) return;
+
+    const timer = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % sequence.length);
+    }, 2400);
+
+    return () => clearInterval(timer);
+  }, [isReducedMotion, sequence.length]);
+
+  const activeSeq = sequence[currentStep];
+
+  return (
+    <div className="relative w-full max-w-xl mx-auto font-sans">
+      
+      {/* Background Command Center Container */}
+      <div className="bg-slate-900/95 backdrop-blur-2xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
+        
+        {/* Glow ambient background */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        {/* Command Center Header */}
+        <div className="flex justify-between items-center pb-4 border-b border-slate-800">
+          <div className="flex items-center space-x-2">
+            <Activity className="w-4 h-4 text-blue-400 animate-pulse" />
+            <span className="text-[11px] font-bold tracking-widest text-slate-300 uppercase">
+              LIVE SHIPMENT FLOW ENGINE
+            </span>
+          </div>
+          <span className="px-2.5 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 font-mono text-[10px] font-bold rounded-full">
+            SAMPLE DEMO DATA
+          </span>
+        </div>
+
+        {/* Network Node Graphic Visual (SVG) */}
+        <div className="relative h-28 w-full bg-slate-950/80 rounded-2xl border border-slate-850 p-4 flex items-center justify-between overflow-hidden">
+          
+          {/* Connecting SVG Path */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+            <path 
+              d="M 40,56 Q 160,20 280,56 T 520,56" 
+              fill="none" 
+              stroke="#1e293b" 
+              strokeWidth="2" 
+              strokeDasharray="4 4" 
+            />
+            <path 
+              d="M 40,56 Q 160,20 280,56 T 520,56" 
+              fill="none" 
+              stroke="#3b82f6" 
+              strokeWidth="2" 
+              strokeDasharray="8 8" 
+              className={isReducedMotion ? "" : "animate-pulse"}
+            />
+          </svg>
+
+          {/* Node Points */}
+          {[
+            { name: 'BOM', label: 'Mumbai' },
+            { name: 'AMD', label: 'Ahmedabad' },
+            { name: 'DEL', label: 'Delhi Hub' },
+            { name: 'GGN', label: 'Gurgaon' }
+          ].map((node, i) => {
+            const isActiveNode = activeSeq.nodeIndex === i;
+            return (
+              <div 
+                key={node.name} 
+                onMouseEnter={() => setHoveredNode(i)}
+                onMouseLeave={() => setHoveredNode(null)}
+                className="relative z-10 flex flex-col items-center cursor-pointer group"
+              >
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-mono text-[10px] font-bold transition-all ${
+                  isActiveNode 
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/40 ring-4 ring-blue-500/20 scale-110' 
+                    : 'bg-slate-850 text-slate-400 border border-slate-750 group-hover:border-blue-400'
+                }`}>
+                  {node.name}
+                </div>
+                <span className="text-[10px] text-slate-400 mt-1 font-semibold">{node.label}</span>
+              </div>
+            );
+          })}
+
+        </div>
+
+        {/* Hover Node Details Tooltip */}
+        {hoveredNode !== null && (
+          <div className="p-3 bg-blue-950/60 border border-blue-800/60 rounded-xl text-xs text-blue-200 font-mono">
+            Node: {[ 'Mumbai Origin Hub', 'Ahmedabad Transit Hub', 'Delhi Sorting Center', 'Gurgaon Consignee Hub' ][hoveredNode]} | Routing Engine Active
+          </div>
+        )}
+
+        {/* MAIN FLOATING SHIPMENT CARD */}
+        <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-xl">
+          
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">AWB NUMBER</span>
+                <span className="px-1.5 py-0.5 bg-slate-800 text-[9px] text-slate-400 font-mono rounded">DEMO DATA</span>
+              </div>
+              <p className="text-xl font-mono font-extrabold text-blue-400">{activeSeq.awb}</p>
+            </div>
+            <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold border ${activeSeq.statusBg}`}>
+              {activeSeq.status}
+            </span>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] text-slate-500 uppercase font-bold block">CURRENT STAGE</span>
+            <p className="text-sm font-extrabold text-white">{activeSeq.stage}</p>
+            <p className="text-xs text-slate-400">{activeSeq.route}</p>
+          </div>
+
+          {/* Courier Allocation / Details Box */}
+          <div className="p-3 bg-slate-900 rounded-xl border border-slate-850 space-y-1.5 text-xs">
+            <div className="flex justify-between text-slate-300 font-semibold">
+              <span>Carrier Allocation:</span>
+              <span className="text-emerald-400 font-bold">{activeSeq.courier}</span>
+            </div>
+            <p className="text-slate-400 text-[11px] font-mono">{activeSeq.details}</p>
+          </div>
+
+          {/* Candidate Couriers Comparison Snippet at Allocation Stage */}
+          {currentStep === 1 && (
+            <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-2 text-[11px]">
+              <span className="text-slate-400 font-bold uppercase tracking-wider block text-[10px]">
+                Illustrative Allocation Comparison
+              </span>
+              <div className="flex justify-between items-center text-slate-300">
+                <span className="font-semibold text-emerald-400">✓ Delhivery B2C</span>
+                <span className="font-mono text-emerald-400 font-bold">Lowest Cost / 2 Days (Selected)</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-500">
+                <span>Blue Dart Express</span>
+                <span className="font-mono">Higher Rate / 2 Days</span>
+              </div>
+            </div>
+          )}
+
+          {/* NDR Action Desk Snippet at NDR Stage */}
+          {(currentStep === 4 || currentStep === 5) && (
+            <div className="p-3 bg-amber-950/40 rounded-xl border border-amber-800/60 space-y-2 text-[11px]">
+              <span className="text-amber-300 font-bold uppercase tracking-wider block text-[10px]">
+                NDR Action Desk Triggered
+              </span>
+              <div className="flex items-center space-x-2 font-mono">
+                <span className="px-2 py-0.5 bg-blue-600 text-white rounded font-bold">REATTEMPT</span>
+                <span className="text-amber-200">Scheduled with Recipient</span>
+              </div>
+            </div>
+          )}
+
+          {/* Commercial Reconciliation Snippet at Final Stage */}
+          {currentStep === 8 && (
+            <div className="p-3 bg-emerald-950/40 rounded-xl border border-emerald-800/60 space-y-1.5 text-[11px]">
+              <span className="text-emerald-300 font-bold uppercase tracking-wider block text-[10px]">
+                Pure Decimal Commercial Reconciliation
+              </span>
+              <div className="flex justify-between font-mono font-bold text-emerald-400">
+                <span>Client Charge ₹188.80 - Courier Cost ₹118.00</span>
+                <span>Profit ₹70.80 (37.5%)</span>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Dynamic Micro Floating Cards */}
+        <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
+          <div className="p-2.5 bg-slate-950/90 rounded-xl border border-slate-850 flex items-center space-x-2">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+            <span className="text-slate-300 text-[11px] font-semibold truncate">Courier Allocated</span>
+          </div>
+
+          <div className="p-2.5 bg-slate-950/90 rounded-xl border border-slate-850 flex items-center space-x-2">
+            <Truck className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+            <span className="text-slate-300 text-[11px] font-semibold truncate">Tracking Webhooks</span>
+          </div>
+
+          <div className="p-2.5 bg-slate-950/90 rounded-xl border border-slate-850 flex items-center space-x-2">
+            <RefreshCw className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+            <span className="text-slate-300 text-[11px] font-semibold truncate">NDR Desk Actions</span>
+          </div>
+
+          <div className="p-2.5 bg-slate-950/90 rounded-xl border border-slate-850 flex items-center space-x-2">
+            <BarChart3 className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+            <span className="text-slate-300 text-[11px] font-semibold truncate">Margin Analytics</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -371,164 +679,148 @@ export default function LandingPage() {
       </header>
 
 
-      {/* --- HERO SECTION --- */}
-      <section id="home" className="relative pt-12 pb-24 lg:pt-20 lg:pb-28 overflow-hidden">
+      {/* --- HERO SECTION WITH 2-COLUMN GRID & LIVE ANIMATION --- */}
+      <section id="home" className="relative pt-12 pb-20 lg:pt-16 lg:pb-24 overflow-hidden">
         
         {/* Glow Elements */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center max-w-4xl mx-auto space-y-6">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             
-            {/* Delhivery Badge */}
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-md">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 mr-2.5 animate-pulse"></span>
-              <span className="text-emerald-300 font-bold text-xs sm:text-sm tracking-wide">
-                Delhivery B2C Integration — Available &amp; UAT Verified
-              </span>
-            </div>
-
-            {/* Main Headline */}
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.1]">
-              Deliver <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-cyan-300">faster.</span> <br />
-              Scale <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-cyan-300">smarter.</span>
-            </h1>
-
-            {/* Subheading */}
-            <p className="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto font-normal leading-relaxed">
-              One platform to manage shipping, courier allocation, tracking, NDR, billing and logistics operations.
-            </p>
-
-            {/* CTA Hierarchy Buttons */}
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link 
-                to="/login"
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold text-base shadow-xl shadow-blue-600/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
-              >
-                Start Managing Shipments
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Link>
-
-              <a 
-                href="#contact"
-                className="w-full sm:w-auto bg-slate-850 hover:bg-slate-800 text-slate-200 border border-slate-700 px-8 py-4 rounded-xl font-bold text-base transition-all flex items-center justify-center"
-              >
-                <Mail className="w-5 h-5 mr-2 text-blue-400" />
-                Request Sales Demo
-              </a>
-
-              <a 
-                href="#tracking-section"
-                className="w-full sm:w-auto bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-slate-200 px-6 py-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center"
-              >
-                <MapPin className="w-4 h-4 mr-2" />
-                Track a Shipment
-              </a>
-            </div>
-
-          </div>
-
-          {/* --- INTERACTIVE PUBLIC TRACKING WIDGET --- */}
-          <div id="tracking-section" className="mt-16 max-w-3xl mx-auto">
-            <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 p-6 sm:p-8 rounded-3xl shadow-2xl space-y-6">
+            {/* LEFT COLUMN: Positioning, Headline & Tracking Widget */}
+            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
               
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <MapPin className="w-5 h-5 text-blue-400" />
-                  <h3 className="text-base font-bold text-white">Track Shipment Live</h3>
-                </div>
-                <span className="text-xs text-slate-400 font-semibold">Public Tracking Portal</span>
+              {/* Delhivery Badge */}
+              <div className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-md">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 mr-2.5 animate-pulse"></span>
+                <span className="text-emerald-300 font-bold text-xs sm:text-sm tracking-wide">
+                  Delhivery B2C Integration — Available &amp; UAT Verified
+                </span>
               </div>
 
-              <form onSubmit={handleTrackSubmit} className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <input 
-                    type="text" 
-                    value={trackingAwb}
-                    onChange={(e) => setTrackingAwb(e.target.value.toUpperCase())}
-                    placeholder="Enter AWB Tracking Number (e.g. DELH88291034)" 
-                    className="w-full px-4 py-3.5 rounded-xl bg-slate-950 border border-slate-750 text-white font-mono text-sm font-semibold placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                </div>
-                <button 
-                  type="submit" 
-                  disabled={trackingLoading}
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-7 py-3.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center shadow-lg"
+              {/* Main Headline */}
+              <h1 className="text-4xl sm:text-6xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.1]">
+                Deliver <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-cyan-300">faster.</span> <br />
+                Scale <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-blue-300 to-cyan-300">smarter.</span>
+              </h1>
+
+              {/* Subheading */}
+              <p className="text-base sm:text-lg text-slate-300 max-w-2xl font-normal leading-relaxed">
+                One platform to manage courier allocation, shipment tracking, NDR operations, and commercial reconciliation.
+              </p>
+
+              {/* CTA Hierarchy Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                <a 
+                  href="#contact"
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-7 py-4 rounded-xl font-bold text-sm shadow-xl shadow-blue-600/30 hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
                 >
-                  {trackingLoading ? 'Searching...' : 'Track Shipment'}
-                  {!trackingLoading && <ChevronRight className="w-4 h-4 ml-1" />}
-                </button>
-              </form>
+                  <Mail className="w-4 h-4 mr-2" />
+                  REQUEST A DEMO
+                </a>
 
-              {/* Sample AWB Chips */}
-              <div className="flex items-center space-x-2 text-xs">
-                <span className="text-slate-500 font-medium">Try Sample AWBs:</span>
-                {sampleAwbs.map(sample => (
-                  <button 
-                    key={sample} 
-                    type="button"
-                    onClick={() => handleQuickSampleTrack(sample)}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-750 text-blue-300 font-mono font-bold rounded-lg border border-slate-700 transition-colors"
-                  >
-                    {sample}
-                  </button>
-                ))}
+                <a 
+                  href="#tracking-section"
+                  className="w-full sm:w-auto bg-slate-850 hover:bg-slate-800 text-slate-200 border border-slate-700 px-7 py-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center"
+                >
+                  <MapPin className="w-4 h-4 mr-2 text-blue-400" />
+                  TRACK A SHIPMENT
+                </a>
               </div>
 
-              {/* Error Alert */}
-              {trackingError && (
-                <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold rounded-xl flex items-center">
-                  <AlertTriangle className="w-4 h-4 mr-2 text-rose-400 flex-shrink-0" />
-                  {trackingError}
-                </div>
-              )}
-
-              {/* Tracking Result Display */}
-              {trackingResult && (
-                <div className="mt-4 p-5 bg-slate-950 rounded-2xl border border-slate-800 space-y-4">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-4 border-b border-slate-800">
-                    <div>
-                      <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Tracking Number</span>
-                      <p className="text-lg font-mono font-extrabold text-blue-400">{trackingResult.awb_number}</p>
-                      <p className="text-xs text-slate-400">Courier: <span className="font-bold text-white">{trackingResult.courier_name}</span></p>
+              {/* INTERACTIVE PUBLIC TRACKING WIDGET */}
+              <div id="tracking-section" className="pt-4 max-w-xl mx-auto lg:mx-0">
+                <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <MapPin className="w-4 h-4 text-blue-400" />
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">Public Tracking Lookup</h3>
                     </div>
-                    <div>
-                      <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-extrabold rounded-full inline-flex items-center">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-pulse"></span>
-                        {String(trackingResult.status).replace(/_/g, ' ')}
-                      </span>
-                    </div>
+                    <span className="text-[10px] text-slate-400 font-semibold">Real-Time Search</span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-xs">
-                    <div>
-                      <span className="text-slate-500 block">Recipient</span>
-                      <span className="font-bold text-slate-200">{trackingResult.receiver_name}</span>
+                  <form onSubmit={handleTrackSubmit} className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <input 
+                        type="text" 
+                        value={trackingAwb}
+                        onChange={(e) => setTrackingAwb(e.target.value.toUpperCase())}
+                        placeholder="Enter AWB (e.g. DELH88291034)" 
+                        className="w-full px-3.5 py-3 rounded-xl bg-slate-950 border border-slate-750 text-white font-mono text-xs font-semibold placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                      />
                     </div>
-                    <div>
-                      <span className="text-slate-500 block">Destination</span>
-                      <span className="font-bold text-slate-200">{trackingResult.destination_city}, {trackingResult.destination_state}</span>
-                    </div>
+                    <button 
+                      type="submit" 
+                      disabled={trackingLoading}
+                      className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl font-bold text-xs transition-all disabled:opacity-50 flex items-center justify-center shadow-md"
+                    >
+                      {trackingLoading ? 'Searching...' : 'Track'}
+                      {!trackingLoading && <ChevronRight className="w-4 h-4 ml-1" />}
+                    </button>
+                  </form>
+
+                  {/* Sample AWB Chips */}
+                  <div className="flex items-center space-x-2 text-[11px]">
+                    <span className="text-slate-500 font-medium">Sample AWBs:</span>
+                    {sampleAwbs.map(sample => (
+                      <button 
+                        key={sample} 
+                        type="button"
+                        onClick={() => handleQuickSampleTrack(sample)}
+                        className="px-2 py-0.5 bg-slate-800 hover:bg-slate-750 text-blue-300 font-mono font-bold rounded border border-slate-700 transition-colors"
+                      >
+                        {sample}
+                      </button>
+                    ))}
                   </div>
 
-                  {/* History Timeline */}
-                  {trackingResult.history && trackingResult.history.length > 0 && (
-                    <div className="pt-3 border-t border-slate-850 space-y-2">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Recent Status Events</span>
-                      <div className="space-y-2">
-                        {trackingResult.history.slice(0, 3).map((evt: any, i: number) => (
-                          <div key={i} className="flex justify-between items-center text-xs bg-slate-900 p-2.5 rounded-lg border border-slate-800">
-                            <span className="font-semibold text-slate-300">{evt.details || evt.status}</span>
-                            <span className="text-slate-500 text-[10px]">{evt.location || 'Hub'}</span>
-                          </div>
-                        ))}
+                  {/* Error Alert */}
+                  {trackingError && (
+                    <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold rounded-xl flex items-center">
+                      <AlertTriangle className="w-4 h-4 mr-2 text-rose-400 flex-shrink-0" />
+                      {trackingError}
+                    </div>
+                  )}
+
+                  {/* Tracking Result Display */}
+                  {trackingResult && (
+                    <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                      <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-slate-500 font-bold">AWB NUMBER</span>
+                          <p className="text-base font-mono font-extrabold text-blue-400">{trackingResult.awb_number}</p>
+                        </div>
+                        <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-extrabold rounded-full">
+                          {String(trackingResult.status).replace(/_/g, ' ')}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-slate-500 text-[10px] block">Recipient</span>
+                          <span className="font-bold text-slate-200">{trackingResult.receiver_name}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 text-[10px] block">Destination</span>
+                          <span className="font-bold text-slate-200">{trackingResult.destination_city}, {trackingResult.destination_state}</span>
+                        </div>
                       </div>
                     </div>
                   )}
+
                 </div>
-              )}
+              </div>
 
             </div>
+
+            {/* RIGHT COLUMN: Premium Hero Live Logistics Visualization */}
+            <div className="lg:col-span-5">
+              <HeroLogisticsVisualization />
+            </div>
+
           </div>
 
         </div>
@@ -578,7 +870,7 @@ export default function LandingPage() {
 
 
       {/* --- COMPLETE PRODUCT LIFECYCLE INTERACTIVE SECTION --- */}
-      <section id="lifecycle" className="py-24 bg-slate-950 relative">
+      <section id="lifecycle" className="py-24 bg-slate-950 relative border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
           
           <div className="text-center max-w-3xl mx-auto space-y-4">
@@ -711,7 +1003,7 @@ export default function LandingPage() {
                   <div className="space-y-2">
                     <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
                       <span className="text-slate-400">NDR Exception Code</span>
-                      <span className="text-amber-400 font-bold">NDR_EX (Consignee Refused)</span>
+                      <span className="text-amber-400 font-bold">NDR_EX (Consignee Unavailable)</span>
                     </div>
                     <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
                       <span className="text-slate-400">Action Submitted</span>
