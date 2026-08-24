@@ -4,14 +4,15 @@ import {
   Package, Truck, ShieldCheck, Zap, Globe, Clock, MapPin, ChevronRight, 
   BarChart3, Users, CheckCircle2, ArrowRight, RefreshCw, AlertTriangle, 
   Layers, Lock, Database, FileText, HelpCircle, Mail, Phone, Building2, 
-  Send, Menu, X, ChevronDown, Check, ArrowUpRight, Scale, SlidersHorizontal, Bell
+  Send, Menu, X, ChevronDown, Check, ArrowUpRight, Scale, SlidersHorizontal, 
+  Bell, CheckCircle, XCircle, ArrowRightCircle, DollarSign, Calculator, Eye
 } from 'lucide-react';
 import { fetchApi } from '../api';
 
 export default function LandingPage() {
   const navigate = useNavigate();
 
-  // Navigation Mobile Menu state
+  // Mobile Menu Drawer state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Tracking Widget State
@@ -20,10 +21,16 @@ export default function LandingPage() {
   const [trackingError, setTrackingError] = useState('');
   const [trackingResult, setTrackingResult] = useState<any | null>(null);
 
+  // Lifecycle Interactive Active Step state
+  const [activeLifecycleStep, setActiveLifecycleStep] = useState(0);
+
+  // Interactive Client Dashboard Preview Tab state
+  const [activeDashboardTab, setActiveDashboardTab] = useState<'overview' | 'ndr' | 'commercials' | 'calculator'>('overview');
+
   // FAQ Accordion state
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  // Contact / Enquiry Form State
+  // Contact / Demo Request Form State
   const [contactForm, setContactForm] = useState({
     name: '',
     company: '',
@@ -121,7 +128,7 @@ export default function LandingPage() {
       });
 
       if (res && res.success) {
-        setContactSuccess(res.message || 'Thank you! Our sales team will reach out within 24 hours.');
+        setContactSuccess(res.message || 'Thank you! Our sales & logistics team will contact you within 24 hours.');
         setContactForm({
           name: '',
           company: '',
@@ -140,7 +147,93 @@ export default function LandingPage() {
     }
   };
 
-  // FAQ Questions
+  // 6 Lifecycle Steps Data
+  const lifecycleSteps = [
+    {
+      num: "01",
+      title: "Client & Rate Card Setup",
+      subtitle: "Multi-Tenant Client Onboarding",
+      desc: "Configure client profiles, version-controlled rate cards, minimum weights, docket fees, FSC %, zone matrices, and role-based portal access.",
+      icon: Users,
+      highlight: "Enforces multi-tenant data boundary & client-side rate card redaction"
+    },
+    {
+      num: "02",
+      title: "Smart Courier Allocation",
+      subtitle: "Automated Carrier Routing",
+      desc: "Evaluates eligible courier partners based on pincode serviceability, SLA transit days, total courier cost, COD availability, and business rules.",
+      icon: SlidersHorizontal,
+      highlight: "Selects optimal courier partner before reserving waybill stock"
+    },
+    {
+      num: "03",
+      title: "Booking, AWBs & Live Tracking",
+      subtitle: "Shipment Lifecycle Execution",
+      desc: "Reserves AWB waybills, generates PDF thermal labels, schedules pickup requests, and ingests live courier status webhooks with timestamp protection.",
+      icon: Truck,
+      highlight: "Delhivery B2C Integration — Available & UAT Verified"
+    },
+    {
+      num: "04",
+      title: "NDR & Exception Desk",
+      subtitle: "Turn Exceptions into Deliveries",
+      desc: "Automatically records undelivered scans (NDR_EX), dispatches customer notifications, and submits REATTEMPT, UPDATE_ADDRESS, or RTO actions.",
+      icon: RefreshCw,
+      highlight: "Direct courier API dispatches for reattempts and address updates"
+    },
+    {
+      num: "05",
+      title: "Billing & Invoice Audit",
+      subtitle: "Courier Invoice Reconciliation",
+      desc: "Compares courier purchase bills against expected charges, identifies weight discrepancies, audit ODA/FSC surcharges, and generates client invoices.",
+      icon: FileText,
+      highlight: "Automatic variance detection on deadweight vs volumetric weight"
+    },
+    {
+      num: "06",
+      title: "Profitability & Margin Analytics",
+      subtitle: "True Logistics Cost Intelligence",
+      desc: "Calculates real-time gross profit (Client Selling Charge - Courier Purchase Cost) per shipment, client, and shipping zone without manual spreadsheets.",
+      icon: BarChart3,
+      highlight: "Pure decimal arithmetic ensuring zero floating-point calculation drift"
+    }
+  ];
+
+  // LogiFlow vs Traditional Comparison Data
+  const comparisonItems = [
+    {
+      feature: "Courier Integration Architecture",
+      traditional: "Locked to single courier portal or fragile ad-hoc scripts",
+      logiflow: "Unified multi-courier provider layer (Delhivery live UAT, extensible)"
+    },
+    {
+      feature: "Carrier Allocation Logic",
+      traditional: "Manual selection or static guesswork by dispatch staff",
+      logiflow: "Smart rule engine: cost, SLA, serviceability, COD, weight slabs"
+    },
+    {
+      feature: "NDR Exception Handling",
+      traditional: "Manual email follow-ups & delayed customer updates",
+      logiflow: "Automated NDR Action Desk with direct courier API dispatches"
+    },
+    {
+      feature: "Client Billing & Cost Visibility",
+      traditional: "Single rate assumption; hidden courier surcharge surprises",
+      logiflow: "Dual rate cards (Client Selling vs Courier Cost) & gross profit analysis"
+    },
+    {
+      feature: "Courier Invoice Reconciliation",
+      traditional: "Manual spreadsheet auditing; weight overcharges missed",
+      logiflow: "Automated bill reconciliation engine highlighting weight & cost variances"
+    },
+    {
+      feature: "Tenant Data Security",
+      traditional: "Shared portal accounts; risk of internal cost leakage",
+      logiflow: "Strict multi-tenant DB isolation & server-side commercial data redaction"
+    }
+  ];
+
+  // FAQ Items
   const faqs = [
     {
       q: "What is LogiFlow?",
@@ -203,12 +296,13 @@ export default function LandingPage() {
             </a>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center space-x-8 text-sm font-semibold">
+            <nav className="hidden lg:flex items-center space-x-7 text-sm font-semibold">
               <a href="#home" className="text-slate-300 hover:text-white transition-colors">Home</a>
+              <a href="#lifecycle" className="text-slate-300 hover:text-white transition-colors">Lifecycle</a>
+              <a href="#comparison" className="text-slate-300 hover:text-white transition-colors">Why LogiFlow</a>
               <a href="#solutions" className="text-slate-300 hover:text-white transition-colors">Solutions</a>
               <a href="#features" className="text-slate-300 hover:text-white transition-colors">Features</a>
-              <a href="#how-it-works" className="text-slate-300 hover:text-white transition-colors">How It Works</a>
-              <a href="#couriers" className="text-slate-300 hover:text-white transition-colors">Courier Network</a>
+              <a href="#couriers" className="text-slate-300 hover:text-white transition-colors">Couriers</a>
               <a href="#ndr" className="text-slate-300 hover:text-white transition-colors">NDR Desk</a>
               <a href="#commercials" className="text-slate-300 hover:text-white transition-colors">Commercials</a>
               <a href="#contact" className="text-slate-300 hover:text-white transition-colors">Contact</a>
@@ -248,9 +342,10 @@ export default function LandingPage() {
           <div className="lg:hidden bg-slate-900 border-b border-slate-800 px-4 pt-4 pb-6 space-y-4">
             <nav className="flex flex-col space-y-3 text-base font-medium">
               <a href="#home" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white py-1">Home</a>
+              <a href="#lifecycle" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white py-1">Product Lifecycle</a>
+              <a href="#comparison" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white py-1">Why LogiFlow</a>
               <a href="#solutions" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white py-1">Solutions</a>
               <a href="#features" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white py-1">Features</a>
-              <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white py-1">How It Works</a>
               <a href="#couriers" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white py-1">Courier Network</a>
               <a href="#ndr" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white py-1">NDR Action Desk</a>
               <a href="#commercials" onClick={() => setMobileMenuOpen(false)} className="text-slate-300 hover:text-white py-1">Commercial Intelligence</a>
@@ -277,19 +372,19 @@ export default function LandingPage() {
 
 
       {/* --- HERO SECTION --- */}
-      <section id="home" className="relative pt-12 pb-24 lg:pt-20 lg:pb-32 overflow-hidden">
-        {/* Subtle Background Glow Elements */}
+      <section id="home" className="relative pt-12 pb-24 lg:pt-20 lg:pb-28 overflow-hidden">
+        
+        {/* Glow Elements */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none"></div>
-        <div className="absolute top-1/3 right-10 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center max-w-4xl mx-auto space-y-6">
             
-            {/* Category Tag Badge */}
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-md">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-400 mr-2.5 animate-pulse"></span>
-              <span className="text-blue-300 font-semibold text-xs sm:text-sm tracking-wide">
-                Logistics Management & Shipping Intelligence Platform
+            {/* Delhivery Badge */}
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-md">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 mr-2.5 animate-pulse"></span>
+              <span className="text-emerald-300 font-bold text-xs sm:text-sm tracking-wide">
+                Delhivery B2C Integration — Available &amp; UAT Verified
               </span>
             </div>
 
@@ -301,10 +396,10 @@ export default function LandingPage() {
 
             {/* Subheading */}
             <p className="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto font-normal leading-relaxed">
-              Manage shipments, courier allocation, tracking, NDR, billing and logistics operations from one powerful platform.
+              One platform to manage shipping, courier allocation, tracking, NDR, billing and logistics operations.
             </p>
 
-            {/* CTA Buttons */}
+            {/* CTA Hierarchy Buttons */}
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link 
                 to="/login"
@@ -313,11 +408,20 @@ export default function LandingPage() {
                 Start Managing Shipments
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
+
               <a 
-                href="#tracking-section"
+                href="#contact"
                 className="w-full sm:w-auto bg-slate-850 hover:bg-slate-800 text-slate-200 border border-slate-700 px-8 py-4 rounded-xl font-bold text-base transition-all flex items-center justify-center"
               >
-                <MapPin className="w-5 h-5 mr-2 text-blue-400" />
+                <Mail className="w-5 h-5 mr-2 text-blue-400" />
+                Request Sales Demo
+              </a>
+
+              <a 
+                href="#tracking-section"
+                className="w-full sm:w-auto bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-slate-200 px-6 py-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center"
+              >
+                <MapPin className="w-4 h-4 mr-2" />
                 Track a Shipment
               </a>
             </div>
@@ -333,7 +437,7 @@ export default function LandingPage() {
                   <MapPin className="w-5 h-5 text-blue-400" />
                   <h3 className="text-base font-bold text-white">Track Shipment Live</h3>
                 </div>
-                <span className="text-xs text-slate-400">Public Tracking Portal</span>
+                <span className="text-xs text-slate-400 font-semibold">Public Tracking Portal</span>
               </div>
 
               <form onSubmit={handleTrackSubmit} className="flex flex-col sm:flex-row gap-3">
@@ -349,7 +453,7 @@ export default function LandingPage() {
                 <button 
                   type="submit" 
                   disabled={trackingLoading}
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-7 py-3.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center"
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-7 py-3.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center shadow-lg"
                 >
                   {trackingLoading ? 'Searching...' : 'Track Shipment'}
                   {!trackingLoading && <ChevronRight className="w-4 h-4 ml-1" />}
@@ -371,7 +475,7 @@ export default function LandingPage() {
                 ))}
               </div>
 
-              {/* Error Message */}
+              {/* Error Alert */}
               {trackingError && (
                 <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold rounded-xl flex items-center">
                   <AlertTriangle className="w-4 h-4 mr-2 text-rose-400 flex-shrink-0" />
@@ -379,7 +483,7 @@ export default function LandingPage() {
                 </div>
               )}
 
-              {/* Tracking Result Box */}
+              {/* Tracking Result Display */}
               {trackingResult && (
                 <div className="mt-4 p-5 bg-slate-950 rounded-2xl border border-slate-800 space-y-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-4 border-b border-slate-800">
@@ -431,41 +535,41 @@ export default function LandingPage() {
       </section>
 
 
-      {/* --- VERIFIED CAPABILITY METRICS BANNER --- */}
-      <section className="bg-slate-900 py-12 border-y border-slate-800">
+      {/* --- VERIFIED CAPABILITY BANNER --- */}
+      <section className="bg-slate-900 py-10 border-y border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             
-            <div className="p-4 space-y-1">
-              <div className="flex items-center justify-center text-blue-400 mb-2">
-                <Layers className="w-6 h-6" />
+            <div className="p-3 space-y-1">
+              <div className="flex items-center justify-center text-blue-400 mb-1">
+                <Layers className="w-5 h-5" />
               </div>
-              <p className="text-lg font-extrabold text-white">Multi-Courier</p>
+              <p className="text-base font-extrabold text-white">Multi-Courier</p>
               <p className="text-xs text-slate-400 font-medium">Allocation Engine</p>
             </div>
 
-            <div className="p-4 space-y-1 border-l border-slate-800">
-              <div className="flex items-center justify-center text-emerald-400 mb-2">
-                <Truck className="w-6 h-6" />
+            <div className="p-3 space-y-1 border-l border-slate-800">
+              <div className="flex items-center justify-center text-emerald-400 mb-1">
+                <Truck className="w-5 h-5" />
               </div>
-              <p className="text-lg font-extrabold text-white">Real-Time</p>
+              <p className="text-base font-extrabold text-white">Real-Time</p>
               <p className="text-xs text-slate-400 font-medium">Milestone Tracking</p>
             </div>
 
-            <div className="p-4 space-y-1 border-l border-slate-800">
-              <div className="flex items-center justify-center text-amber-400 mb-2">
-                <RefreshCw className="w-6 h-6" />
+            <div className="p-3 space-y-1 border-l border-slate-800">
+              <div className="flex items-center justify-center text-amber-400 mb-1">
+                <RefreshCw className="w-5 h-5" />
               </div>
-              <p className="text-lg font-extrabold text-white">Automated NDR</p>
+              <p className="text-base font-extrabold text-white">Automated NDR</p>
               <p className="text-xs text-slate-400 font-medium">Action Desk</p>
             </div>
 
-            <div className="p-4 space-y-1 border-l border-slate-800">
-              <div className="flex items-center justify-center text-purple-400 mb-2">
-                <BarChart3 className="w-6 h-6" />
+            <div className="p-3 space-y-1 border-l border-slate-800">
+              <div className="flex items-center justify-center text-purple-400 mb-1">
+                <BarChart3 className="w-5 h-5" />
               </div>
-              <p className="text-lg font-extrabold text-white">Commercial</p>
-              <p className="text-xs text-slate-400 font-medium">Billing & Reconciliation</p>
+              <p className="text-base font-extrabold text-white">Commercial</p>
+              <p className="text-xs text-slate-400 font-medium">Billing &amp; Reconciliation</p>
             </div>
 
           </div>
@@ -473,8 +577,244 @@ export default function LandingPage() {
       </section>
 
 
+      {/* --- COMPLETE PRODUCT LIFECYCLE INTERACTIVE SECTION --- */}
+      <section id="lifecycle" className="py-24 bg-slate-950 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+          
+          <div className="text-center max-w-3xl mx-auto space-y-4">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider">
+              The LogiFlow Core Architecture
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+              End-to-End Shipping &amp; Intelligence Lifecycle
+            </h2>
+            <p className="text-slate-400 text-base leading-relaxed">
+              Explore how LogiFlow manages every stage of logistics operations—from initial client rate cards to final commercial profitability.
+            </p>
+          </div>
+
+          {/* Stepper Navigation Buttons */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {lifecycleSteps.map((step, idx) => {
+              const IconComp = step.icon;
+              const isActive = activeLifecycleStep === idx;
+              return (
+                <button
+                  key={step.num}
+                  onClick={() => setActiveLifecycleStep(idx)}
+                  className={`p-4 rounded-2xl text-left transition-all border flex flex-col justify-between ${
+                    isActive 
+                      ? 'bg-blue-600 text-white border-blue-400 shadow-xl shadow-blue-600/30 scale-105 z-10' 
+                      : 'bg-slate-900 hover:bg-slate-850 text-slate-300 border-slate-800'
+                  }`}
+                >
+                  <div className="flex justify-between items-center mb-3">
+                    <span className={`text-xs font-mono font-bold ${isActive ? 'text-blue-100' : 'text-blue-400'}`}>{step.num}</span>
+                    <IconComp className="w-4 h-4" />
+                  </div>
+                  <span className="text-xs font-bold leading-tight block">{step.title}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active Lifecycle Step Detail Showcase Card */}
+          <div className="bg-slate-900 rounded-3xl border border-slate-800 p-8 sm:p-10 shadow-2xl relative overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+              
+              <div className="space-y-6">
+                <div className="flex items-center space-x-3">
+                  <span className="text-3xl font-mono font-extrabold text-blue-400">
+                    {lifecycleSteps[activeLifecycleStep].num}
+                  </span>
+                  <div>
+                    <span className="text-xs text-blue-300 font-bold uppercase tracking-wider block">
+                      {lifecycleSteps[activeLifecycleStep].subtitle}
+                    </span>
+                    <h3 className="text-2xl sm:text-3xl font-extrabold text-white">
+                      {lifecycleSteps[activeLifecycleStep].title}
+                    </h3>
+                  </div>
+                </div>
+
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  {lifecycleSteps[activeLifecycleStep].desc}
+                </p>
+
+                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-start space-x-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <span className="text-xs font-semibold text-emerald-300">
+                    {lifecycleSteps[activeLifecycleStep].highlight}
+                  </span>
+                </div>
+              </div>
+
+              {/* Lifecycle Stage Visual Representation */}
+              <div className="bg-slate-950 p-6 rounded-2xl border border-slate-850 space-y-4 font-mono text-xs">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-850 text-slate-400 font-bold">
+                  <span>SYSTEM SCENARIO STAGE</span>
+                  <span className="text-blue-400">STAGE {lifecycleSteps[activeLifecycleStep].num} OF 06</span>
+                </div>
+
+                {activeLifecycleStep === 0 && (
+                  <div className="space-y-2">
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Tenant Scoping</span>
+                      <span className="text-emerald-400 font-bold">company_id Scoped</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Rate Card Matrix</span>
+                      <span className="text-blue-300">Base ₹150 + 10% FSC</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Client Access Role</span>
+                      <span className="text-purple-300">RBAC (Redacted Internal Costs)</span>
+                    </div>
+                  </div>
+                )}
+
+                {activeLifecycleStep === 1 && (
+                  <div className="space-y-2">
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Pincode Serviceability</span>
+                      <span className="text-emerald-400 font-bold">110001 (Serviced)</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Delhivery B2C SLA</span>
+                      <span className="text-blue-300">2 Transit Days</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Allocation Decision</span>
+                      <span className="text-emerald-300 font-bold">Delhivery Selected (Least Cost)</span>
+                    </div>
+                  </div>
+                )}
+
+                {activeLifecycleStep === 2 && (
+                  <div className="space-y-2">
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Reserved Waybill AWB</span>
+                      <span className="text-blue-400 font-bold">DELH88291034</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Label Format</span>
+                      <span className="text-slate-200">PDF 4R Shipping Label</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Webhook Status</span>
+                      <span className="text-emerald-400 font-bold">IN_TRANSIT (Hub Scan)</span>
+                    </div>
+                  </div>
+                )}
+
+                {activeLifecycleStep === 3 && (
+                  <div className="space-y-2">
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">NDR Exception Code</span>
+                      <span className="text-amber-400 font-bold">NDR_EX (Consignee Refused)</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Action Submitted</span>
+                      <span className="text-blue-300">REATTEMPT Requested</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Courier Dispatch</span>
+                      <span className="text-emerald-400 font-bold">CONFIRMED (Delhivery API)</span>
+                    </div>
+                  </div>
+                )}
+
+                {activeLifecycleStep === 4 && (
+                  <div className="space-y-2">
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Expected Courier Charge</span>
+                      <span className="text-slate-200">₹118.00</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Uploaded Vendor Bill</span>
+                      <span className="text-rose-400 font-bold">₹138.00 (Overcharge)</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Reconciliation Result</span>
+                      <span className="text-amber-300 font-bold">+₹20.00 Weight Discrepancy</span>
+                    </div>
+                  </div>
+                )}
+
+                {activeLifecycleStep === 5 && (
+                  <div className="space-y-2">
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Client Total Revenue</span>
+                      <span className="text-blue-400 font-bold">₹188.80</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl flex justify-between">
+                      <span className="text-slate-400">Actual Courier Cost</span>
+                      <span className="text-amber-400 font-bold">₹118.00</span>
+                    </div>
+                    <div className="p-3 bg-emerald-950 border border-emerald-800/60 rounded-xl flex justify-between font-bold text-emerald-400">
+                      <span>Net Profit Margin</span>
+                      <span>₹70.80 (37.5%)</span>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+
+      {/* --- LOGIFLOW VS TRADITIONAL PORTALS COMPARISON SECTION --- */}
+      <section id="comparison" className="py-24 bg-slate-900 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+          
+          <div className="text-center max-w-3xl mx-auto space-y-4">
+            <h2 className="text-blue-400 font-bold text-xs uppercase tracking-widest">Platform Differentiation</h2>
+            <h3 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Why LogiFlow vs Traditional Single-Courier Portals
+            </h3>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Traditional courier portals lock you into single-carrier silos. LogiFlow provides unified multi-courier intelligence, automated NDR dispatches, and true cost reconciliation.
+            </p>
+          </div>
+
+          {/* Comparison Matrix Table */}
+          <div className="overflow-x-auto rounded-3xl border border-slate-800 shadow-2xl bg-slate-950">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-slate-900 text-slate-300 font-bold uppercase text-[11px] border-b border-slate-800">
+                <tr>
+                  <th className="p-5 w-1/3">Feature / Capability</th>
+                  <th className="p-5 w-1/3 text-slate-400">Traditional Single-Courier Portal</th>
+                  <th className="p-5 w-1/3 text-blue-400 bg-blue-950/20 border-l border-slate-800">LogiFlow Logistics Engine</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-850 font-medium">
+                {comparisonItems.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-slate-900/50 transition-colors">
+                    <td className="p-5 font-bold text-white">{item.feature}</td>
+                    <td className="p-5 text-slate-400 flex items-start space-x-2">
+                      <XCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                      <span>{item.traditional}</span>
+                    </td>
+                    <td className="p-5 text-slate-200 bg-blue-950/10 border-l border-slate-800 flex items-start space-x-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                      <span className="font-semibold text-white">{item.logiflow}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+
+
       {/* --- SOLUTIONS SECTION --- */}
-      <section id="solutions" className="py-24 bg-slate-950 relative">
+      <section id="solutions" className="py-24 bg-slate-950 relative border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
@@ -482,75 +822,69 @@ export default function LandingPage() {
             <h3 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
               Solutions for modern logistics operations
             </h3>
-            <p className="text-slate-400 text-base leading-relaxed">
+            <p className="text-slate-400 text-sm leading-relaxed">
               Designed for merchants, D2C brands, and logistics providers managing multi-courier dispatches.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             
-            {/* Card 1 */}
             <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 hover:border-blue-500/40 transition-all hover:-translate-y-1 space-y-4">
               <div className="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center border border-blue-500/20">
                 <Package className="w-6 h-6" />
               </div>
               <h4 className="text-xl font-bold text-white">1. E-Commerce Shipping</h4>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
                 Create and manage customer shipments across courier partners with standardized AWBs, labels, and pickup scheduling.
               </p>
             </div>
 
-            {/* Card 2 */}
             <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 hover:border-blue-500/40 transition-all hover:-translate-y-1 space-y-4">
               <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/20">
                 <Layers className="w-6 h-6" />
               </div>
               <h4 className="text-xl font-bold text-white">2. Multi-Courier Management</h4>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
                 Connect and manage multiple courier partners from one unified platform without fragmented dashboard logins.
               </p>
             </div>
 
-            {/* Card 3 */}
             <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 hover:border-blue-500/40 transition-all hover:-translate-y-1 space-y-4">
               <div className="w-12 h-12 bg-cyan-500/10 text-cyan-400 rounded-2xl flex items-center justify-center border border-cyan-500/20">
                 <Truck className="w-6 h-6" />
               </div>
               <h4 className="text-xl font-bold text-white">3. Last-Mile Delivery</h4>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
                 Monitor shipments from initial dispatch through out-for-delivery scans and electronic proof of delivery (E-POD).
               </p>
             </div>
 
-            {/* Card 4 */}
             <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 hover:border-blue-500/40 transition-all hover:-translate-y-1 space-y-4">
               <div className="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-2xl flex items-center justify-center border border-amber-500/20">
                 <RefreshCw className="w-6 h-6" />
               </div>
               <h4 className="text-xl font-bold text-white">4. NDR Management</h4>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
                 Manage failed delivery attempts, reattempts, address/phone corrections, and authorization of RTOs cleanly.
               </p>
             </div>
 
-            {/* Card 5 */}
             <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 hover:border-blue-500/40 transition-all hover:-translate-y-1 space-y-4">
               <div className="w-12 h-12 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center border border-purple-500/20">
                 <Clock className="w-6 h-6" />
               </div>
               <h4 className="text-xl font-bold text-white">5. Shipment Tracking</h4>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
                 Track shipment status history in real time via standardized status codes and automated event normalization.
               </p>
             </div>
 
-            {/* Card 6 */}
             <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 hover:border-blue-500/40 transition-all hover:-translate-y-1 space-y-4">
               <div className="w-12 h-12 bg-rose-500/10 text-rose-400 rounded-2xl flex items-center justify-center border border-rose-500/20">
                 <BarChart3 className="w-6 h-6" />
               </div>
-              <h4 className="text-xl font-bold text-white">6. Billing & Reconciliation</h4>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <h4 className="text-xl font-bold text-white">6. Billing &amp; Reconciliation</h4>
+              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
                 Compare client selling charges against courier purchase costs to identify invoice overcharges and weight variances.
               </p>
             </div>
@@ -600,7 +934,7 @@ export default function LandingPage() {
 
             <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
               <RefreshCw className="w-6 h-6 text-amber-400" />
-              <h4 className="text-lg font-bold text-white">NDR & RTO Action Desk</h4>
+              <h4 className="text-lg font-bold text-white">NDR &amp; RTO Action Desk</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Actionable workflow for reattempts, phone corrections, address updates, and formal RTO authorization.
               </p>
@@ -628,67 +962,12 @@ export default function LandingPage() {
       </section>
 
 
-      {/* --- HOW IT WORKS SECTION --- */}
-      <section id="how-it-works" className="py-24 bg-slate-950 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <h2 className="text-blue-500 font-bold text-xs uppercase tracking-widest">Workflow</h2>
-            <h3 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              4 simple steps to optimized dispatches
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            
-            {/* Step 1 */}
-            <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 relative space-y-4">
-              <span className="text-4xl font-black text-blue-500/30">01</span>
-              <h4 className="text-xl font-bold text-white">Create Shipment</h4>
-              <p className="text-slate-400 text-xs leading-relaxed">
-                Enter shipment weight, dimensions, pickup location, and consignee details via manual form or bulk import engine.
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 relative space-y-4">
-              <span className="text-4xl font-black text-blue-500/30">02</span>
-              <h4 className="text-xl font-bold text-white">Smart Courier Allocation</h4>
-              <p className="text-slate-400 text-xs leading-relaxed">
-                LogiFlow evaluates eligible courier partners based on serviceability, SLA days, total cost, and business rules.
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 relative space-y-4">
-              <span className="text-4xl font-black text-blue-500/30">03</span>
-              <h4 className="text-xl font-bold text-white">Track & Manage</h4>
-              <p className="text-slate-400 text-xs leading-relaxed">
-                Monitor live tracking events, receive automated notifications, and handle delivery exceptions in the NDR desk.
-              </p>
-            </div>
-
-            {/* Step 4 */}
-            <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 relative space-y-4">
-              <span className="text-4xl font-black text-blue-500/30">04</span>
-              <h4 className="text-xl font-bold text-white">Reconcile & Analyze</h4>
-              <p className="text-slate-400 text-xs leading-relaxed">
-                Compare courier invoices against calculated costs, audit weight variances, and analyze net profit margins.
-              </p>
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-
       {/* --- COURIER NETWORK SECTION --- */}
-      <section id="couriers" className="py-24 bg-slate-900 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="couriers" className="py-24 bg-slate-950 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
           
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <h2 className="text-blue-400 font-bold text-xs uppercase tracking-widest">Integrations</h2>
+          <div className="text-center max-w-3xl mx-auto space-y-4">
+            <h2 className="text-blue-500 font-bold text-xs uppercase tracking-widest">Integrations</h2>
             <h3 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
               Connect the courier partners that power your business
             </h3>
@@ -699,7 +978,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
-            <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 space-y-4 text-center">
+            <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 space-y-4 text-center">
               <div className="w-12 h-12 bg-blue-500/10 text-blue-400 rounded-2xl flex items-center justify-center mx-auto border border-blue-500/20">
                 <Truck className="w-6 h-6" />
               </div>
@@ -712,7 +991,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 space-y-4 text-center">
+            <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 space-y-4 text-center">
               <div className="w-12 h-12 bg-slate-800 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
                 <Truck className="w-6 h-6" />
               </div>
@@ -725,7 +1004,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 space-y-4 text-center">
+            <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 space-y-4 text-center">
               <div className="w-12 h-12 bg-slate-800 text-slate-400 rounded-2xl flex items-center justify-center mx-auto">
                 <Layers className="w-6 h-6" />
               </div>
@@ -741,7 +1020,7 @@ export default function LandingPage() {
           </div>
 
           {/* Integration Diagram Visual */}
-          <div className="mt-16 bg-slate-950 p-8 rounded-3xl border border-slate-800 max-w-4xl mx-auto text-center space-y-6">
+          <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 max-w-4xl mx-auto text-center space-y-6">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Unified Integration Layer Architecture</span>
             <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-xs font-mono font-bold">
               <div className="p-3 bg-blue-600/20 text-blue-300 border border-blue-500/40 rounded-xl">LogiFlow Core Engine</div>
@@ -760,7 +1039,7 @@ export default function LandingPage() {
 
 
       {/* --- NDR / EXCEPTION MANAGEMENT SECTION --- */}
-      <section id="ndr" className="py-24 bg-slate-950 border-t border-slate-800">
+      <section id="ndr" className="py-24 bg-slate-900 border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -793,22 +1072,22 @@ export default function LandingPage() {
             </div>
 
             {/* Pipeline Visual Card */}
-            <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 space-y-4">
+            <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 space-y-4">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">NDR Resolution Pipeline</span>
               <div className="space-y-3 text-xs font-semibold">
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-amber-300">
+                <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-amber-300">
                   <span>1. NDR Scan Detected</span>
                   <span className="font-mono text-[10px] bg-amber-500/20 px-2 py-0.5 rounded">Undelivered</span>
                 </div>
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-blue-300">
+                <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-blue-300">
                   <span>2. Action Desk Processing</span>
                   <span className="font-mono text-[10px] bg-blue-500/20 px-2 py-0.5 rounded">Action Required</span>
                 </div>
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-purple-300">
+                <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-purple-300">
                   <span>3. Courier API Dispatch</span>
                   <span className="font-mono text-[10px] bg-purple-500/20 px-2 py-0.5 rounded">REATTEMPT</span>
                 </div>
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between text-emerald-300">
+                <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-emerald-300">
                   <span>4. Final Status Reconciliation</span>
                   <span className="font-mono text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded">DELIVERED</span>
                 </div>
@@ -822,7 +1101,7 @@ export default function LandingPage() {
 
 
       {/* --- COMMERCIAL INTELLIGENCE SECTION --- */}
-      <section id="commercials" className="py-24 bg-slate-900 border-t border-slate-800">
+      <section id="commercials" className="py-24 bg-slate-950 border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
@@ -838,11 +1117,11 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             
             {/* Rates Comparison Card */}
-            <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 space-y-6">
+            <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 space-y-6">
               <h4 className="text-xl font-bold text-white">Client Charge vs Courier Purchase Cost</h4>
               
               <div className="space-y-4 text-xs font-mono">
-                <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
                   <span className="text-slate-400 font-bold block">CLIENT SELLING CHARGE (Example)</span>
                   <div className="flex justify-between text-slate-200">
                     <span>Base Freight (1.5 kg Zone B)</span>
@@ -858,7 +1137,7 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
                   <span className="text-slate-400 font-bold block">COURIER PURCHASE COST (Example)</span>
                   <div className="flex justify-between text-slate-200">
                     <span>Forward Courier Cost</span>
@@ -885,7 +1164,7 @@ export default function LandingPage() {
             <div className="space-y-6 flex flex-col justify-center">
               
               <div className="space-y-2">
-                <h4 className="text-lg font-bold text-white">Rate-Card Versioning & Chargeable Weight</h4>
+                <h4 className="text-lg font-bold text-white">Rate-Card Versioning &amp; Chargeable Weight</h4>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   Automatically calculates chargeable weight as the maximum of actual weight and volumetric weight (<code className="text-blue-300 font-mono">L x W x H / divisor</code>).
                 </p>
@@ -914,7 +1193,7 @@ export default function LandingPage() {
 
 
       {/* --- PLATFORM SECURITY SECTION --- */}
-      <section className="py-24 bg-slate-950 border-t border-slate-800">
+      <section className="py-24 bg-slate-900 border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
@@ -926,7 +1205,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             
-            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-3">
+            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
               <Database className="w-6 h-6 text-blue-400" />
               <h4 className="text-lg font-bold text-white">Multi-Tenant Isolation</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -934,7 +1213,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-3">
+            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
               <Users className="w-6 h-6 text-emerald-400" />
               <h4 className="text-lg font-bold text-white">Role-Based Access Control</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -942,7 +1221,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-3">
+            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
               <Lock className="w-6 h-6 text-purple-400" />
               <h4 className="text-lg font-bold text-white">API Key Encrypted Storage</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -950,7 +1229,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-3">
+            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
               <ShieldCheck className="w-6 h-6 text-cyan-400" />
               <h4 className="text-lg font-bold text-white">Commercial Data Redaction</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -958,7 +1237,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-3">
+            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
               <FileText className="w-6 h-6 text-amber-400" />
               <h4 className="text-lg font-bold text-white">Audit Logging</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -966,7 +1245,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-3">
+            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
               <RefreshCw className="w-6 h-6 text-rose-400" />
               <h4 className="text-lg font-bold text-white">Idempotent Event Handling</h4>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -980,97 +1259,208 @@ export default function LandingPage() {
       </section>
 
 
-      {/* --- CLIENT PORTAL PREVIEW SECTION --- */}
-      <section className="py-24 bg-slate-900 border-t border-slate-800">
+      {/* --- CLIENT PORTAL INTERACTIVE PREVIEW SECTION --- */}
+      <section className="py-24 bg-slate-950 border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
           <div className="text-center max-w-3xl mx-auto space-y-4">
             <h2 className="text-blue-400 font-bold text-xs uppercase tracking-widest">Portal Preview</h2>
             <h3 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Powerful dashboard experience for client teams
+              Interactive Client Dashboard Experience
             </h3>
             <p className="text-slate-400 text-sm">
-              An intuitive interface designed for dispatch oversight, tracking, rate calculation, and invoice management.
+              Explore the clean, functional UI available to merchant client teams inside LogiFlow.
             </p>
           </div>
 
-          {/* Clean Dashboard Visual Mockup */}
-          <div className="bg-slate-950 rounded-3xl border border-slate-800 shadow-2xl p-6 sm:p-8 space-y-6 max-w-5xl mx-auto font-sans">
+          {/* Tab Switcher Buttons */}
+          <div className="flex flex-wrap justify-center gap-3">
+            <button 
+              onClick={() => setActiveDashboardTab('overview')}
+              className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center ${
+                activeDashboardTab === 'overview' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-slate-900 text-slate-400 hover:text-white'
+              }`}
+            >
+              <Package className="w-4 h-4 mr-2" />
+              Shipments Overview
+            </button>
+
+            <button 
+              onClick={() => setActiveDashboardTab('ndr')}
+              className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center ${
+                activeDashboardTab === 'ndr' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-slate-900 text-slate-400 hover:text-white'
+              }`}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              NDR Action Desk
+            </button>
+
+            <button 
+              onClick={() => setActiveDashboardTab('commercials')}
+              className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center ${
+                activeDashboardTab === 'commercials' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-slate-900 text-slate-400 hover:text-white'
+              }`}
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              Profit Margin Analysis
+            </button>
+
+            <button 
+              onClick={() => setActiveDashboardTab('calculator')}
+              className={`px-5 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center ${
+                activeDashboardTab === 'calculator' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-slate-900 text-slate-400 hover:text-white'
+              }`}
+            >
+              <Calculator className="w-4 h-4 mr-2" />
+              Rate Calculator
+            </button>
+          </div>
+
+          {/* Interactive Mockup Container */}
+          <div className="bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl p-6 sm:p-8 space-y-6 max-w-5xl mx-auto font-sans">
             
-            {/* Dashboard Header Bar Mockup */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-850">
+            {/* Dashboard Mockup Topbar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-slate-800">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
                   <Package className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold text-white">LogiFlow Merchant Portal</span>
-                  <span className="text-[10px] text-slate-500 block">Company: Apex Merchant Hub (Demo)</span>
+                  <span className="text-sm font-bold text-white">Apex E-Commerce Hub</span>
+                  <span className="text-[10px] text-slate-500 block">Tenant ID: TENANT-882103 (Demo Client Role)</span>
                 </div>
               </div>
               <div className="flex items-center space-x-3 text-xs font-semibold">
-                <span className="px-3 py-1 bg-slate-850 text-slate-300 rounded-lg border border-slate-800">Client Role</span>
-                <span className="px-3 py-1 bg-blue-600 text-white rounded-lg">New Booking</span>
+                <span className="px-3 py-1 bg-slate-800 text-slate-300 rounded-lg border border-slate-750">Role: CLIENT</span>
+                <span className="px-3 py-1 bg-blue-600 text-white rounded-lg">+ Book Shipment</span>
               </div>
             </div>
 
-            {/* KPI Cards Mockup */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-4 bg-slate-900 rounded-2xl border border-slate-850 space-y-1">
-                <span className="text-[10px] text-slate-500 font-bold uppercase">Total Booked</span>
-                <p className="text-xl font-bold text-white">1,248</p>
-              </div>
-              <div className="p-4 bg-slate-900 rounded-2xl border border-slate-850 space-y-1">
-                <span className="text-[10px] text-slate-500 font-bold uppercase">In Transit</span>
-                <p className="text-xl font-bold text-blue-400">312</p>
-              </div>
-              <div className="p-4 bg-slate-900 rounded-2xl border border-slate-850 space-y-1">
-                <span className="text-[10px] text-slate-500 font-bold uppercase">NDR Action Req</span>
-                <p className="text-xl font-bold text-amber-400">14</p>
-              </div>
-              <div className="p-4 bg-slate-900 rounded-2xl border border-slate-850 space-y-1">
-                <span className="text-[10px] text-slate-500 font-bold uppercase">Delivered SLA</span>
-                <p className="text-xl font-bold text-emerald-400">922</p>
-              </div>
-            </div>
+            {/* TAB CONTENT: Overview */}
+            {activeDashboardTab === 'overview' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-1">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase">Total Shipments</span>
+                    <p className="text-xl font-bold text-white">1,248</p>
+                  </div>
+                  <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-1">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase">In Transit</span>
+                    <p className="text-xl font-bold text-blue-400">312</p>
+                  </div>
+                  <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-1">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase">NDR Exception</span>
+                    <p className="text-xl font-bold text-amber-400">14</p>
+                  </div>
+                  <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-1">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase">Delivered</span>
+                    <p className="text-xl font-bold text-emerald-400">922</p>
+                  </div>
+                </div>
 
-            {/* Mock Table */}
-            <div className="overflow-x-auto rounded-xl border border-slate-850">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-900 text-slate-400 uppercase font-bold text-[10px] border-b border-slate-850">
-                  <tr>
-                    <th className="p-3">AWB</th>
-                    <th className="p-3">Recipient</th>
-                    <th className="p-3">Destination</th>
-                    <th className="p-3">Courier</th>
-                    <th className="p-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-850 text-slate-300 font-medium">
-                  <tr>
-                    <td className="p-3 font-mono text-blue-400 font-bold">DELH88291034</td>
-                    <td className="p-3">Vikram Mehta</td>
-                    <td className="p-3">Gurgaon, Haryana</td>
-                    <td className="p-3">Delhivery</td>
-                    <td className="p-3"><span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-bold">DELIVERED</span></td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 font-mono text-blue-400 font-bold">DELH99102455</td>
-                    <td className="p-3">Rahul Kapoor</td>
-                    <td className="p-3">Noida, UP</td>
-                    <td className="p-3">Delhivery</td>
-                    <td className="p-3"><span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded font-bold">NDR</span></td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 font-mono text-blue-400 font-bold">DELH77192011</td>
-                    <td className="p-3">Anita Sharma</td>
-                    <td className="p-3">Mumbai, MH</td>
-                    <td className="p-3">Delhivery</td>
-                    <td className="p-3"><span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded font-bold">IN_TRANSIT</span></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                <div className="overflow-x-auto rounded-xl border border-slate-800">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-950 text-slate-400 uppercase font-bold text-[10px] border-b border-slate-800">
+                      <tr>
+                        <th className="p-3">AWB Number</th>
+                        <th className="p-3">Recipient</th>
+                        <th className="p-3">Destination</th>
+                        <th className="p-3">Courier</th>
+                        <th className="p-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800 text-slate-300 font-medium">
+                      <tr>
+                        <td className="p-3 font-mono text-blue-400 font-bold">DELH88291034</td>
+                        <td className="p-3">Vikram Mehta</td>
+                        <td className="p-3">Gurgaon, HR</td>
+                        <td className="p-3">Delhivery</td>
+                        <td className="p-3"><span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-bold">DELIVERED</span></td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-mono text-blue-400 font-bold">DELH99102455</td>
+                        <td className="p-3">Rahul Kapoor</td>
+                        <td className="p-3">Noida, UP</td>
+                        <td className="p-3">Delhivery</td>
+                        <td className="p-3"><span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded font-bold">NDR</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT: NDR */}
+            {activeDashboardTab === 'ndr' && (
+              <div className="space-y-4">
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex justify-between items-center text-xs">
+                  <div className="flex items-center space-x-2 text-amber-300">
+                    <RefreshCw className="w-4 h-4" />
+                    <span className="font-bold">14 Active Delivery Exceptions Require Action</span>
+                  </div>
+                  <span className="text-[10px] text-amber-400 uppercase font-mono">Action Desk Priority</span>
+                </div>
+
+                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3 text-xs font-mono">
+                  <div className="flex justify-between items-center text-slate-300 pb-2 border-b border-slate-850">
+                    <span>AWB: DELH99102455 (Rahul Kapoor - Noida)</span>
+                    <span className="text-amber-400 font-bold">NDR_EX: Consignee Unavailable</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button className="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-sans font-bold text-xs">Request Reattempt</button>
+                    <button className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg font-sans font-semibold text-xs">Update Address/Phone</button>
+                    <button className="px-3 py-1.5 bg-rose-950 text-rose-300 border border-rose-800 rounded-lg font-sans font-semibold text-xs">Authorize RTO</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT: Commercials */}
+            {activeDashboardTab === 'commercials' && (
+              <div className="space-y-4 font-mono text-xs">
+                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex justify-between text-slate-300 pb-2 border-b border-slate-850 font-bold">
+                    <span>COMMERCIAL BREAKDOWN (SAMPLE SHIPMENT)</span>
+                    <span className="text-blue-400">ZONE B (REGIONAL)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Client Total Selling Charge:</span>
+                    <span className="text-blue-400 font-bold">₹188.80</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Courier Total Purchase Cost:</span>
+                    <span className="text-amber-400 font-bold">₹118.00</span>
+                  </div>
+                  <div className="flex justify-between p-3 bg-emerald-950/40 rounded-xl text-emerald-400 font-bold">
+                    <span>Calculated Gross Margin:</span>
+                    <span>₹70.80 (37.5%)</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT: Calculator */}
+            {activeDashboardTab === 'calculator' && (
+              <div className="space-y-4 text-xs font-semibold">
+                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-3">
+                  <span className="text-slate-400 font-bold block uppercase text-[10px]">Courier Rate Card Quote Calculator</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-slate-900 rounded-xl">
+                      <span className="text-slate-500 block text-[10px]">Origin Pincode</span>
+                      <span className="text-white font-mono font-bold">110001 (Delhi)</span>
+                    </div>
+                    <div className="p-3 bg-slate-900 rounded-xl">
+                      <span className="text-slate-500 block text-[10px]">Destination Pincode</span>
+                      <span className="text-white font-mono font-bold">400001 (Mumbai)</span>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-blue-950/40 border border-blue-800/60 rounded-xl flex justify-between items-center">
+                    <span className="text-slate-300">Estimated Rate (Delhivery B2C 1.5kg):</span>
+                    <span className="text-blue-400 font-mono font-bold text-sm">₹188.80 GST incl.</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
           </div>
 
@@ -1079,11 +1469,11 @@ export default function LandingPage() {
 
 
       {/* --- FAQ SECTION --- */}
-      <section id="faq" className="py-24 bg-slate-950 border-t border-slate-800">
+      <section id="faq" className="py-24 bg-slate-900 border-t border-slate-800">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
           <div className="text-center space-y-4">
-            <h2 className="text-blue-500 font-bold text-xs uppercase tracking-widest">Frequently Asked Questions</h2>
+            <h2 className="text-blue-400 font-bold text-xs uppercase tracking-widest">Frequently Asked Questions</h2>
             <h3 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
               Everything you need to know about LogiFlow
             </h3>
@@ -1093,7 +1483,7 @@ export default function LandingPage() {
             {faqs.map((faq, idx) => (
               <div 
                 key={idx} 
-                className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden transition-colors"
+                className="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden transition-colors"
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
@@ -1116,47 +1506,47 @@ export default function LandingPage() {
 
 
       {/* --- CONTACT / SALES ENQUIRY SECTION --- */}
-      <section id="contact" className="py-24 bg-slate-900 border-t border-slate-800 relative">
+      <section id="contact" className="py-24 bg-slate-950 border-t border-slate-800 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             
             <div className="space-y-6">
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold">
+              <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider">
                 Get In Touch
               </div>
               <h3 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
                 Ready to simplify your logistics operations?
               </h3>
               <p className="text-slate-300 text-base leading-relaxed">
-                Connect with our team to discuss your multi-courier shipping volume, courier integrations, and custom rate requirements.
+                Connect with our logistics &amp; engineering team to discuss multi-courier volume, custom rate cards, and platform onboarding.
               </p>
 
               <div className="space-y-4 pt-4 text-sm text-slate-300">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-slate-800 text-blue-400 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-slate-900 text-blue-400 rounded-xl flex items-center justify-center border border-slate-800">
                     <Mail className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-xs text-slate-500 block font-semibold">Sales Email</span>
+                    <span className="text-xs text-slate-500 block font-semibold">Sales &amp; Demo Inquiries</span>
                     <span className="font-bold text-white">sales@logiflow.app</span>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-slate-800 text-blue-400 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-slate-900 text-blue-400 rounded-xl flex items-center justify-center border border-slate-800">
                     <Building2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-xs text-slate-500 block font-semibold">Headquarters</span>
-                    <span className="font-bold text-white">Logistics & Technology Center, India</span>
+                    <span className="text-xs text-slate-500 block font-semibold">Platform Operation</span>
+                    <span className="font-bold text-white">Logistics &amp; Technology Center, India</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Contact Form */}
-            <div className="bg-slate-950 p-8 rounded-3xl border border-slate-800 shadow-2xl space-y-6">
+            <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl space-y-6">
               
               <h4 className="text-xl font-bold text-white">Request a Demo &amp; Consultation</h4>
 
@@ -1183,7 +1573,7 @@ export default function LandingPage() {
                     value={contactForm.name}
                     onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                     placeholder="e.g. Vikram Mehta"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                     required
                   />
                 </div>
@@ -1196,7 +1586,7 @@ export default function LandingPage() {
                       value={contactForm.company}
                       onChange={(e) => setContactForm({ ...contactForm, company: e.target.value })}
                       placeholder="e.g. Apex E-Commerce"
-                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                       required
                     />
                   </div>
@@ -1206,7 +1596,7 @@ export default function LandingPage() {
                     <select 
                       value={contactForm.monthlyVolume}
                       onChange={(e) => setContactForm({ ...contactForm, monthlyVolume: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-blue-500 transition-colors"
                     >
                       <option value="Under 1,000 shipments">Under 1,000 shipments</option>
                       <option value="1,000 - 5,000 shipments">1,000 - 5,000 shipments</option>
@@ -1224,7 +1614,7 @@ export default function LandingPage() {
                       value={contactForm.email}
                       onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                       placeholder="e.g. vikram@apex.com"
-                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                       required
                     />
                   </div>
@@ -1236,20 +1626,20 @@ export default function LandingPage() {
                       value={contactForm.phone}
                       onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
                       placeholder="e.g. +91 98765 43210"
-                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1.5">Message / Requirements</label>
+                  <label className="block text-slate-400 mb-1.5">Message / Shipping Requirements</label>
                   <textarea 
                     rows={3}
                     value={contactForm.message}
                     onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                    placeholder="Tell us about your current courier setup and shipping goals..."
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                    placeholder="Tell us about your shipping volume and courier requirements..."
+                    className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
                   ></textarea>
                 </div>
 
@@ -1258,7 +1648,7 @@ export default function LandingPage() {
                   disabled={contactLoading}
                   className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm shadow-xl shadow-blue-600/30 transition-all disabled:opacity-50 flex items-center justify-center"
                 >
-                  {contactLoading ? 'Submitting Enquiry...' : 'Submit Sales Enquiry'}
+                  {contactLoading ? 'Submitting Request...' : 'Submit Demo Request'}
                   {!contactLoading && <Send className="w-4 h-4 ml-2" />}
                 </button>
 
@@ -1291,19 +1681,20 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <h5 className="text-xs font-bold text-white uppercase tracking-wider mb-4">Product</h5>
+              <h5 className="text-xs font-bold text-white uppercase tracking-wider mb-4">Product Lifecycle</h5>
               <ul className="space-y-2 text-xs text-slate-400">
-                <li><a href="#features" className="hover:text-white transition-colors">Shipment Management</a></li>
-                <li><a href="#features" className="hover:text-white transition-colors">Courier Allocation Engine</a></li>
-                <li><a href="#tracking-section" className="hover:text-white transition-colors">Live Tracking</a></li>
-                <li><a href="#ndr" className="hover:text-white transition-colors">NDR &amp; RTO Action Desk</a></li>
-                <li><a href="#commercials" className="hover:text-white transition-colors">Billing &amp; Reconciliation</a></li>
+                <li><a href="#lifecycle" className="hover:text-white transition-colors">Client Rate Cards</a></li>
+                <li><a href="#lifecycle" className="hover:text-white transition-colors">Carrier Allocation Engine</a></li>
+                <li><a href="#tracking-section" className="hover:text-white transition-colors">Live Tracking &amp; Webhooks</a></li>
+                <li><a href="#ndr" className="hover:text-white transition-colors">NDR Action Desk</a></li>
+                <li><a href="#commercials" className="hover:text-white transition-colors">Invoice Reconciliation</a></li>
               </ul>
             </div>
 
             <div>
-              <h5 className="text-xs font-bold text-white uppercase tracking-wider mb-4">Company &amp; Resources</h5>
+              <h5 className="text-xs font-bold text-white uppercase tracking-wider mb-4">Company &amp; Platform</h5>
               <ul className="space-y-2 text-xs text-slate-400">
+                <li><a href="#comparison" className="hover:text-white transition-colors">Why LogiFlow</a></li>
                 <li><a href="#solutions" className="hover:text-white transition-colors">Solutions</a></li>
                 <li><a href="#couriers" className="hover:text-white transition-colors">Courier Network</a></li>
                 <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
@@ -1313,7 +1704,7 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <h5 className="text-xs font-bold text-white uppercase tracking-wider mb-4">Legal &amp; Privacy</h5>
+              <h5 className="text-xs font-bold text-white uppercase tracking-wider mb-4">Legal &amp; Security</h5>
               <ul className="space-y-2 text-xs text-slate-400">
                 <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
                 <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
