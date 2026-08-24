@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /track
+Allow: /calculator
+Allow: /privacy
+Allow: /terms
+Allow: /cookies
+Disallow: /dashboard/
+Disallow: /api/
+
+Sitemap: https://logiflow-black.vercel.app/sitemap.xml
