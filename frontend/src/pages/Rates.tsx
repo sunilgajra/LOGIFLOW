@@ -356,6 +356,26 @@ export default function Rates() {
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-xs dark:bg-slate-700 dark:text-white"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">FOV Risk Rate (%)</label>
+                  <input 
+                    type="number" step="0.01"
+                    value={editingCard.fov_percentage || 0} 
+                    onChange={e => setEditingCard({...editingCard, fov_percentage: Number(e.target.value)})}
+                    className="w-full px-3 py-2 border border-blue-300 dark:border-blue-700 rounded-xl text-xs font-bold dark:bg-slate-700 dark:text-white"
+                    placeholder="e.g. 0.2%"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-blue-700 dark:text-blue-400 mb-1">FOV Minimum Fee (₹)</label>
+                  <input 
+                    type="number" 
+                    value={editingCard.fov_minimum || 0} 
+                    onChange={e => setEditingCard({...editingCard, fov_minimum: Number(e.target.value)})}
+                    className="w-full px-3 py-2 border border-blue-300 dark:border-blue-700 rounded-xl text-xs font-bold dark:bg-slate-700 dark:text-white"
+                    placeholder="e.g. ₹20"
+                  />
+                </div>
               </div>
 
               {/* Full 9x9 Master Zone Matrix */}
@@ -426,6 +446,8 @@ export default function Rates() {
                     <div>Docket Fee: <span className="font-bold text-slate-900 dark:text-white">₹{card.docket_charge}</span></div>
                     <div>FSC Surcharge: <span className="font-bold text-slate-900 dark:text-white">{card.fsc_percentage || 0}%</span></div>
                     <div>IDC Charge: <span className="font-bold text-slate-900 dark:text-white">{card.idc_percentage || 0}%</span></div>
+                    <div>FOV Surcharge: <span className="font-bold text-blue-600 dark:text-blue-400">{card.fov_percentage || 0}% (Min ₹{card.fov_minimum || 0})</span></div>
+                    <div>ODA Charge: <span className="font-bold text-slate-900 dark:text-white">₹{card.oda_charge || 0}</span></div>
                   </div>
                 </div>
               ))}
