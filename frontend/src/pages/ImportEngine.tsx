@@ -77,14 +77,18 @@ export default function ImportEngine() {
         body: formData
       });
       
-      setFileId(data.fileId);
-      setHeaders(data.headers);
-      setMapping(data.mapping);
-      setSampleData(data.sampleData);
+      if (!data) {
+        throw new Error('Unable to parse file or connect to API server.');
+      }
+
+      setFileId(data.fileId || `file-${Date.now()}`);
+      setHeaders(data.headers || []);
+      setMapping(data.mapping || {});
+      setSampleData(data.sampleData || []);
       setStep('MAPPING');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Failed to parse file');
+      alert(err.message || 'Failed to parse file');
     } finally {
       setUploading(false);
     }

@@ -37,6 +37,8 @@ const DashboardLayout = () => {
     {
       title: 'OPERATIONS & DISPATCH',
       items: [
+        { name: 'Master Tracking Sheet 2026', href: '/dashboard/master-sheet', icon: FileText, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
+        { name: 'Courier Import Pipeline', href: '/dashboard/courier-import', icon: UploadCloud, roles: ['SUPER_ADMIN', 'ADMIN', 'ACCOUNTS'] },
         { name: 'Shipments', href: '/dashboard/shipments', icon: Truck, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
         { name: 'Pickup Requests', href: '/dashboard/pickups', icon: Package, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },
         { name: 'Dock Appointments', href: '/dashboard/appointments', icon: Calendar, roles: ['SUPER_ADMIN', 'ADMIN', 'CLIENT', 'ACCOUNTS', 'VIEWER'] },

@@ -29,6 +29,9 @@ import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import CookiesPage from './pages/CookiesPage';
 
+import MasterTrackingSheetPage from './pages/MasterTrackingSheet';
+import { CourierImportPipelinePage } from './pages/CourierImportPipeline';
+
 function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
@@ -46,6 +49,8 @@ function App() {
         {/* Protected ERP Dashboard */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="master-sheet" element={<MasterTrackingSheetPage />} />
+          <Route path="courier-import" element={<CourierImportPipelinePage />} />
           <Route path="calculator" element={<RateCalculator />} />
           <Route path="notifications" element={<NotificationsConfig />} />
           <Route path="shipments" element={<Shipments />} />

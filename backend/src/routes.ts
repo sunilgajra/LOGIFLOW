@@ -50,6 +50,9 @@ router.post('/auth/dev-login', async (req, res) => {
 
 import { submitContactEnquiry } from './controllers/contact.controller';
 
+import { previewMasterImport, confirmMasterImport, getUnmatchedShipments, resolveUnmatchedShipment } from './controllers/masterImport.controller';
+import { getMasterReportData, exportMasterReport, updatePodStatus } from './controllers/masterReport.controller';
+
 // --- Public APIs ---
 router.post('/auth/login', login);
 router.post('/auth/forgot-password', forgotPassword);
@@ -76,6 +79,21 @@ router.post('/tracking/sync-all', requireAuth, syncAllActiveShipments);
 // --- Analytics & Reports API ---
 router.get('/analytics', requireAuth, getAnalytics);
 router.get('/analytics/monthly-report', requireAuth, getMonthlyReport);
+
+// --- Master Tracking Sheet & Export API ---
+router.get('/master-reports/query', requireAuth, getMasterReportData);
+router.get('/master-reports/export', requireAuth, exportMasterReport);
+router.post('/shipments/:id/pod', requireAuth, updatePodStatus);
+
+// --- Document & Sheet Import API ---
+router.post('/imports/preview', requireAuth, upload.single('file'), previewImport);
+router.post('/imports/process', requireAuth, processImport);
+
+// --- Master Courier Import & Pipeline API ---
+router.post('/master-import/preview', requireAuth, upload.single('file'), previewMasterImport);
+router.post('/master-import/confirm', requireAuth, confirmMasterImport);
+router.get('/master-import/unmatched', requireAuth, getUnmatchedShipments);
+router.post('/master-import/unmatched/:id/action', requireAuth, resolveUnmatchedShipment);
 
 // --- NDR Management API ---
 router.get('/ndr', requireAuth, getNDRShipments);
@@ -151,5 +169,6 @@ router.post('/notifications/test-whatsapp', requireAuth, sendTestWhatsApp);
 router.post('/notifications/test-email', requireAuth, sendTestEmail);
 
 export default router;
+
 
 

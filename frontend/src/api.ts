@@ -1320,6 +1320,55 @@ export const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
       return getDemoTickets();
     }
 
+    // --- 13. IMPORTS API FALLBACK ---
+    if (endpoint.includes('/imports/preview') || endpoint.includes('/master-import/preview')) {
+      return {
+        fileId: 'demo-import-' + Date.now(),
+        headers: ['AWB Number', 'Receiver Name', 'Address', 'City', 'State', 'Pincode', 'Actual Weight (KG)', 'Client Charge'],
+        mapping: {
+          awb_number: 'AWB Number',
+          receiver_name: 'Receiver Name',
+          receiver_address: 'Address',
+          city: 'City',
+          state: 'State',
+          pincode: 'Pincode',
+          actual_weight: 'Actual Weight (KG)',
+          client_charge: 'Client Charge'
+        },
+        sampleData: [
+          {
+            'AWB Number': 'DELH88299001',
+            'Receiver Name': 'Rahul Sharma',
+            'Address': '102 Green Heights, Andheri East',
+            'City': 'Mumbai',
+            'State': 'Maharashtra',
+            'Pincode': '400069',
+            'Actual Weight (KG)': '1.5',
+            'Client Charge': '250'
+          },
+          {
+            'AWB Number': 'BLUED9910022',
+            'Receiver Name': 'Priya Verma',
+            'Address': 'Flat 4B, MG Road',
+            'City': 'Bengaluru',
+            'State': 'Karnataka',
+            'Pincode': '560001',
+            'Actual Weight (KG)': '2.0',
+            'Client Charge': '320'
+          }
+        ]
+      };
+    }
+
+    if (endpoint.includes('/imports/process') || endpoint.includes('/master-import/confirm')) {
+      return {
+        message: 'Import complete (Demo Mode)',
+        imported: 10,
+        failed: 0,
+        total: 10
+      };
+    }
+
     return null;
   }
 };
@@ -1376,5 +1425,55 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email })
     });
+  },
+
+  // --- Master Tracking Sheet & Export API ---
+  async getMasterReport(params: Record<string, any> = {}) {
+    const searchParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+        searchParams.append(key, String(params[key]));
+      }
+    });
+    return await fetchApi(`/master-reports/query?${searchParams.toString()}`);
+  },
+
+  async exportMasterReportUrl(params: Record<string, any> = {}, format: 'excel' | 'csv' | 'pdf' = 'excel') {
+    const searchParams = new URLSearchParams({ ...params, format });
+    return `${API_BASE}/master-reports/export?${searchParams.toString()}`;
+  },
+
+  async updatePodStatus(shipmentId: string, pod_status: string, pod_doc_url?: string) {
+    return await fetchApi(`/shipments/${shipmentId}/pod`, {
+      method: 'POST',
+      body: JSON.stringify({ pod_status, pod_doc_url })
+    });
+  },
+
+  // --- Master Courier Import Pipeline API ---
+  async previewMasterCourierImport(formData: FormData) {
+    return await fetchApi('/master-import/preview', {
+      method: 'POST',
+      body: formData
+    });
+  },
+
+  async confirmMasterCourierImport(preview: any, courier_id?: string) {
+    return await fetchApi('/master-import/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ preview, courier_id })
+    });
+  },
+
+  async getUnmatchedCourierShipments() {
+    return await fetchApi('/master-import/unmatched');
+  },
+
+  async resolveUnmatchedCourierShipment(id: string, action: 'MATCH' | 'CREATE' | 'IGNORE', target_awb?: string, target_shipment_id?: string) {
+    return await fetchApi(`/master-import/unmatched/${id}/action`, {
+      method: 'POST',
+      body: JSON.stringify({ action, target_awb, target_shipment_id })
+    });
   }
 };
+

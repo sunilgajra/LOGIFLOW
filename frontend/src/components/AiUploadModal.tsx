@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { fetchApi } from '../api';
 
 export default function AiUploadModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const [file, setFile] = useState<File | null>(null);
@@ -17,18 +18,16 @@ export default function AiUploadModal({ isOpen, onClose }: { isOpen: boolean, on
     formData.append('file', file);
 
     try {
-      // Point this to your backend running on 5000 or whichever port
-      const response = await fetch('http://localhost:5000/api/imports/ai-upload', {
+      const data = await fetchApi('/imports/preview', {
         method: 'POST',
         body: formData,
       });
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to process file');
+      if (!data) {
+        throw new Error('Failed to process file');
       }
 
-      setResult(data);
+      setResult({ message: 'File preview generated successfully!', ...data });
     } catch (err: any) {
       setError(err.message);
     } finally {

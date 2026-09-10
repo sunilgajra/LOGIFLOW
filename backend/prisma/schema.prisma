@@ -46,6 +46,8 @@ model Company {
   pincode_zone_mappings PincodeZoneMapping[]
   courier_invoices      CourierInvoice[]
   commercial_audit_logs CommercialAuditLog[]
+  shipment_events       ShipmentEvent[]
+  unmatched_courier_shipments UnmatchedCourierShipment[]
 }
 
 model User {
@@ -289,10 +291,65 @@ model Shipment {
 
   last_status_event_time DateTime?
   tracking_events        TrackingEvent[]
+  shipment_events        ShipmentEvent[]
 
   invoice_id     String?
   invoice        ClientInvoice?          @relation(fields: [invoice_id], references: [id])
   status_history ShipmentStatusHistory[]
+
+  // --- MASTER TRACKING SHEET FIELDS ---
+  // Company-Owned Fields
+  sr_no                Int?
+  month_tag            String?
+  ac_code              String?
+  b_weight             Decimal?  @db.Decimal(12, 4)
+  amt                  Decimal?  @db.Decimal(12, 2)
+  consignor            String?
+  pickup_location      String?
+  qty                  Int?
+  r_weight             Decimal?  @db.Decimal(12, 4)
+  item_description     String?
+  rov_type             String?
+  invoice_no           String?
+  invoice_amt          Decimal?  @db.Decimal(12, 2)
+
+  // Courier-Owned Fields
+  rto_docket           String?
+  transit_days         Int?
+  time_to_reach_hub    String?
+  date_of_reaching_hub DateTime?
+  edd_date             DateTime?
+  rto_date             DateTime?
+  attempt_1_date       DateTime?
+  attempt_2_date       DateTime?
+  attempt_3_date       DateTime?
+  attempt_4_date       DateTime?
+  attempt_5_date       DateTime?
+  attempt_6_date       DateTime?
+  attempt_7_date       DateTime?
+  attempt_8_date       DateTime?
+  attempt_9_date       DateTime?
+  attempt_10_date      DateTime?
+  attempt_11_date      DateTime?
+  attempt_12_date      DateTime?
+  appointment_date_a   DateTime?
+  appointment_date_b   DateTime?
+  appointment_date_c   DateTime?
+
+  // System-Calculated Fields
+  days_to_deliver      Int?
+  demurrage_free_days  Int?      @default(3)
+  demurrage_days       Int?      @default(0)
+  demurrage_rate       Decimal?  @default(0) @db.Decimal(12, 2)
+  demurrage_amount     Decimal?  @default(0) @db.Decimal(12, 2)
+  demurrage_gst_pct    Decimal?  @default(18) @db.Decimal(12, 2)
+  demurrage_gst_amount Decimal?  @default(0) @db.Decimal(12, 2)
+  total_demurrage      Decimal?  @default(0) @db.Decimal(12, 2)
+
+  // POD Fields
+  pod_status           String?   @default("PENDING") // PENDING, REQUESTED, RECEIVED, VERIFIED
+  pod_doc_url          String?
+  pod_uploaded_at      DateTime?
 
   @@unique([company_id, awb_number])
   @@index([awb_number])
@@ -300,6 +357,8 @@ model Shipment {
   @@index([courier_id])
   @@index([internal_status])
   @@index([pincode])
+  @@index([month_tag])
+  @@index([pod_status])
 }
 
 model ShipmentStatusHistory {
@@ -979,3 +1038,46 @@ model NotificationLog {
   @@index([shipment_id])
   @@index([awb])
 }
+
+model ShipmentEvent {
+  id          String   @id @default(uuid())
+  shipment_id String
+  company_id  String
+  event_type  String   // BOOKED, PICKED_UP, REACHED_HUB, OUT_FOR_DELIVERY, DELIVERY_ATTEMPT, DELIVERED, RTO, EXCEPTION, APPOINTMENT
+  event_date  DateTime
+  description String?
+  source      String   @default("COURIER") // COMPANY, COURIER, SYSTEM
+  courier     String?
+  created_at  DateTime @default(now())
+
+  shipment Shipment @relation(fields: [shipment_id], references: [id], onDelete: Cascade)
+  company  Company  @relation(fields: [company_id], references: [id])
+
+  @@index([shipment_id])
+  @@index([company_id])
+  @@index([event_type])
+}
+
+model UnmatchedCourierShipment {
+  id               String   @id @default(uuid())
+  company_id       String
+  courier_id       String?
+  awb_number       String
+  courier_name     String?
+  raw_status       String?
+  event_date       DateTime?
+  delivered_date   DateTime?
+  attempt_date     DateTime?
+  remark           String?
+  raw_payload_json String   // Stored JSON of uploaded row
+  status           String   @default("PENDING") // PENDING, MATCHED, CREATED_SHIPMENT, IGNORED
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  company Company @relation(fields: [company_id], references: [id])
+
+  @@index([company_id])
+  @@index([awb_number])
+  @@index([status])
+}
+

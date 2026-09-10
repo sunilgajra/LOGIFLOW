@@ -10,6 +10,9 @@ import { setupTrackingCron } from './jobs/tracking.cron';
 const app = express();
 const port = process.env.PORT || 5000;
 
+// Trust reverse proxies (Render, Vercel, Cloudflare, AWS)
+app.set('trust proxy', 1);
+
 // Initialize background jobs
 setupTrackingCron();
 
@@ -20,7 +23,7 @@ app.use(helmet({
 
 // CORS Configuration - Permissive for Vercel, GitHub Pages, and Local environments
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => callback(null, true),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
@@ -32,7 +35,8 @@ app.options('*', cors());
 // Rate Limiting for Auth Endpoints to prevent brute-force attacks
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 requests per windowMs
+  max: 100, // Limit each IP to 100 requests per windowMs
+  skip: (req) => req.method === 'OPTIONS', // Never rate-limit preflight OPTIONS
   message: { error: 'Too many login attempts from this IP, please try again after 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
