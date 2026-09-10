@@ -13,6 +13,27 @@ const port = process.env.PORT || 5000;
 // Trust reverse proxies (Render, Vercel, Cloudflare, AWS)
 app.set('trust proxy', 1);
 
+// Comprehensive CORS & Preflight Middleware (Express 5 Compatible)
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+}));
+
 // Initialize background jobs
 setupTrackingCron();
 
@@ -20,17 +41,6 @@ setupTrackingCron();
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
-
-// CORS Configuration - Permissive for Vercel, GitHub Pages, and Local environments
-app.use(cors({
-  origin: (origin, callback) => callback(null, true),
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
-}));
-
-// Handle Preflight OPTIONS requests for all routes
-app.options('*', cors());
 
 // Rate Limiting for Auth Endpoints to prevent brute-force attacks
 const authLimiter = rateLimit({
