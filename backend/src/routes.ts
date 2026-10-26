@@ -13,12 +13,12 @@ import { getPublicTracking, syncShipmentTracking, syncAllActiveShipments } from 
 import { previewImport, processImport } from './controllers/import.controller';
 import { generateInvoice, getInvoicesByClient, getInvoiceById } from './controllers/invoice.controller';
 import { getCompanySettings, updateCompanySettings } from './controllers/settings.controller';
-import { getRateCards, createRateCard, updateRateCard, deleteRateCard, getZoneMappings, saveZoneMapping, calculateRateEstimate } from './controllers/rate.controller';
+import { getRateCards, createRateCard, updateRateCard, deleteRateCard, getZoneMappings, saveZoneMapping, deleteZoneMapping, updateZoneMapping, calculateRateEstimate } from './controllers/rate.controller';
 import { login, forgotPassword, verifyResetToken, resetPassword } from './controllers/auth.controller';
 import { handleCourierWebhook } from './controllers/webhook.controller';
 import { getNDRShipments, getNDRHistory, processNDRAction } from './controllers/ndr.controller';
 import { deliverShipment } from './controllers/delivery.controller';
-import { getWarehouses, createWarehouse, updateWarehouse } from './controllers/warehouse.controller';
+import { getWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from './controllers/warehouse.controller';
 import { getPickupRequests, createPickupRequest, updatePickupRequestStatus } from './controllers/pickup.controller';
 import { getSupportTickets, createSupportTicket, updateTicketStatus } from './controllers/support.controller';
 import { calculateRateQuotes } from './controllers/calculator.controller';
@@ -43,10 +43,11 @@ router.post('/auth/dev-login', async (req, res) => {
   const token = jwt.sign(
     { id: user.id, company_id: user.company_id, role: user.role },
     process.env.JWT_SECRET || 'secret_key',
-    { expiresIn: '7d' }
+    { expiresIn: '1d' } // Consistent with real login expiry
   );
   res.json({ token, user });
 });
+
 
 import { submitContactEnquiry } from './controllers/contact.controller';
 
@@ -126,6 +127,8 @@ router.put('/rates/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), upd
 router.delete('/rates/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), deleteRateCard);
 router.get('/zones', requireAuth, getZoneMappings);
 router.post('/zones', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), saveZoneMapping);
+router.put('/zones/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), updateZoneMapping);
+router.delete('/zones/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), deleteZoneMapping);
 
 // --- Couriers API ---
 router.get('/couriers', requireAuth, getCouriers);
@@ -147,6 +150,7 @@ router.post('/shipments/:awb/deliver', requireAuth, deliverShipment);
 router.get('/warehouses', requireAuth, getWarehouses);
 router.post('/warehouses', requireAuth, createWarehouse);
 router.put('/warehouses/:id', requireAuth, updateWarehouse);
+router.delete('/warehouses/:id', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']), deleteWarehouse);
 
 // --- Domestic Pickup Requests API ---
 router.get('/pickups', requireAuth, getPickupRequests);

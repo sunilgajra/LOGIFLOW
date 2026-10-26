@@ -101,7 +101,8 @@ export class NotificationService {
     const receiver = payload.receiver_name || 'Customer';
     const awb = payload.awb_number || 'N/A';
     const courier = payload.courier_name || 'LogiFlow Express';
-    const trackingUrl = `https://logiflow-black.vercel.app/track?awb=${awb}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://logiflow-black.vercel.app';
+    const trackingUrl = `${frontendUrl}/track?awb=${awb}`;
     const company = payload.company_name || 'LogiFlow Logistics';
     const status = payload.internal_status;
     const expDelivery = payload.promised_delivery_date || 'Soon';
@@ -134,7 +135,8 @@ export class NotificationService {
   static generateWhatsAppMessage(payload: NotificationEventPayload): { url: string; text: string } {
     const phone = payload.receiver_phone ? payload.receiver_phone.replace(/[^0-9]/g, '') : '';
     const formattedPhone = phone.length === 10 ? `91${phone}` : phone;
-    const trackingUrl = `https://logiflow-black.vercel.app/track?awb=${payload.awb_number}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://logiflow-black.vercel.app';
+    const trackingUrl = `${frontendUrl}/track?awb=${payload.awb_number}`;
     const receiver = payload.receiver_name || 'Customer';
     const courier = payload.courier_name || 'LogiFlow Express';
 
@@ -220,6 +222,34 @@ export class NotificationService {
 
       // Dispatch to Customer WhatsApp
       if (pref.whatsapp_enabled && pref.customer_whatsapp_enabled && payload.receiver_phone) {
+        const cleanPhone = payload.receiver_phone.replace(/[^0-9]/g, '');
+        const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+
+        // --- WhatsApp Gateway Dispatch ---
+        // Priority 1: Use configured WhatsApp Business API (Gupshup / Twilio / Meta)
+        // Uncomment and configure the block below when you have an API key:
+        /*
+        const WA_API_KEY = process.env.WHATSAPP_API_KEY;
+        const WA_API_URL = process.env.WHATSAPP_API_URL; // e.g. https://api.gupshup.io/wa/api/v1/msg
+        if (WA_API_KEY && WA_API_URL && formattedPhone) {
+          try {
+            await fetch(WA_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'apikey': WA_API_KEY },
+              body: JSON.stringify({
+                channel: 'whatsapp',
+                source: process.env.WHATSAPP_SENDER_NUMBER,
+                destination: formattedPhone,
+                message: { type: 'text', text: waData.text },
+                'src.name': process.env.WHATSAPP_APP_NAME || 'LogiFlow'
+              })
+            });
+          } catch (waErr) {
+            console.error('[NotificationEngine] WhatsApp API dispatch failed:', waErr);
+          }
+        }
+        */
+
         await prisma.notificationLog.create({
           data: {
             company_id: companyId,
@@ -228,7 +258,7 @@ export class NotificationService {
             awb: payload.awb_number,
             event_type: payload.internal_status,
             channel: 'WHATSAPP',
-            recipient: payload.receiver_phone.replace(/[^0-9]/g, ''),
+            recipient: formattedPhone,
             template_text: waData.text,
             status: 'SENT',
             provider_message_id: `WA-MSG-${Date.now()}`,
@@ -240,6 +270,33 @@ export class NotificationService {
       // Dispatch to Client Email
       if (pref.email_enabled && pref.client_email_enabled && (pref.client_email_address || payload.receiver_email)) {
         const targetEmail = pref.client_email_address || payload.receiver_email || '';
+
+        // --- Email Gateway Dispatch ---
+        // Configure SMTP or SendGrid by setting env variables:
+        // SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+        // Uncomment the block below when email provider is configured:
+        /*
+        const nodemailer = require('nodemailer');
+        if (process.env.SMTP_HOST && targetEmail) {
+          try {
+            const transporter = nodemailer.createTransport({
+              host: process.env.SMTP_HOST,
+              port: parseInt(process.env.SMTP_PORT || '587'),
+              secure: process.env.SMTP_SECURE === 'true',
+              auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+            });
+            await transporter.sendMail({
+              from: process.env.SMTP_FROM || 'noreply@logiflow.in',
+              to: targetEmail,
+              subject: `LogiFlow Shipment Update — AWB: ${payload.awb_number}`,
+              text: waData.text
+            });
+          } catch (emailErr) {
+            console.error('[NotificationEngine] Email dispatch failed:', emailErr);
+          }
+        }
+        */
+
         await prisma.notificationLog.create({
           data: {
             company_id: companyId,

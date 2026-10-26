@@ -15,6 +15,13 @@ model Company {
   pan_number     String?
   invoice_prefix String?
   currency       String   @default("INR")
+  // Bank & support fields used by settings controller
+  bank_name      String?
+  account_name   String?
+  account_number String?
+  ifsc_code      String?
+  support_email  String?
+  support_phone  String?
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 

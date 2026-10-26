@@ -174,6 +174,53 @@ export const saveZoneMapping = async (req: AuthenticatedRequest, res: Response) 
   }
 };
 
+export const deleteZoneMapping = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id || '');
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const existing = await prisma.zoneMapping.findFirst({
+      where: { id, company_id: companyId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Zone mapping not found' });
+    }
+
+    await prisma.zoneMapping.delete({ where: { id } });
+    res.json({ success: true, message: 'Zone mapping deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to delete zone mapping', details: error.message });
+  }
+};
+
+export const updateZoneMapping = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id || '');
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const existing = await prisma.zoneMapping.findFirst({
+      where: { id, company_id: companyId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Zone mapping not found' });
+    }
+
+    const { zone_name } = req.body;
+    const updated = await prisma.zoneMapping.update({
+      where: { id },
+      data: { zone_name }
+    });
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to update zone mapping', details: error.message });
+  }
+};
+
+
 export interface ClientCostSnapshot {
   client_base_freight: number;
   client_docket_charge: number;

@@ -116,3 +116,31 @@ export const updateWarehouse = async (req: AuthenticatedRequest, res: Response) 
     res.status(500).json({ error: 'Failed to update pickup location', details: error.message });
   }
 };
+
+export const deleteWarehouse = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const companyId = req.user?.company_id;
+    if (!companyId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { id } = req.params;
+
+    const existing = await prisma.warehouse.findFirst({
+      where: { id: String(id), company_id: String(companyId) }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Warehouse not found or access denied' });
+    }
+
+    // Soft-delete by setting status to INACTIVE so linked pickup requests remain intact
+    const updated = await prisma.warehouse.update({
+      where: { id: String(id) },
+      data: { status: 'INACTIVE' }
+    });
+
+    res.json({ success: true, message: 'Warehouse deactivated successfully', warehouse: updated });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to delete warehouse', details: error.message });
+  }
+};
+

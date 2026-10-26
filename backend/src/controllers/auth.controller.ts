@@ -123,14 +123,16 @@ export const forgotPassword = async (req: Request, res: Response) => {
       }
     });
 
-    const resetUrl = `/reset-password?token=${resetToken}`;
-    console.log(`[AUTH] Password reset requested for ${user.email}. Token URL: ${resetUrl}`);
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    console.log(`[AUTH][DEV] Password reset requested for ${user.email}. Token URL: ${resetUrl}`);
+
+    // TODO: In production, send resetUrl via email using your email provider (e.g. SendGrid, Nodemailer).
+    // For development, the reset URL is logged above. Do NOT expose the token in the API response.
 
     res.json({
-      message: 'Password reset link generated successfully.',
-      resetToken,
-      resetUrl,
-      email: user.email
+      message: 'If your account exists in our system, password reset instructions have been sent to your email.',
+      // In development mode, also return resetUrl to aid testing without email setup.
+      ...(process.env.NODE_ENV !== 'production' ? { resetUrl, email: user.email } : {})
     });
 
   } catch (error: any) {

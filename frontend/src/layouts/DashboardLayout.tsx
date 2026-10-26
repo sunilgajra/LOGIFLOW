@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Outlet, Link, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, Users, Truck, UploadCloud, Settings, Bell, Search, 
@@ -11,6 +11,16 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const handleGlobalSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && globalSearch.trim()) {
+      navigate(`/dashboard/shipments?search=${encodeURIComponent(globalSearch.trim())}`);
+      setGlobalSearch('');
+      searchRef.current?.blur();
+    }
+  };
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -221,9 +231,13 @@ const DashboardLayout = () => {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Search className="h-4 w-4 text-slate-400" />
                 </div>
-                <input 
-                  type="text" 
-                  placeholder="Search shipments by AWB, Client..." 
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={globalSearch}
+                  onChange={e => setGlobalSearch(e.target.value)}
+                  onKeyDown={handleGlobalSearch}
+                  placeholder="Search by AWB, Client name... (press Enter)"
                   className="block w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg text-sm bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition-colors"
                 />
               </div>
